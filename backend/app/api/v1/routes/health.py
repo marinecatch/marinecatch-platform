@@ -4,7 +4,4 @@ router = APIRouter()
 
 @router.get("/health")
 def health():
-    return {
-        "status": "MarineCatch API running",
-        "system": "OK"
-    }
+    return {"status": "MarineCatch API running"}
