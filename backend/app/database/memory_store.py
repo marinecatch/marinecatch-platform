@@ -237,5 +237,6 @@ def seed():
         "harvest_date": "2025-05-07",
         "boat_number": None
     })
-
-seed()
+print("MarineCatch seed data loaded")
+print(f"Users loaded: {len(_users)}")
+print(f"Listings loaded: {len(_listings)}")
