@@ -240,3 +240,6 @@ def seed():
 print("MarineCatch seed data loaded")
 print(f"Users loaded: {len(_users)}")
 print(f"Listings loaded: {len(_listings)}")
+
+# Call seed when this module loads
+seed()
