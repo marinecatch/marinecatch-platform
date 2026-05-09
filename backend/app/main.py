@@ -12,15 +12,12 @@ from app.api.v1.routes import health, users, fish, orders
 from app.database.memory_store import seed
 
 
-# Runs once on startup, once on shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup — load real fisher and buyer data
     print("Starting MarineCatch Africa API...")
     seed()
     print("Seed data loaded. API ready.")
     yield
-    # Shutdown
     print("Shutting down MarineCatch API")
 
 
@@ -31,7 +28,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS — allows frontend to talk to this API later
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,19 +36,21 @@ app.add_middleware(
 )
 
 # ── ROUTES ────────────────────────────────────────────────────────
+# Note: users router already has /api/v1/users prefix built in
+# fish and orders get /api/v1 added here
 app.include_router(health.router)
-app.include_router(users.router)
-app.include_router(fish.router,   prefix="/api/v1")
-app.include_router(orders.router, prefix="/api/v1")
+app.include_router(users.router)                        # /api/v1/users
+app.include_router(fish.router,   prefix="/api/v1")    # /api/v1/fish
+app.include_router(orders.router, prefix="/api/v1")    # /api/v1/orders
 
 # ── ROOT ──────────────────────────────────────────────────────────
 @app.get("/", tags=["System"])
 def root():
     return {
-        "service":  "MarineCatch Africa API",
-        "version":  "0.1.0",
-        "status":   "running",
-        "docs":     "/docs",
+        "service": "MarineCatch Africa API",
+        "version": "0.1.0",
+        "status":  "running",
+        "docs":    "/docs",
         "endpoints": {
             "health":   "/health",
             "users":    "/api/v1/users",
