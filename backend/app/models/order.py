@@ -47,6 +47,8 @@ class Order(Base):
     notes             = Column(Text, nullable=True)
     status            = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING, index=True)
     updated_by        = Column(String(100), nullable=True)
+    # ESG + logistics
+    delivery_distance_km = Column(Float, nullable=True)
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
     updated_at        = Column(DateTime(timezone=True), onupdate=func.now())
 

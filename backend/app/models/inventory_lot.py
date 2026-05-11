@@ -260,6 +260,15 @@ class InventoryLot(Base):
     )
     is_active       = Column(Boolean, default=True, nullable=False)
 
+    # ESG + sustainability fields
+    gear_type            = Column(String(50), nullable=True)
+    # "handline", "longline", "trap", "gillnet", "diving"
+
+    iuu_risk_flag        = Column(Boolean, default=False, nullable=False)
+    # True if: no BMU record, expired license, or banned species
+
+    sustainability_notes = Column(Text, nullable=True)
+
     # ── EXPIRY ────────────────────────────────────────────────
     estimated_expiry = Column(DateTime(timezone=True), nullable=True)
 
