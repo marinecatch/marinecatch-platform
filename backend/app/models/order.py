@@ -16,11 +16,16 @@ from app.database.connection import Base
 import enum
 
 class OrderStatus(str, enum.Enum):
-    PENDING    = "pending"
-    CONFIRMED  = "confirmed"
-    DISPATCHED = "dispatched"
-    DELIVERED  = "delivered"
-    CANCELLED  = "cancelled"
+    PENDING_PAYMENT  = "pending_payment"   # Order created, awaiting payment
+    PAID             = "paid"              # Payment confirmed (M-Pesa Phase 2)
+    CONFIRMED        = "confirmed"         # MarineCatch confirmed the order
+    PREPARING        = "preparing"         # Being packed/QA checked
+    DISPATCHED       = "dispatched"        # In transit to buyer
+    DELIVERED        = "delivered"         # Buyer received
+    COMPLETED        = "completed"         # Transaction fully closed
+    CANCELLED        = "cancelled"         # Cancelled by buyer or admin
+    PAYMENT_FAILED   = "payment_failed"    # M-Pesa failed (Phase 2)
+    REFUNDED         = "refunded"          # Money returned (Phase 2)
 
 class OrderType(str, enum.Enum):
     MARKETPLACE   = "marketplace"    # Mode 1 — fisher lists, buyer orders
@@ -46,7 +51,7 @@ class Order(Base):
     commission_rate   = Column(String(10), nullable=False)
     delivery_address  = Column(String(300), nullable=False)
     notes             = Column(Text, nullable=True)
-    status            = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING, index=True)
+    status = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING_PAYMENT, index=True)
     updated_by        = Column(String(100), nullable=True)
     # ESG + logistics
     delivery_distance_km = Column(Float, nullable=True)
