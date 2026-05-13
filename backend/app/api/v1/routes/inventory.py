@@ -1,0 +1,272 @@
+# app/api/v1/routes/inventory.py
+#
+# WHY THIS FILE EXISTS:
+# Handles all HTTP requests for inventory lots.
+# Replaces the old fish.py marketplace logic with
+# a proper inventory system supporting all 3 modes.
+#
+# Public endpoints (no login):
+#   GET /inventory          → browse available lots
+#   GET /inventory/{id}     → single lot details
+#
+# Protected endpoints (login required):
+#   POST /inventory         → fisher/supplier creates lot
+#   GET  /inventory/my-lots → fisher sees their own lots
+#   POST /inventory/{id}/reserve → reserve stock for order
+
+from fastapi import APIRouter, HTTPException, Depends, Query
+from sqlalchemy.orm import Session
+from typing import Optional
+from app.database.connection import get_db
+from app.services.inventory_service import (
+    create_inventory_lot,
+    get_available_lots,
+    get_lot_by_id,
+    get_lots_by_fisher,
+    calculate_order_value,
+    reserve_stock,
+    release_stock,
+)
+from app.api.v1.routes.users import get_current_user
+
+router = APIRouter(prefix="/inventory", tags=["Inventory"])
+
+# ── PUBLIC — browse available lots ───────────────────────────────
+@router.get("/")
+def browse_inventory(
+    species:          Optional[str]   = Query(None),
+    landing_site:     Optional[str]   = Query(None),
+    condition:        Optional[str]   = Query(None),
+    grade:            Optional[str]   = Query(None),
+    min_weight_kg:    Optional[float] = Query(None),
+    max_price_per_kg: Optional[float] = Query(None),
+    page:             int             = Query(1, ge=1),
+    page_size:        int             = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    Browse all available seafood inventory.
+    Public — no login required.
+
+    Examples:
+    /api/v1/inventory?species=tuna
+    /api/v1/inventory?landing_site=kibuyuni
+    /api/v1/inventory?condition=fresh&max_price_per_kg=800
+    /api/v1/inventory?species=prawns&grade=A
+    """
+    skip = (page - 1) * page_size
+    lots = get_available_lots(
+        db,
+        species=          species,
+        landing_site=     landing_site,
+        condition=        condition,
+        grade=            grade,
+        min_weight_kg=    min_weight_kg,
+        max_price_per_kg= max_price_per_kg,
+        skip=             skip,
+        limit=            page_size,
+    )
+
+    return {
+        "page":      page,
+        "page_size": page_size,
+        "count":     len(lots),
+        "lots": [
+            {
+                "id":                   lot.id,
+                "lot_number":           lot.lot_number,
+                "traceability_code":    lot.traceability_code,
+                "species":              lot.species,
+                "product_form":         lot.product_form,
+                "available_kg":         lot.available_kg,
+                "selling_price_per_kg": lot.selling_price_per_kg,
+                "total_value_kes":      round(
+                    lot.available_kg * lot.selling_price_per_kg, 2
+                ),
+                "grade":                lot.grade,
+                "condition":            lot.condition,
+                "landing_site":         lot.landing_site,
+                "source_name":          lot.source_name,
+                "catch_date":           lot.catch_date,
+                "ownership_type":       lot.ownership_type,
+                "fulfillment_mode":     lot.fulfillment_mode,
+                "estimated_expiry":     lot.estimated_expiry,
+                "notes":                lot.notes,
+            }
+            for lot in lots
+        ]
+    }
+
+# ── PUBLIC — single lot detail ────────────────────────────────────
+@router.get("/{lot_id}")
+def get_lot(lot_id: int, db: Session = Depends(get_db)):
+    """
+    Get full details of one inventory lot.
+    Includes traceability, storage, and fee breakdown.
+    """
+    lot = get_lot_by_id(db, lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    return {
+        "id":                          lot.id,
+        "lot_number":                  lot.lot_number,
+        "traceability_code":           lot.traceability_code,
+        "batch_number":                lot.batch_number,
+        "species":                     lot.species,
+        "product_form":                lot.product_form,
+        "weight_kg":                   lot.weight_kg,
+        "available_kg":                lot.available_kg,
+        "reserved_kg":                 lot.reserved_kg,
+        "grade":                       lot.grade,
+        "condition":                   lot.condition,
+        "source_name":                 lot.source_name,
+        "landing_site":                lot.landing_site,
+        "catch_date":                  lot.catch_date,
+        "landing_date":                lot.landing_date,
+        "vessel_reg":                  lot.vessel_reg,
+        "bmu_reference":               lot.bmu_reference,
+        "gear_type":                   lot.gear_type,
+        "ownership_type":              lot.ownership_type,
+        "selling_price_per_kg":        lot.selling_price_per_kg,
+        "cold_storage_fee_per_kg_per_day": lot.cold_storage_fee_per_kg_per_day,
+        "handling_fee_kes":            lot.handling_fee_kes,
+        "qa_fee_kes":                  lot.qa_fee_kes,
+        "fulfillment_mode":            lot.fulfillment_mode,
+        "logistics_responsibility":    lot.logistics_responsibility,
+        "lot_status":                  lot.lot_status,
+        "estimated_expiry":            lot.estimated_expiry,
+        "iuu_risk_flag":               lot.iuu_risk_flag,
+        "notes":                       lot.notes,
+        "created_at":                  lot.created_at,
+    }
+
+# ── PROTECTED — fisher creates lot ───────────────────────────────
+@router.post("/", status_code=201)
+def create_lot(
+    species:              str,
+    weight_kg:            float,
+    selling_price_per_kg: float,
+    landing_site:         str,
+    condition:            str   = "fresh",
+    product_form:         str   = "whole_ungutted",
+    vessel_reg:           Optional[str]   = None,
+    bmu_reference:        Optional[str]   = None,
+    gear_type:            Optional[str]   = None,
+    notes:                Optional[str]   = None,
+    cold_storage_id:      Optional[int]   = None,
+    storage_location:     Optional[str]   = None,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Fisher or supplier creates a new inventory lot.
+    Requires login — fisher or supplier role only.
+
+    Example:
+    Abdalla Masudi lists 40kg fresh octopus from Kibuyuni.
+    System auto-generates lot number and traceability code.
+    """
+    if current_user.role not in ["fisher", "supplier", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Only fishers and suppliers can create listings. Your role: {current_user.role}"
+        )
+
+    lot = create_inventory_lot(
+        db=                   db,
+        source_user_id=       current_user.id,
+        source_name=          current_user.name,
+        species=              species,
+        weight_kg=            weight_kg,
+        selling_price_per_kg= selling_price_per_kg,
+        landing_site=         landing_site,
+        ownership_type=       "marketplace",
+        product_form=         product_form,
+        condition=            condition,
+        vessel_reg=           vessel_reg,
+        bmu_reference=        bmu_reference,
+        gear_type=            gear_type,
+        cold_storage_id=      cold_storage_id,
+        storage_location=     storage_location,
+        notes=                notes,
+    )
+
+    return {
+        "success":          True,
+        "lot_number":       lot.lot_number,
+        "traceability_code":lot.traceability_code,
+        "species":          lot.species,
+        "weight_kg":        lot.weight_kg,
+        "selling_price_per_kg": lot.selling_price_per_kg,
+        "total_value_kes":  round(lot.weight_kg * lot.selling_price_per_kg, 2),
+        "estimated_expiry": lot.estimated_expiry,
+        "lot_status":       lot.lot_status,
+        "message":          f"Lot {lot.lot_number} created successfully"
+    }
+
+# ── PROTECTED — fisher sees their lots ───────────────────────────
+@router.get("/my-lots/list")
+def get_my_lots(
+    include_sold: bool   = Query(False),
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Fisher or supplier sees all their inventory lots.
+    Shows earnings summary.
+    """
+    lots = get_lots_by_fisher(db, current_user.id, include_sold)
+
+    total_available_kg    = sum(l.available_kg for l in lots)
+    total_value_available = sum(
+        l.available_kg * l.selling_price_per_kg for l in lots
+    )
+
+    return {
+        "fisher":               current_user.name,
+        "total_lots":           len(lots),
+        "total_available_kg":   round(total_available_kg, 2),
+        "total_value_kes":      round(total_value_available, 2),
+        "lots": [
+            {
+                "id":               l.id,
+                "lot_number":       l.lot_number,
+                "species":          l.species,
+                "weight_kg":        l.weight_kg,
+                "available_kg":     l.available_kg,
+                "reserved_kg":      l.reserved_kg,
+                "selling_price_per_kg": l.selling_price_per_kg,
+                "lot_status":       l.lot_status,
+                "catch_date":       l.catch_date,
+                "estimated_expiry": l.estimated_expiry,
+            }
+            for l in lots
+        ]
+    }
+
+# ── PROTECTED — calculate order value before placing ─────────────
+@router.get("/{lot_id}/quote")
+def get_quote(
+    lot_id:      int,
+    quantity_kg: float = Query(..., gt=0),
+    db: Session  = Depends(get_db)
+):
+    """
+    Get full price breakdown before placing order.
+    Shows fish value + all fees + net to seller.
+
+    Example:
+    Neptune Hotels wants to know total cost for 30kg tuna.
+    """
+    lot = get_lot_by_id(db, lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    if quantity_kg > lot.available_kg:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {lot.available_kg}kg available"
+        )
+
+    return calculate_order_value(lot, quantity_kg)
