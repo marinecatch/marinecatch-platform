@@ -31,9 +31,10 @@ class Order(Base):
     __tablename__ = "orders"
 
     id                = Column(Integer, primary_key=True, index=True)
-    listing_id        = Column(Integer, ForeignKey("fish_listings.id"), nullable=False)
+    listing_id        = Column(Integer, ForeignKey("fish_listings.id"), nullable=True)
+    lot_id            = Column(Integer, ForeignKey("inventory_lots.id"), nullable=True, index=True)
     buyer_id          = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    fisherman_id      = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    fisherman_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     order_type        = Column(SAEnum(OrderType), default=OrderType.MARKETPLACE)
     species           = Column(String(50), nullable=False)
     landing_site      = Column(String(50), nullable=True)
@@ -54,6 +55,7 @@ class Order(Base):
 
     # Relationships
     listing = relationship("FishListing", back_populates="orders")
+    lot = relationship("InventoryLot", foreign_keys=[lot_id])
     buyer   = relationship("User", back_populates="orders",
                            foreign_keys=[buyer_id])
 
