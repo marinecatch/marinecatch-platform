@@ -270,3 +270,48 @@ def get_quote(
         )
 
     return calculate_order_value(lot, quantity_kg)
+# ── INTERNAL — reserve stock for an order ─────────────────────────
+@router.post("/{lot_id}/reserve")
+def reserve_lot(
+    lot_id:      int,
+    quantity_kg: float = Query(..., gt=0),
+    db: Session  = Depends(get_db)
+):
+    """
+    Reserve kg against a lot when an order is placed.
+    Reduces available_kg immediately — prevents double-selling.
+    Called by order service, not directly by buyers.
+    """
+    lot = reserve_stock(db, lot_id, quantity_kg)
+    return {
+        "success":      True,
+        "lot_number":   lot.lot_number,
+        "species":      lot.species,
+        "reserved_kg":  lot.reserved_kg,
+        "available_kg": lot.available_kg,
+        "lot_status":   lot.lot_status,
+        "message":      f"{quantity_kg}kg reserved from {lot.lot_number}"
+    }
+
+
+# ── INTERNAL — release stock if order cancelled ───────────────────
+@router.post("/{lot_id}/release")
+def release_lot(
+    lot_id:      int,
+    quantity_kg: float = Query(..., gt=0),
+    db: Session  = Depends(get_db)
+):
+    """
+    Release reserved stock back to available.
+    Called when an order is cancelled before delivery.
+    Real world: buyer changed mind, payment failed, order expired.
+    """
+    lot = release_stock(db, lot_id, quantity_kg)
+    return {
+        "success":      True,
+        "lot_number":   lot.lot_number,
+        "available_kg": lot.available_kg,
+        "reserved_kg":  lot.reserved_kg,
+        "lot_status":   lot.lot_status,
+        "message":      f"{quantity_kg}kg released back to available"
+    }
