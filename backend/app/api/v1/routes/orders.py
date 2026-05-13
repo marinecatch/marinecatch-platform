@@ -1,233 +1,328 @@
 # app/api/v1/routes/orders.py
 #
-# PROTECTED ENDPOINTS:
-# POST /orders        — buyers only
-# GET  /orders/me     — logged in user sees their own orders
-# PATCH /orders/status — fisher confirms, buyer confirms delivery
+# WHY THIS FILE EXISTS:
+# HTTP layer for all order operations.
+# Thin layer — validates input, calls order_service, returns response.
+# No business logic lives here.
+#
+# Public endpoints: none — all orders require login
+#
+# Protected endpoints:
+#   POST   /orders/                        → place an order
+#   GET    /orders/me                      → buyer sees their orders
+#   GET    /orders/{order_id}              → get single order
+#   POST   /orders/{order_id}/cancel       → cancel an order
+#   POST   /orders/{order_id}/confirm      → admin confirms order
+#   PATCH  /orders/{order_id}/status       → admin updates status
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime
-from app.database.memory_store import (
-    get_listing_by_id,
-    update_listing,
-    create_order,
-    get_orders_by_buyer,
-    get_orders_by_fisher
-)
+from pydantic import BaseModel, Field
+
+from app.database.connection import get_db
 from app.api.v1.routes.users import get_current_user
+from app.models.order import OrderStatus
+from app.services.order_service import (
+    place_order,
+    get_order,
+    get_orders_by_buyer,
+    get_orders_by_lot,
+    cancel_order,
+    confirm_order,
+    update_order_status,
+)
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-# ── COMMISSION CALCULATOR ─────────────────────────────────────────
-def calculate_commission(total_kes: float) -> dict:
-    """
-    MarineCatch tiered commission.
-    < 5,000 KES    → 3.5%
-    5,000–50,000   → 2.5%
-    > 50,000       → 1.5%
-    """
-    if total_kes < 5000:       rate = 0.035
-    elif total_kes < 50000:    rate = 0.025
-    else:                      rate = 0.015
 
-    fee = round(total_kes * rate, 2)
-    return {
-        "commission_rate":   f"{rate * 100}%",
-        "platform_fee_kes":  fee,
-        "net_to_fisher_kes": round(total_kes - fee, 2)
-    }
+# ── SCHEMAS ───────────────────────────────────────────────────────
 
-# ── PLACE ORDER — buyers only ─────────────────────────────────────
+class OrderCreate(BaseModel):
+    lot_id:           int
+    quantity_kg:      float = Field(gt=0)
+    delivery_address: Optional[str] = None
+    notes:            Optional[str] = None
+
+
+class StatusUpdate(BaseModel):
+    status:     str
+    updated_by: Optional[str] = None
+
+
+# ── PLACE ORDER ───────────────────────────────────────────────────
+
 @router.post("/", status_code=201)
-def place_order(
-    listing_id: int,
-    quantity_kg: float,
-    delivery_address: str,
-    notes: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)  # ← requires token
+def api_place_order(
+    payload:      OrderCreate,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
 ):
     """
-    Place an order. REQUIRES: Login token + buyer role.
+    Buyer places an order against an inventory lot.
+    Any registered user can place an order.
+
+    What happens:
+    - Stock reserved immediately
+    - Full price breakdown calculated
+    - Order created with status PENDING_PAYMENT
+    - Awaits admin confirmation until M-Pesa live (Phase 2)
 
     Example:
-    Neptune Hotels logs in → orders 30kg tuna from Bakari Usi.
-    Abdalla Masudi (fisher) tries → gets 403 Forbidden.
+    Neptune Hotels orders 20kg tuna from Bakari's lot.
     """
-    # Role check
-    if current_user["role"] not in ["buyer"]:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Only buyers can place orders. Your role: {current_user['role']}"
-        )
-
-    listing = get_listing_by_id(listing_id)
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
-
-    if not listing.get("is_available"):
-        raise HTTPException(status_code=400, detail="Listing no longer available")
-
-    if quantity_kg > listing["weight_kg"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Only {listing['weight_kg']}kg available. You requested {quantity_kg}kg"
-        )
-
-    total_kes  = round(quantity_kg * listing["price_per_kg"], 2)
-    commission = calculate_commission(total_kes)
-
-    order = create_order({
-        "listing_id":        listing_id,
-        "buyer_id":          current_user["id"],
-        "buyer_name":        current_user["name"],
-        "fisher_id":         listing["fisher_id"],
-        "fisher_name":       listing["fisher_name"],
-        "species":           listing["species"],
-        "landing_site":      listing["landing_site"],
-        "quantity_kg":       quantity_kg,
-        "price_per_kg":      listing["price_per_kg"],
-        "total_kes":         total_kes,
-        "platform_fee_kes":  commission["platform_fee_kes"],
-        "net_to_fisher_kes": commission["net_to_fisher_kes"],
-        "commission_rate":   commission["commission_rate"],
-        "delivery_address":  delivery_address,
-        "notes":             notes,
-        "status":            "pending"
-    })
-
-    # Reduce available stock
-    remaining = listing["weight_kg"] - quantity_kg
-    update_listing(listing_id, {
-        "weight_kg":    remaining,
-        "is_available": remaining > 0
-    })
+    order = place_order(
+        db=               db,
+        buyer_id=         current_user.id,
+        lot_id=           payload.lot_id,
+        quantity_kg=      payload.quantity_kg,
+        delivery_address= payload.delivery_address,
+        notes=            payload.notes,
+    )
 
     return {
-        "success": True,
-        "order":   order,
-        "summary": {
-            "total_kes":         total_kes,
-            "platform_fee_kes":  commission["platform_fee_kes"],
-            "net_to_fisher_kes": commission["net_to_fisher_kes"],
-            "commission_rate":   commission["commission_rate"],
-        },
-        "message": f"Order placed. {listing['fisher_name']} will confirm shortly."
+        "success":          True,
+        "order_id":         order.id,
+        "lot_id":           order.lot_id,
+        "species":          order.species,
+        "quantity_kg":      order.quantity_kg,
+        "price_per_kg":     order.price_per_kg,
+        "total_kes":        order.total_kes,
+        "platform_fee_kes": order.platform_fee_kes,
+        "net_to_fisher_kes":order.net_to_fisher_kes,
+        "status":           order.status,
+        "message":          (
+            f"Order placed successfully. "
+            f"{order.quantity_kg}kg {order.species} reserved. "
+            f"Total: KES {order.total_kes}. "
+            f"Awaiting payment confirmation."
+        )
     }
 
-# ── MY ORDERS — logged in user ────────────────────────────────────
+
+# ── MY ORDERS ─────────────────────────────────────────────────────
+
 @router.get("/me")
-def get_my_orders(
-    current_user: dict = Depends(get_current_user)
+def api_get_my_orders(
+    status:      Optional[str] = Query(None),
+    skip:        int           = Query(0, ge=0),
+    limit:       int           = Query(20, le=100),
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
 ):
     """
-    Get orders for the logged-in user.
-    Fisher sees orders placed ON their listings.
-    Buyer sees orders THEY placed.
+    Logged-in buyer sees all their orders.
+    Optionally filter by status.
     """
-    role = current_user["role"]
-    uid  = current_user["id"]
-
-    if role == "fisher" or role == "supplier":
-        orders = get_orders_by_fisher(uid)
-        total_earned = sum(
-            o["net_to_fisher_kes"] for o in orders
-            if o["status"] == "delivered"
-        )
-        return {
-            "role":             role,
-            "name":             current_user["name"],
-            "orders":           orders,
-            "count":            len(orders),
-            "total_earned_kes": total_earned
-        }
-
-    elif role == "buyer":
-        orders = get_orders_by_buyer(uid)
-        total_spent = sum(o["total_kes"] for o in orders)
-        return {
-            "role":           role,
-            "name":           current_user["name"],
-            "orders":         orders,
-            "count":          len(orders),
-            "total_spent_kes": total_spent
-        }
-
-    return {"orders": [], "count": 0}
-
-# ── UPDATE STATUS ─────────────────────────────────────────────────
-@router.patch("/{order_id}/status")
-def update_order_status(
-    order_id: int,
-    new_status: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Update order through lifecycle.
-    Fisher: pending → confirmed → dispatched
-    Buyer:  dispatched → delivered
-    """
-    from app.database.memory_store import _orders
-
-    VALID_TRANSITIONS = {
-        "pending":    ["confirmed", "cancelled"],
-        "confirmed":  ["dispatched", "cancelled"],
-        "dispatched": ["delivered", "cancelled"],
-        "delivered":  [],
-        "cancelled":  []
-    }
-
-    order = _orders.get(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    # Access control
-    role = current_user["role"]
-    uid  = current_user["id"]
-
-    if role in ["fisher", "supplier"] and order["fisher_id"] != uid:
-        raise HTTPException(status_code=403, detail="Not your order")
-
-    if role == "buyer" and order["buyer_id"] != uid:
-        raise HTTPException(status_code=403, detail="Not your order")
-
-    allowed = VALID_TRANSITIONS.get(order["status"], [])
-    if new_status not in allowed:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot move from '{order['status']}' to '{new_status}'. Allowed: {allowed}"
-        )
-
-    order["status"]     = new_status
-    order["updated_at"] = datetime.utcnow().isoformat()
-    order["updated_by"] = current_user["name"]
+    orders = get_orders_by_buyer(
+        db,
+        buyer_id= current_user.id,
+        status=   status,
+        skip=     skip,
+        limit=    limit,
+    )
 
     return {
-        "success":    True,
-        "order_id":   order_id,
-        "new_status": new_status,
-        "updated_by": current_user["name"],
-        "message":    f"Order {order_id} is now {new_status}"
+        "buyer":       current_user.name,
+        "total_orders": len(orders),
+        "orders": [
+            {
+                "order_id":     o.id,
+                "lot_id":       o.lot_id,
+                "species":      o.species,
+                "quantity_kg":  o.quantity_kg,
+                "total_kes":    o.total_kes,
+                "status":       o.status,
+                "landing_site": o.landing_site,
+                "created_at":   o.created_at,
+            }
+            for o in orders
+        ]
     }
 
-# ── GET SINGLE ORDER ──────────────────────────────────────────────
+
+# ── SINGLE ORDER ──────────────────────────────────────────────────
+
 @router.get("/{order_id}")
-def get_order(
-    order_id: int,
-    current_user: dict = Depends(get_current_user)
+def api_get_order(
+    order_id:    int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
 ):
-    """Get one order. Must be buyer or fisher on that order."""
-    from app.database.memory_store import _orders
+    """
+    Get full details of one order.
+    Buyer can only see their own orders.
+    Admin can see all orders.
+    """
+    order = get_order(db, order_id)
 
-    order = _orders.get(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    uid = current_user["id"]
-    if uid not in [order["buyer_id"], order["fisher_id"]]:
+    # Security: buyer can only see their own orders
+    if current_user.role != "admin" and order.buyer_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="You can only view your own orders"
         )
 
-    return order
+    return {
+        "order_id":          order.id,
+        "lot_id":            order.lot_id,
+        "species":           order.species,
+        "landing_site":      order.landing_site,
+        "quantity_kg":       order.quantity_kg,
+        "price_per_kg":      order.price_per_kg,
+        "total_kes":         order.total_kes,
+        "platform_fee_kes":  order.platform_fee_kes,
+        "net_to_fisher_kes": order.net_to_fisher_kes,
+        "commission_rate":   order.commission_rate,
+        "delivery_address":  order.delivery_address,
+        "status":            order.status,
+        "order_type":        order.order_type,
+        "notes":             order.notes,
+        "created_at":        order.created_at,
+        "updated_at":        order.updated_at,
+        "updated_by":        order.updated_by,
+    }
+
+
+# ── CANCEL ORDER ──────────────────────────────────────────────────
+
+@router.post("/{order_id}/cancel")
+def api_cancel_order(
+    order_id:    int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Cancel an order and release reserved stock.
+    Buyer can cancel their own order.
+    Admin can cancel any order.
+    Not allowed once order is dispatched.
+    """
+    order = get_order(db, order_id)
+
+    # Security: buyer can only cancel their own orders
+    if current_user.role != "admin" and order.buyer_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only cancel your own orders"
+        )
+
+    order = cancel_order(
+        db=           db,
+        order_id=     order_id,
+        cancelled_by= current_user.name,
+    )
+
+    return {
+        "success":    True,
+        "order_id":   order.id,
+        "status":     order.status,
+        "message":    f"Order {order.id} cancelled. Stock released back to available."
+    }
+
+
+# ── CONFIRM ORDER (admin) ─────────────────────────────────────────
+
+@router.post("/{order_id}/confirm")
+def api_confirm_order(
+    order_id:    int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Admin confirms order after verifying payment received.
+    In Phase 2 this will be triggered by M-Pesa webhook automatically.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin can confirm orders"
+        )
+
+    order = confirm_order(
+        db=           db,
+        order_id=     order_id,
+        confirmed_by= current_user.name,
+    )
+
+    return {
+        "success":  True,
+        "order_id": order.id,
+        "status":   order.status,
+        "message":  f"Order {order.id} confirmed by {current_user.name}"
+    }
+
+
+# ── UPDATE STATUS (admin) ─────────────────────────────────────────
+
+@router.patch("/{order_id}/status")
+def api_update_status(
+    order_id:    int,
+    payload:     StatusUpdate,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Admin moves order through lifecycle.
+    CONFIRMED → PREPARING → DISPATCHED → DELIVERED → COMPLETED
+
+    Validates transitions — cannot skip stages.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin can update order status"
+        )
+
+    try:
+        new_status = OrderStatus(payload.status)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status: {payload.status}"
+        )
+
+    order = update_order_status(
+        db=         db,
+        order_id=   order_id,
+        new_status= new_status,
+        updated_by= payload.updated_by or current_user.name,
+    )
+
+    return {
+        "success":  True,
+        "order_id": order.id,
+        "status":   order.status,
+        "message":  f"Order {order.id} updated to {order.status.value}"
+    }
+
+
+# ── ORDERS BY LOT (admin/fisher) ──────────────────────────────────
+
+@router.get("/lot/{lot_id}")
+def api_get_orders_by_lot(
+    lot_id:      int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    All orders against a specific lot.
+    Used by admin and fisher to track sales.
+    """
+    orders = get_orders_by_lot(db, lot_id)
+
+    return {
+        "lot_id":       lot_id,
+        "total_orders": len(orders),
+        "orders": [
+            {
+                "order_id":    o.id,
+                "buyer_id":    o.buyer_id,
+                "quantity_kg": o.quantity_kg,
+                "total_kes":   o.total_kes,
+                "status":      o.status,
+                "created_at":  o.created_at,
+            }
+            for o in orders
+        ]
+    }
