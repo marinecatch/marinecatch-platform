@@ -336,11 +336,8 @@ def reserve_stock(
     else:
         lot.lot_status = LotStatus.PARTIALLY_SOLD
 
-    db.commit()
-    db.refresh(lot)
+   # Don't commit here — caller owns the transaction
     return lot
-
-
 # ── RELEASE STOCK ─────────────────────────────────────────────────
 def release_stock(
     db: Session,
@@ -362,8 +359,7 @@ def release_stock(
     if lot.available_kg > 0:
         lot.lot_status = LotStatus.AVAILABLE
 
-    db.commit()
-    db.refresh(lot)
+    # Don't commit here — caller owns the transaction
     return lot
 
 

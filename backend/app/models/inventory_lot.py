@@ -133,8 +133,13 @@ class InventoryLot(Base):
 
     # ── PRODUCT ──────────────────────────────────────────────
     species         = Column(String(50), nullable=False, index=True)
-    product_form    = Column(
-        SAEnum(ProductForm),
+    product_form = Column(
+        SAEnum(
+            ProductForm,
+            name="productform",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x]
+        ),
         default=ProductForm.WHOLE_UNGUTTED,
         nullable=False
     )
@@ -148,15 +153,16 @@ class InventoryLot(Base):
     reserved_kg     = Column(Float, default=0.0, nullable=False)
     # Held for pending/confirmed orders not yet delivered
 
-    grade           = Column(
-        SAEnum(QualityGrade),
-        default=QualityGrade.PENDING,
-        nullable=False
+    grade = Column(
+        SAEnum(QualityGrade, name="qualitygrade", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=QualityGrade.PENDING, nullable=False
     )
-    condition       = Column(
-        SAEnum(LotCondition),
-        default=LotCondition.FRESH,
-        nullable=False
+
+    condition = Column(
+        SAEnum(LotCondition, name="lotcondition", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=LotCondition.FRESH, nullable=False
     )
     notes           = Column(Text, nullable=True)
     # Any special notes about this lot
@@ -186,11 +192,10 @@ class InventoryLot(Base):
     # Boat registration — BMU record
 
     # ── OWNERSHIP ─────────────────────────────────────────────
-    ownership_type  = Column(
-        SAEnum(OwnershipType),
-        default=OwnershipType.MARKETPLACE,
-        nullable=False,
-        index=True
+    ownership_type = Column(
+        SAEnum(OwnershipType, name="ownershiptype", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=OwnershipType.MARKETPLACE, nullable=False, index=True
     )
     # This single field changes everything:
     # - who bears spoilage risk
@@ -240,23 +245,21 @@ class InventoryLot(Base):
     storage_exit_date     = Column(DateTime(timezone=True), nullable=True)
 
     # ── LOGISTICS ─────────────────────────────────────────────
-    fulfillment_mode      = Column(
-        SAEnum(FulfillmentMode),
-        default=FulfillmentMode.SELF_PICKUP,
-        nullable=True
+    fulfillment_mode = Column(
+        SAEnum(FulfillmentMode, name="fulfillmentmode", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=FulfillmentMode.SELF_PICKUP, nullable=True
     )
     logistics_responsibility = Column(
-        SAEnum(LogisticsResponsibility),
-        default=LogisticsResponsibility.BUYER,
-        nullable=True
+        SAEnum(LogisticsResponsibility, name="logisticsresponsibility", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=LogisticsResponsibility.BUYER, nullable=True
     )
-
     # ── STATUS ─────────
-    lot_status      = Column(
-        SAEnum(LotStatus),
-        default=LotStatus.AVAILABLE,
-        nullable=False,
-        index=True
+    lot_status = Column(
+        SAEnum(LotStatus, name="lotstatus", create_type=False,
+               values_callable=lambda x: [e.value for e in x]),
+        default=LotStatus.AVAILABLE, nullable=False, index=True
     )
     is_active       = Column(Boolean, default=True, nullable=False)
 
