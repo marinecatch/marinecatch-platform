@@ -57,6 +57,21 @@ class Order(Base):
     )
     updated_by        = Column(String(100), nullable=True)
     delivery_distance_km = Column(Float, nullable=True)
+    # ── ORDER ORIGIN + COMMERCIAL TERMS ──────────────────────
+    # How this order entered the system
+    order_source        = Column(String(50), nullable=True)
+    # e.g. "marketplace", "lpo", "whatsapp", "phone", "ussd"
+
+    # LPO number from institutional buyer — links to their paperwork
+    lpo_reference       = Column(String(100), nullable=True)
+
+    # When reservation expires — null = no expiry (institutional buyers)
+    # Set to 30 minutes from placement for retail/STK Push orders
+    reserved_until      = Column(DateTime(timezone=True), nullable=True)
+
+    # Payment terms copied from buyer at time of order
+    # 0 = prepay, 1 = same day, 3 = Net 3, 7 = Net 7
+    payment_terms_days  = Column(Integer, default=0, nullable=True)
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
     updated_at        = Column(DateTime(timezone=True), onupdate=func.now())
 
