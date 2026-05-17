@@ -85,6 +85,13 @@ class User(Base):
     fishing_license_no  = Column(String(50), nullable=True)
     license_expiry_date = Column(String(20), nullable=True)
 
+# ── SETTLEMENT ACCOUNT ────────────────────────────────────────
+    # Where MarineCatch sends payouts — fisher M-Pesa, bank, cooperative
+    # settlement_account_type: MPESA, BANK, COOPERATIVE, WALLET, CASH, CRYPTO
+    settlement_account_id       = Column(String(100), nullable=True)
+    settlement_account_type     = Column(String(30),  nullable=True)
+    settlement_account_verified = Column(Boolean, default=False, nullable=False)
+    
     # ── STATUS + TIMESTAMPS ───────────────────────────────────
     is_active  = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
