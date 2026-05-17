@@ -339,3 +339,117 @@ def confirm_payment_manually(
     db.commit()
     db.refresh(txn)
     return txn
+# ── FISHER PAYOUT ─────────────────────────────────────────────────
+async def initiate_fisher_payout(
+    db:       Session,
+    order_id: int,
+    admin:    str,
+) -> dict:
+    """
+    Trigger B2C payout to fisher after order is delivered.
+    Called when order status moves to DELIVERED.
+
+    Flow:
+    1. Get the order and find the fisher
+    2. Get the payment transaction
+    3. Calculate fisher's payout amount
+    4. Send B2C payment to fisher's phone
+    5. Update payout status
+    """
+    from app.services.mpesa_service import b2c_payment
+
+    # Get order
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Order must be delivered
+    if order.status != OrderStatus.DELIVERED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order must be DELIVERED before payout. Current: {order.status.value}"
+        )
+
+    # Get payment transaction
+    txn = get_payment_by_order(db, order_id)
+    if not txn:
+        raise HTTPException(
+            status_code=404,
+            detail="No payment transaction found for this order"
+        )
+
+    # Payment must be confirmed
+    if txn.payment_status != PaymentStatus.PAID:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Payment must be PAID before fisher payout. Current: {txn.payment_status.value}"
+        )
+
+    # Already paid out
+    if txn.payout_status == PayoutStatus.PAID:
+        raise HTTPException(
+            status_code=400,
+            detail="Fisher payout already completed"
+        )
+
+    # Get fisher's phone number
+    from app.models.user import User
+    fisher = db.query(User).filter(User.id == order.fisherman_id).first()
+    if not fisher:
+        raise HTTPException(
+            status_code=404,
+            detail="Fisher not found for this order"
+        )
+
+    if not fisher.phone:
+        raise HTTPException(
+            status_code=400,
+            detail="Fisher has no phone number registered for M-Pesa payout"
+        )
+
+    payout_amount = txn.supplier_amount
+    if not payout_amount or payout_amount <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid payout amount"
+        )
+
+    # Generate payout reference
+    payout_ref = f"MC-PAYOUT-{order_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+
+    # Update payout status to processing
+    txn.payout_status = PayoutStatus.PROCESSING
+    db.commit()
+
+    try:
+        # Send B2C payment
+        response = await b2c_payment(
+            phone_number          = fisher.phone,
+            amount                = payout_amount,
+            transaction_reference = payout_ref,
+            remarks               = f"MarineCatch payout order {order_id}"
+        )
+
+        # Update transaction with payout details
+        txn.payout_status    = PayoutStatus.PROCESSING
+        txn.payout_reference = response.get("ConversationID", payout_ref)
+        txn.confirmed_by     = admin
+        db.commit()
+
+        return {
+            "success":        True,
+            "order_id":       order_id,
+            "fisher_name":    fisher.name,
+            "fisher_phone":   fisher.phone,
+            "payout_amount":  payout_amount,
+            "payout_ref":     payout_ref,
+            "message":        f"Payout of KES {payout_amount} initiated to {fisher.name} ({fisher.phone})"
+        }
+
+    except Exception as e:
+        txn.payout_status = PayoutStatus.FAILED
+        db.commit()
+        raise HTTPException(
+            status_code=502,
+            detail=f"B2C payout failed: {str(e)}"
+        )

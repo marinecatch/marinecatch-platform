@@ -147,7 +147,6 @@ async def stk_query(checkout_request_id: str) -> dict:
         )
         response.raise_for_status()
         return response.json()
-
 # ── B2C PAYOUT ────────────────────────────────────────────────────
 async def b2c_payment(
     phone_number: str,
@@ -158,9 +157,7 @@ async def b2c_payment(
     """
     Send money from MarineCatch to fisher's M-Pesa.
     Called after order is delivered and buyer payment confirmed.
-
     Uses B2C (Business to Customer) API.
-    Requires separate B2C credentials from Safaricom.
     """
     token = await get_access_token()
 
@@ -169,15 +166,15 @@ async def b2c_payment(
         phone = "254" + phone[1:]
 
     payload = {
-        "InitiatorName":      "MarineCatchAPI",
-        "SecurityCredential": settings.MPESA_PASSKEY,
+        "InitiatorName":      settings.MPESA_INITIATOR_NAME,
+        "SecurityCredential": settings.MPESA_SECURITY_CREDENTIAL,
         "CommandID":          "BusinessPayment",
         "Amount":             int(round(amount)),
-        "PartyA":             settings.MPESA_SHORTCODE,
+        "PartyA":             settings.MPESA_B2C_SHORTCODE,
         "PartyB":             phone,
         "Remarks":            remarks[:100],
-        "QueueTimeOutURL":    settings.MPESA_CALLBACK_URL + "/timeout",
-        "ResultURL":          settings.MPESA_CALLBACK_URL + "/b2c-result",
+        "QueueTimeOutURL":    settings.MPESA_CALLBACK_URL + "/b2c/timeout",
+        "ResultURL":          settings.MPESA_CALLBACK_URL + "/b2c/result",
         "Occasion":           transaction_reference[:40],
     }
 

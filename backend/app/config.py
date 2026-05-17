@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     MPESA_PASSKEY: str = ""
     MPESA_ENVIRONMENT: str = "sandbox"
     MPESA_CALLBACK_URL: str = "https://localhost/api/v1/payments/mpesa/callback"
+    MPESA_B2C_SHORTCODE: str = "174379"
+    MPESA_INITIATOR_NAME: str = "testapi"
+    MPESA_SECURITY_CREDENTIAL: str = ""
 
     class Config:
         env_file = str(ENV_FILE)

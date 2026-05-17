@@ -25,6 +25,7 @@ from app.services.payment_service import (
     expire_stale_reservations,
     get_payment_by_order,
     confirm_payment_manually,
+    initiate_fisher_payout,
 )
 from app.models.payment import PaymentMethod, PaymentChannel
 from app.models.order import Order
@@ -239,3 +240,37 @@ def run_expiry_check(
         "expired_orders":  count,
         "message":         f"{count} stale reservation(s) expired and stock released."
     }
+# ── FISHER PAYOUT (admin) ─────────────────────────────────────────
+
+@router.post("/payout/{order_id}")
+async def trigger_fisher_payout(
+    order_id:    int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Admin triggers fisher payout after order is delivered.
+    Sends B2C M-Pesa payment directly to fisher's phone.
+
+    Requirements:
+    - Order must be in DELIVERED status
+    - Payment must be confirmed (PAID)
+    - Fisher must have a phone number registered
+
+    Example:
+    Neptune Hotels confirms tuna delivery.
+    Admin triggers payout — Bakari Usi receives KES 15,210 on his phone.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin can trigger fisher payouts"
+        )
+
+    result = await initiate_fisher_payout(
+        db=       db,
+        order_id= order_id,
+        admin=    current_user.name,
+    )
+
+    return result
