@@ -28,6 +28,7 @@ from app.services.inventory_service import (
     release_stock,
 )
 from app.api.v1.routes.users import get_current_user
+from app.services.fee_service import calculate_full_fee_breakdown
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -315,3 +316,41 @@ def release_lot(
         "lot_status":   lot.lot_status,
         "message":      f"{quantity_kg}kg released back to available"
     }
+# ── FULL FEE BREAKDOWN ────────────────────────────────────────────
+
+@router.get("/{lot_id}/fees")
+def get_fee_breakdown(
+    lot_id:               int,
+    quantity_kg:          float = Query(..., gt=0),
+    storage_days:         int   = Query(1, ge=0),
+    delivery_distance_km: float = Query(None),
+    is_export_grade:      bool  = Query(False),
+    db: Session = Depends(get_db),
+):
+    """
+    Full fee breakdown before placing an order.
+    Shows every cost component separately.
+
+    Used by:
+    - Buyers to see total cost before confirming
+    - Hotels to compare delivery options
+    - Processors to calculate landed cost
+    - Admin to verify fee accuracy
+    """
+    lot = get_lot_by_id(db, lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    if quantity_kg > lot.available_kg:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {lot.available_kg}kg available"
+        )
+
+    return calculate_full_fee_breakdown(
+        lot=                  lot,
+        quantity_kg=          quantity_kg,
+        storage_days=         storage_days,
+        delivery_distance_km= delivery_distance_km,
+        is_export_grade=      is_export_grade,
+    )
