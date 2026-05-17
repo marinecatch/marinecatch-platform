@@ -9,7 +9,8 @@ from app.api.v1.routes import (
     users,
     fish,
     orders,
-    inventory
+    inventory,
+    payments
 )
 
 @asynccontextmanager
@@ -41,7 +42,7 @@ app.include_router(users.router)
 app.include_router(fish.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
-
+app.include_router(payments.router, prefix="/api/v1")
 
 @app.get("/", tags=["System"])
 def root():
@@ -55,6 +56,7 @@ def root():
             "users": "/api/v1/users",
             "fish": "/api/v1/fish",
             "orders": "/api/v1/orders",
-            "inventory": "/api/v1/inventory"
+            "inventory": "/api/v1/inventory",
+            "payments":  "/api/v1/payments"
         }
     }
