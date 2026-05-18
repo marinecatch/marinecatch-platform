@@ -13,6 +13,7 @@ from app.api.v1.routes import (
     payments,
     reconciliation,
     payouts,
+    lpo
 )
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ app.include_router(inventory.router, prefix="/api/v1")
 app.include_router(payments.router, prefix="/api/v1")
 app.include_router(reconciliation.router, prefix="/api/v1")
 app.include_router(payouts.router, prefix="/api/v1")
+app.include_router(lpo.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     return {
@@ -62,6 +64,7 @@ def root():
             "inventory": "/api/v1/inventory",
             "payments":  "/api/v1/payments",
             "reconciliation": "/api/v1/reconciliation",
-            "payouts": "/api/v1/payouts"
+            "payouts": "/api/v1/payouts",
+            "lpo": "/api/v1/lpo"
         }
     }
