@@ -283,3 +283,5 @@ class Shipment(Base):
 
     def __repr__(self):
         return f"<Shipment {self.shipment_reference} status={self.status}>"
+
+

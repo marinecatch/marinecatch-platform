@@ -23,6 +23,7 @@ from app.services.logistics_service import (
     update_iot_readings,
     get_shipment_by_order,
     get_shipment_by_reference,
+    get_shipment_events
 )
 
 router = APIRouter(prefix="/logistics", tags=["Logistics"])
@@ -310,4 +311,21 @@ def update_iot(
         "cold_chain_status":  shipment.cold_chain_status,
         "alert":              alert,
         "last_update":        shipment.last_location_update,
+    }
+@router.get("/shipments/{shipment_id}/events")
+def get_events(
+    shipment_id: int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Full event history for a shipment.
+    Shows every status change and IoT reading in order.
+    Used for delivery disputes and cold chain compliance.
+    """
+    events = get_shipment_events(db, shipment_id)
+    return {
+        "shipment_id":  shipment_id,
+        "total_events": len(events),
+        "events":       events,
     }

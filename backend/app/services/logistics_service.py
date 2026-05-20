@@ -19,6 +19,7 @@ from app.models.logistics import (
     Shipment, ZoneStatus, ShipmentStatus, ColdChainStatus
 )
 from app.models.order import Order
+from app.models.shipment_event import ShipmentEvent
 
 
 # ── ZONE LOOKUP ───────────────────────────────────────────────────
@@ -220,6 +221,7 @@ def update_shipment_status(
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
 
+    old_status   = shipment.status
     shipment.status = new_status
 
     if new_status == ShipmentStatus.DELIVERED:
@@ -229,6 +231,15 @@ def update_shipment_status(
         existing = shipment.notes or ""
         shipment.notes = f"{existing} | {updated_by}: {notes}".strip(" |")
 
+    # Log the event
+    event = ShipmentEvent(
+        shipment_id  = shipment_id,
+        event_type   = "status_change",
+        event_detail = f"Status changed from {old_status.value} to {new_status.value}",
+        recorded_by  = updated_by,
+        notes        = notes,
+    )
+    db.add(event)
     db.commit()
     db.refresh(shipment)
     return shipment
@@ -262,7 +273,6 @@ def update_iot_readings(
         if shipment.temperature_max_celsius is None or temperature_celsius > shipment.temperature_max_celsius:
             shipment.temperature_max_celsius = temperature_celsius
 
-        # Check cold chain breach
         threshold = shipment.temperature_threshold or 4.0
         if temperature_celsius > threshold:
             if shipment.cold_chain_status != ColdChainStatus.BREACH:
@@ -289,6 +299,26 @@ def update_iot_readings(
     if current_lat or current_lng or temperature_celsius or humidity_percent:
         shipment.last_location_update = now
 
+    # Log IoT event
+    event_detail = []
+    if temperature_celsius is not None:
+        event_detail.append(f"temp={temperature_celsius}°C")
+    if humidity_percent is not None:
+        event_detail.append(f"humidity={humidity_percent}%")
+    if current_lat and current_lng:
+        event_detail.append(f"gps={current_lat},{current_lng}")
+
+    event = ShipmentEvent(
+        shipment_id         = shipment_id,
+        event_type          = "iot_reading",
+        event_detail        = " | ".join(event_detail),
+        temperature_celsius = temperature_celsius,
+        humidity_percent    = humidity_percent,
+        current_lat         = current_lat,
+        current_lng         = current_lng,
+        recorded_by         = "iot_device",
+    )
+    db.add(event)
     db.commit()
     db.refresh(shipment)
     return shipment
@@ -306,3 +336,25 @@ def get_shipment_by_reference(db: Session, reference: str) -> Optional[Shipment]
     return db.query(Shipment).filter(
         Shipment.shipment_reference == reference
     ).first()
+# ── SHIPMENT EVENT LOG ────────────────────────────────────────────
+
+def get_shipment_events(db: Session, shipment_id: int) -> list:
+    """Get full event history for a shipment."""
+    events = db.query(ShipmentEvent).filter(
+        ShipmentEvent.shipment_id == shipment_id
+    ).order_by(ShipmentEvent.created_at.asc()).all()
+
+    return [
+        {
+            "event_type":          e.event_type,
+            "event_detail":        e.event_detail,
+            "temperature_celsius": e.temperature_celsius,
+            "humidity_percent":    e.humidity_percent,
+            "current_lat":         e.current_lat,
+            "current_lng":         e.current_lng,
+            "recorded_by":         e.recorded_by,
+            "notes":               e.notes,
+            "created_at":          e.created_at,
+        }
+        for e in events
+    ]
