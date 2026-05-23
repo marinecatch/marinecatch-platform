@@ -15,6 +15,7 @@ from app.api.v1.routes import (
     payouts,
     lpo, documents,
     logistics,
+    esg
 )
 
 @asynccontextmanager
@@ -52,6 +53,7 @@ app.include_router(payouts.router, prefix="/api/v1")
 app.include_router(lpo.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(logistics.router, prefix="/api/v1")
+app.include_router(esg.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     return {
