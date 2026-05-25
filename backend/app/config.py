@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     MPESA_B2C_SHORTCODE: str = "174379"
     MPESA_INITIATOR_NAME: str = "testapi"
     MPESA_SECURITY_CREDENTIAL: str = ""
+    # WhatsApp
+    WHATSAPP_TOKEN:            str = ""
+    WHATSAPP_PHONE_NUMBER_ID:  str = ""
+    WHATSAPP_VERIFY_TOKEN:     str = "marinecatch_verify_2026"
+    WHATSAPP_API_VERSION:      str = "v19.0"
 
     class Config:
         env_file = str(ENV_FILE)

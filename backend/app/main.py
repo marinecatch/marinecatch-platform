@@ -15,7 +15,8 @@ from app.api.v1.routes import (
     payouts,
     lpo, documents,
     logistics,
-    esg
+    esg,
+    whatsapp,
 )
 
 @asynccontextmanager
@@ -54,6 +55,7 @@ app.include_router(lpo.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(logistics.router, prefix="/api/v1")
 app.include_router(esg.router, prefix="/api/v1")
+app.include_router(whatsapp.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     return {
@@ -72,6 +74,9 @@ def root():
             "payouts": "/api/v1/payouts",
             "lpo": "/api/v1/lpo",
             "documents": "/api/v1/documents",
-
+            "logistics":       "/api/v1/logistics",
+            "esg":             "/api/v1/esg",
+            "whatsapp":        "/api/v1/whatsapp",
+            
         }
     }
