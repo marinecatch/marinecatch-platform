@@ -220,6 +220,83 @@ async def route_incoming_message(
         return
 
     # Support
+    # Order status lookup
+    if text in ["orders", "order", "agizo", "maagizo"] or button_id == "btn_orders":
+        from app.models.user import User
+        from app.models.order import Order
+        # Find user by phone
+        user = db.query(User).filter(User.phone == from_phone).first()
+        if not user:
+            await send_text(
+                from_phone,
+                "📦 *Order Status*\n\n"
+                "We couldn't find your account.\n"
+                "Please register at marinecatch.co.ke or contact support.\n\n"
+                "Type MENU to go back."
+            )
+            return
+        orders = db.query(Order).filter(
+            Order.buyer_id == user.id
+        ).order_by(Order.created_at.desc()).limit(3).all()
+        if not orders:
+            await send_text(
+                from_phone,
+                "📦 You have no orders yet.\n\n"
+                "Type FISH to see available seafood.\n"
+                "Type MENU to go back."
+            )
+            return
+        lines = ["📦 *Your Recent Orders*\n"]
+        for o in orders:
+            lines.append(
+                f"• Order #{o.id} — {o.species.title()} {o.quantity_kg}kg\n"
+                f"  Status: {o.status.value.replace('_', ' ').title()}\n"
+                f"  Total: KES {o.total_kes:,.0f}"
+            )
+        lines.append("\nType MENU to go back.")
+        await send_text(from_phone, "\n".join(lines))
+        return
+
+    # Price inquiry
+    if text.startswith("price ") or text.startswith("bei "):
+        species_query = text.replace("price ", "").replace("bei ", "").strip()
+        from app.services.inventory_service import get_available_lots
+        lots = get_available_lots(db, species=species_query, limit=1)
+        if not lots:
+            await send_text(
+                from_phone,
+                f"No {species_query.title()} available right now.\n\n"
+                f"Type FISH to see all available seafood."
+            )
+            return
+        lot = lots[0]
+        await send_text(
+            from_phone,
+            f"💰 *{lot.species.title()} Price*\n\n"
+            f"• Price: KES {lot.selling_price_per_kg}/kg\n"
+            f"• Available: {lot.available_kg}kg\n"
+            f"• Grade: {lot.grade}\n"
+            f"• Location: {lot.landing_site.title()}\n"
+            f"• Lot: {lot.lot_number}\n\n"
+            f"To order, contact us or visit marinecatch.co.ke\n"
+            f"Type MENU to go back."
+        )
+        return
+
+    # Fisher catch logging via WhatsApp
+    if text.startswith("catch ") or text.startswith("samaki "):
+        await send_text(
+            from_phone,
+            "🐟 *Log Your Catch*\n\n"
+            "To log your catch, please send details in this format:\n\n"
+            "CATCH [species] [weight_kg] [landing_site]\n\n"
+            "Example:\n"
+            "CATCH tuna 45 kibuyuni\n\n"
+            "Or contact MarineCatch operations:\n"
+            "📞 +254700000000\n\n"
+            "Type MENU to go back."
+        )
+        return
     if text in ["support", "help", "msaada"] or button_id == "btn_support":
         await send_text(
             from_phone,
