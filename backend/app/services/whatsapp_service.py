@@ -21,6 +21,8 @@
 # whatsapp routes → handles webhooks
 # existing services → business logic (never duplicated here)
 
+from unittest import result
+
 import httpx
 from app.config import settings
 
@@ -68,8 +70,8 @@ async def send_text(phone: str, message: str) -> dict:
             headers=get_headers(),
             timeout=30.0
         )
-        return response.json()
-
+        result = response.json()
+        return result
 
 # ── SEND INTERACTIVE MENU ─────────────────────────────────────────
 
@@ -124,7 +126,8 @@ async def send_menu(
             headers=get_headers(),
             timeout=30.0
         )
-        return response.json()
+        result = response.json()
+        return result
 
 
 # ── SEND LIST MENU ────────────────────────────────────────────────
