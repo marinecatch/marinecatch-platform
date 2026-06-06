@@ -17,6 +17,7 @@ from app.api.v1.routes import (
     logistics,
     esg,
     whatsapp,
+    ussd
 )
 
 @asynccontextmanager
@@ -56,6 +57,7 @@ app.include_router(documents.router, prefix="/api/v1")
 app.include_router(logistics.router, prefix="/api/v1")
 app.include_router(esg.router, prefix="/api/v1")
 app.include_router(whatsapp.router, prefix="/api/v1")
+app.include_router(ussd.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     return {
@@ -77,6 +79,6 @@ def root():
             "logistics":       "/api/v1/logistics",
             "esg":             "/api/v1/esg",
             "whatsapp":        "/api/v1/whatsapp",
-            
+            "ussd":            "/api/v1/ussd"
         }
     }

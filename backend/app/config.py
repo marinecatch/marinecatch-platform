@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_NUMBER_ID:  str = ""
     WHATSAPP_VERIFY_TOKEN:     str = "marinecatch_verify_2026"
     WHATSAPP_API_VERSION:      str = "v19.0"
+    # Africa's Talking
+    AT_API_KEY:        str = ""
+    AT_USERNAME:       str = "sandbox"
+    AT_USSD_SHORTCODE: str = "*384*71253#"
 
     class Config:
         env_file = str(ENV_FILE)
