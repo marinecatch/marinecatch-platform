@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineCatch Africa — Admin Login</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-logo">🐟 MarineCatch Africa</div>
+        <div class="login-sub">Admin Operations Panel</div>
+
+        <div id="error-msg"></div>
+
+        <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-control"
+                   placeholder="admin@marinecatch.co.ke" autocomplete="email">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="password" class="form-control"
+                   placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn btn-primary" style="width:100%" onclick="login()">
+            Sign In
+        </button>
+
+        <p style="text-align:center; margin-top:16px; font-size:12px; color:#718096">
+            MarineCatch Africa v1.0 — Staff Access Only
+        </p>
+    </div>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+async function login() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl    = document.getElementById('error-msg');
+
+    if (!email || !password) {
+        errEl.innerHTML = '<div class="alert alert-danger">Please enter email and password.</div>';
+        return;
+    }
+
+    errEl.innerHTML = '';
+
+    try {
+        const formData = new FormData();
+        formData.append('username', email);
+        formData.append('password', password);
+
+        const res = await fetch(`${API}/api/v1/users/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.access_token) {
+            errEl.innerHTML = '<div class="alert alert-danger">Invalid email or password.</div>';
+            return;
+        }
+
+        if (data.user.role !== 'admin') {
+            errEl.innerHTML = '<div class="alert alert-danger">Access denied. Admin only.</div>';
+            return;
+        }
+
+        setToken(data.access_token);
+        localStorage.setItem('mc_admin_user', JSON.stringify(data.user));
+        window.location.href = '/admin/pages/dashboard.html';
+
+    } catch (e) {
+        errEl.innerHTML = '<div class="alert alert-danger">Connection error. Please try again.</div>';
+    }
+}
+
+// Allow Enter key to submit
+document.addEventListener('keypress', e => {
+    if (e.key === 'Enter') login();
+});
+
+// Redirect if already logged in
+if (getToken()) window.location.href = '/admin/pages/dashboard.html';
+</script>
+</body>
+</html>

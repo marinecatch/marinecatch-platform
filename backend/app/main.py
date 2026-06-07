@@ -3,6 +3,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from app.api.v1.routes import (
     health,
@@ -42,7 +45,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ── ADMIN PANEL ───────────────────────────────
+admin_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "admin")
+admin_dir = os.path.abspath(admin_dir)
+app.mount("/admin/static", StaticFiles(directory=os.path.join(admin_dir, "static")), name="admin-static")
+app.mount("/admin/pages", StaticFiles(directory=os.path.join(admin_dir, "pages")), name="admin-pages")
 
+@app.get("/admin")
+@app.get("/admin/")
+def admin_redirect():
+    return FileResponse(os.path.join(admin_dir, "pages", "login.html"))
 # Routes
 app.include_router(health.router)
 app.include_router(users.router)

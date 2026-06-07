@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item">
+                <span class="icon">📊</span> Dashboard
+            </a>
+            <a href="/admin/pages/orders.html" class="nav-item">
+                <span class="icon">📦</span> Orders
+            </a>
+            <a href="/admin/pages/inventory.html" class="nav-item">
+                <span class="icon">🐟</span> Inventory
+            </a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item">
+                <span class="icon">💳</span> Payments
+            </a>
+            <a href="/admin/pages/payouts.html" class="nav-item">
+                <span class="icon">💚</span> Fisher Payouts
+            </a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item">
+                <span class="icon">👥</span> Users
+            </a>
+            <a href="/admin/pages/logistics.html" class="nav-item">
+                <span class="icon">🚚</span> Logistics
+            </a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()">
+                <span class="icon">🚪</span> Sign Out
+            </a>
+        </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Dashboard</div>
+                <div class="page-subtitle">MarineCatch Africa Operations Overview</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="stat-orders">—</div>
+                <div class="stat-sub">All time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Inventory</div>
+                <div class="stat-value" id="stat-inventory">—</div>
+                <div class="stat-sub">Available lots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Registered Users</div>
+                <div class="stat-value" id="stat-users">—</div>
+                <div class="stat-sub">Fishers & buyers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Delivery Zones</div>
+                <div class="stat-value" id="stat-zones">—</div>
+                <div class="stat-sub">Active zones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Catch Events</div>
+                <div class="stat-value" id="stat-catches">—</div>
+                <div class="stat-sub">Logged landings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Traceability Chains</div>
+                <div class="stat-value" id="stat-traces">—</div>
+                <div class="stat-sub">Export ready records</div>
+            </div>
+        </div>
+
+        <!-- RECENT ORDERS -->
+        <div class="card">
+            <div class="card-title">
+                Recent Orders
+                <a href="/admin/pages/orders.html" class="btn btn-outline btn-sm">View All</a>
+            </div>
+            <div id="recent-orders"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- INVENTORY ALERTS -->
+        <div class="card">
+            <div class="card-title">
+                Inventory — Available Stock
+                <a href="/admin/pages/inventory.html" class="btn btn-outline btn-sm">View All</a>
+            </div>
+            <div id="inventory-summary"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+setActiveNav();
+
+async function loadDashboard() {
+    // Load orders
+    const ordersData = await apiGet('/api/v1/orders/admin/all');
+if (ordersData) {
+    const orders = ordersData.orders || [];
+    document.getElementById('stat-orders').textContent = ordersData.total || 0;
+
+        const recentHtml = orders.length === 0
+            ? '<p style="color:#718096;padding:20px">No orders yet.</p>'
+            : `<div class="table-wrap"><table>
+                <thead><tr>
+                    <th>Order ID</th><th>Species</th><th>Quantity</th>
+                    <th>Total</th><th>Status</th><th>Date</th>
+                </tr></thead>
+                <tbody>
+                ${orders.slice(0, 8).map(o => `
+                    <tr>
+                        <td><strong>#${o.order_id || o.id}</strong></td>
+                        <td>${(o.species || '—').replace('_',' ')}</td>
+                        <td>${o.quantity_kg || '—'}kg</td>
+                        <td>${formatKES(o.total_kes)}</td>
+                        <td>${statusBadge(o.status)}</td>
+                        <td>${formatDate(o.created_at)}</td>
+                    </tr>`).join('')}
+                </tbody></table></div>`;
+        document.getElementById('recent-orders').innerHTML = recentHtml;
+    }
+
+    // Load inventory
+    const inventory = await apiGet('/api/v1/inventory/?page_size=100');
+    if (inventory) {
+        const lots = inventory.lots || inventory;
+        document.getElementById('stat-inventory').textContent =
+            Array.isArray(lots) ? lots.length : '—';
+
+        const invHtml = !Array.isArray(lots) || lots.length === 0
+            ? '<p style="color:#718096;padding:20px">No inventory available.</p>'
+            : `<div class="table-wrap"><table>
+                <thead><tr>
+                    <th>Lot Number</th><th>Species</th><th>Available</th>
+                    <th>Price/kg</th><th>Location</th><th>Status</th>
+                </tr></thead>
+                <tbody>
+                ${lots.slice(0, 6).map(l => `
+                    <tr>
+                        <td><strong>${l.lot_number}</strong></td>
+                        <td>${(l.species || '—').replace('_',' ')}</td>
+                        <td>${l.available_kg}kg</td>
+                        <td>${formatKES(l.selling_price_per_kg)}</td>
+                        <td>${l.landing_site || '—'}</td>
+                        <td>${statusBadge(l.lot_status || 'available')}</td>
+                    </tr>`).join('')}
+                </tbody></table></div>`;
+        document.getElementById('inventory-summary').innerHTML = invHtml;
+    }
+
+    // Load users
+    const users = await apiGet('/api/v1/users/');
+    if (users) {
+        document.getElementById('stat-users').textContent =
+            Array.isArray(users) ? users.length : (users.total || '—');
+    }
+
+    // Load zones
+    const zones = await apiGet('/api/v1/logistics/zones?active_only=true');
+    if (zones) {
+        document.getElementById('stat-zones').textContent =
+            Array.isArray(zones) ? zones.length : '—';
+    }
+
+    // Load ESG dashboard
+    const esg = await apiGet('/api/v1/esg/dashboard');
+    if (esg) {
+        document.getElementById('stat-catches').textContent =
+            esg.catch_data?.total_catch_events || 0;
+        document.getElementById('stat-traces').textContent =
+            esg.traceability?.export_ready || 0;
+    }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

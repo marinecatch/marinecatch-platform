@@ -326,3 +326,39 @@ def api_get_orders_by_lot(
             for o in orders
         ]
     }
+    # ── LIST ALL ORDERS (admin) ───────────────────────────────────────
+
+@router.get("/admin/all")
+def api_list_all_orders(
+    skip:  int = Query(0, ge=0),
+    limit: int = Query(50, le=200),
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """List all orders for admin dashboard."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from app.models.order import Order
+    from app.models.user import User
+
+    orders = db.query(Order).order_by(
+        Order.created_at.desc()
+    ).offset(skip).limit(limit).all()
+
+    result = []
+    for order in orders:
+        buyer = db.query(User).filter(User.id == order.buyer_id).first()
+        result.append({
+            "order_id":      order.id,
+            "species":       order.species,
+            "quantity_kg":   order.quantity_kg,
+            "total_kes":     order.total_kes,
+            "status":        order.status.value,
+            "order_type":    order.order_type.value if order.order_type else None,
+            "buyer_name":    buyer.name if buyer else None,
+            "lpo_reference": order.lpo_reference,
+            "created_at":    order.created_at,
+        })
+
+    return {"total": len(result), "orders": result}
