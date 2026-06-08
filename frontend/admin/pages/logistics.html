@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item active"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Logistics</div>
+                <div class="page-subtitle">Shipments, delivery zones and fulfillment hubs</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- ZONES -->
+        <div class="card">
+            <div class="card-title">Delivery Zones</div>
+            <div id="zones-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- HUBS -->
+        <div class="card">
+            <div class="card-title">Fulfillment Hubs</div>
+            <div id="hubs-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- SHIPMENTS -->
+        <div class="card">
+            <div class="card-title">Active Shipments</div>
+            <div id="shipments-note" class="alert alert-warning">
+                Shipment listing requires order-by-order lookup. 
+                Use Order #ID → check shipment via GET /api/v1/logistics/shipments/order/{id}
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadLogistics() {
+    // Zones
+    const zones = await apiGet('/api/v1/logistics/zones?active_only=false');
+    if (zones) {
+        document.getElementById('zones-table').innerHTML = `
+            <div class="table-wrap"><table>
+                <thead><tr>
+                    <th>Code</th><th>Zone</th><th>Counties</th>
+                    <th>Min Order</th><th>Base Fee</th><th>Est. Days</th>
+                    <th>Same Day</th><th>Cold Chain</th><th>Status</th>
+                </tr></thead>
+                <tbody>
+                ${zones.map(z => `
+                    <tr>
+                        <td><strong>${z.zone_code}</strong></td>
+                        <td>${z.zone_name}</td>
+                        <td style="font-size:11px">${z.counties || '—'}</td>
+                        <td>${z.min_order_kg ? z.min_order_kg + 'kg' : '—'}</td>
+                        <td>${formatKES(z.base_delivery_fee_kes)}</td>
+                        <td>${z.estimated_delivery_days ? z.estimated_delivery_days + ' day(s)' : '—'}</td>
+                        <td>${z.same_day_available
+                            ? '<span class="badge badge-success">Yes</span>'
+                            : '<span class="badge badge-neutral">No</span>'}</td>
+                        <td>${z.cold_chain_supported
+                            ? '<span class="badge badge-success">Yes</span>'
+                            : '<span class="badge badge-warning">No</span>'}</td>
+                        <td>${statusBadge(z.status)}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+    }
+
+    // Hubs
+    const hubs = await apiGet('/api/v1/logistics/hubs?active_only=false');
+    if (hubs) {
+        document.getElementById('hubs-table').innerHTML = `
+            <div class="table-wrap"><table>
+                <thead><tr>
+                    <th>Code</th><th>Hub</th><th>Type</th><th>Location</th>
+                    <th>Cold Storage</th><th>Capacity</th><th>Serves Zones</th>
+                </tr></thead>
+                <tbody>
+                ${hubs.map(h => `
+                    <tr>
+                        <td><strong>${h.hub_code}</strong></td>
+                        <td>${h.hub_name}</td>
+                        <td><span class="badge badge-neutral">${h.hub_type}</span></td>
+                        <td>${h.town || '—'}</td>
+                        <td>${h.has_cold_storage
+                            ? '<span class="badge badge-success">Yes</span>'
+                            : '<span class="badge badge-neutral">No</span>'}</td>
+                        <td>${h.cold_storage_capacity_kg ? h.cold_storage_capacity_kg + 'kg' : '—'}</td>
+                        <td style="font-size:11px">${h.serves_zones || '—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+    }
+}
+
+loadLogistics();
+</script>
+</body>
+</html>

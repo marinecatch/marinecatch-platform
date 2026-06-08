@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item active"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Payments</div>
+                <div class="page-subtitle">M-Pesa transactions and reconciliation</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- RECONCILIATION REPORT -->
+        <div class="card">
+            <div class="card-title">Daily Reconciliation Report</div>
+            <div id="reconciliation"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- OVERDUE PAYMENTS -->
+        <div class="card">
+            <div class="card-title">⚠️ Overdue Credit Payments</div>
+            <div id="overdue"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadPayments() {
+    // Reconciliation report
+    const report = await apiGet('/api/v1/reconciliation/report?limit=20');
+    if (report) {
+        const cleanCount   = report.clean || 0;
+        const issuesCount  = report.needs_attention || 0;
+        const orders       = report.orders || [];
+
+        document.getElementById('reconciliation').innerHTML = `
+            <div class="stats-grid" style="margin-bottom:16px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value">${report.total_orders || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Clean</div>
+                    <div class="stat-value" style="color:#28a745">${cleanCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Needs Attention</div>
+                    <div class="stat-value" style="color:#dc3545">${issuesCount}</div>
+                </div>
+            </div>
+            <div class="table-wrap">
+            <table>
+                <thead><tr>
+                    <th>Order ID</th>
+                    <th>Species</th>
+                    <th>Buyer</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Fisher Paid</th>
+                    <th>Commission</th>
+                    <th>Status</th>
+                    <th>Issues</th>
+                </tr></thead>
+                <tbody>
+                ${orders.map(o => `
+                    <tr>
+                        <td><strong>#${o.order_id}</strong></td>
+                        <td>${o.order?.species || '—'}</td>
+                        <td>${o.buyer?.name || '—'}</td>
+                        <td>${formatKES(o.buyer?.amount_kes)}</td>
+                        <td>${statusBadge(o.buyer?.charge_status || 'pending')}</td>
+                        <td>${o.fisher?.paid
+                            ? '<span class="badge badge-success">Paid</span>'
+                            : '<span class="badge badge-warning">Pending</span>'}</td>
+                        <td>${formatKES(o.marinecatch?.commission_kes)}</td>
+                        <td>${statusBadge(o.reconciliation_status)}</td>
+                        <td style="font-size:11px; color:#dc3545">
+                            ${(o.issues || []).join(', ') || '—'}
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+    }
+
+    // Overdue payments
+    const overdue = await apiGet('/api/v1/reconciliation/overdue');
+    if (overdue) {
+        if (overdue.length === 0) {
+            document.getElementById('overdue').innerHTML =
+                '<p style="color:#28a745; padding:16px">✅ No overdue payments.</p>';
+        } else {
+            document.getElementById('overdue').innerHTML = `
+                <div class="table-wrap"><table>
+                    <thead><tr>
+                        <th>Order ID</th><th>Buyer</th><th>Amount</th>
+                        <th>Due Date</th><th>Overdue Days</th><th>Phone</th>
+                    </tr></thead>
+                    <tbody>
+                    ${overdue.map(o => `
+                        <tr>
+                            <td>#${o.order_id}</td>
+                            <td>${o.buyer_name || '—'}</td>
+                            <td>${formatKES(o.amount_kes)}</td>
+                            <td>${formatDate(o.due_date)}</td>
+                            <td><span class="badge badge-danger">${o.overdue_days} days</span></td>
+                            <td>${o.buyer_phone || '—'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table></div>`;
+        }
+    }
+}
+
+loadPayments();
+</script>
+</body>
+</html>

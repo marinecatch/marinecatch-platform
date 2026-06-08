@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item active"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Users</div>
+                <div class="page-subtitle">Fishers, buyers, processors and admin</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="stat-total">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Fishers</div>
+                <div class="stat-value" id="stat-fishers">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Buyers</div>
+                <div class="stat-value" id="stat-buyers">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Admins</div>
+                <div class="stat-value" id="stat-admins">—</div>
+            </div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="card">
+            <div style="display:flex; gap:12px; align-items:center;">
+                <select id="filter-role" class="form-control" style="width:160px" onchange="loadUsers()">
+                    <option value="">All Roles</option>
+                    <option value="fisher">Fishers</option>
+                    <option value="buyer">Buyers</option>
+                    <option value="admin">Admins</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="loadUsers()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- USERS TABLE -->
+        <div class="card">
+            <div class="card-title">All Users</div>
+            <div id="users-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadUsers() {
+    showLoading('users-table');
+    const data = await apiGet('/api/v1/users/');
+    if (!data) return;
+
+    const users = Array.isArray(data) ? data : (data.users || []);
+    const role  = document.getElementById('filter-role').value;
+    const filtered = role ? users.filter(u => u.role === role) : users;
+
+    document.getElementById('stat-total').textContent   = users.length;
+    document.getElementById('stat-fishers').textContent = users.filter(u => u.role === 'fisher').length;
+    document.getElementById('stat-buyers').textContent  = users.filter(u => u.role === 'buyer').length;
+    document.getElementById('stat-admins').textContent  = users.filter(u => u.role === 'admin').length;
+
+    if (filtered.length === 0) {
+        document.getElementById('users-table').innerHTML =
+            '<p style="color:#718096;padding:20px">No users found.</p>';
+        return;
+    }
+
+    document.getElementById('users-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>ID</th><th>Name</th><th>Email</th><th>Phone</th>
+                <th>Role</th><th>Location</th><th>Business</th><th>Active</th><th>Joined</th>
+            </tr></thead>
+            <tbody>
+            ${filtered.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.email}</td>
+                    <td>${u.phone || '—'}</td>
+                    <td>${statusBadge(u.role)}</td>
+                    <td>${u.location || '—'}</td>
+                    <td>${u.business_name || '—'}</td>
+                    <td>${u.is_active
+                        ? '<span class="badge badge-success">Active</span>'
+                        : '<span class="badge badge-danger">Inactive</span>'}</td>
+                    <td>${formatDate(u.created_at)}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item active"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Inventory</div>
+                <div class="page-subtitle">All seafood lots — available, reserved, sold</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Lots</div>
+                <div class="stat-value" id="stat-total">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Available kg</div>
+                <div class="stat-value" id="stat-available">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reserved kg</div>
+                <div class="stat-value" id="stat-reserved">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">USSD Lots (Unpriced)</div>
+                <div class="stat-value" id="stat-unpriced">—</div>
+                <div class="stat-sub">Needs price assignment</div>
+            </div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="card">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <select id="filter-species" class="form-control" style="width:160px" onchange="loadInventory()">
+                    <option value="">All Species</option>
+                    <option value="tuna">Tuna</option>
+                    <option value="octopus">Octopus</option>
+                    <option value="prawns">Prawns</option>
+                    <option value="lobster">Lobster</option>
+                    <option value="snapper">Snapper</option>
+                    <option value="kingfish">Kingfish</option>
+                    <option value="sardines">Sardines</option>
+                    <option value="crab">Crab</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="loadInventory()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- UNPRICED ALERT -->
+        <div id="unpriced-alert"></div>
+
+        <!-- INVENTORY TABLE -->
+        <div class="card">
+            <div class="card-title">All Inventory Lots</div>
+            <div id="inventory-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- PRICE MODAL -->
+        <div id="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:400px; max-width:90%;">
+                <h3 style="margin-bottom:16px;">Set Price</h3>
+                <p style="margin-bottom:12px; color:#718096;">Lot <strong id="modal-lot-id"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Price per kg (KES)</label>
+                    <input type="number" id="modal-price" class="form-control" placeholder="e.g. 780" min="1">
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="setPrice()">Set Price</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+let currentLotId = null;
+
+async function loadInventory() {
+    const species = document.getElementById('filter-species').value;
+    const url = '/api/v1/inventory/' + (species ? `?species=${species}` : '');
+
+    showLoading('inventory-table');
+    const data = await apiGet(url);
+    if (!data) return;
+
+    const lots = Array.isArray(data) ? data : (data.lots || data.items || []);
+
+    // Stats
+    document.getElementById('stat-total').textContent = lots.length;
+    document.getElementById('stat-available').textContent =
+        Math.round(lots.reduce((s, l) => s + (l.available_kg || 0), 0)) + 'kg';
+    document.getElementById('stat-reserved').textContent =
+        Math.round(lots.reduce((s, l) => s + (l.reserved_kg || 0), 0)) + 'kg';
+
+    const unpriced = lots.filter(l => !l.selling_price_per_kg || l.selling_price_per_kg === 0);
+    document.getElementById('stat-unpriced').textContent = unpriced.length;
+
+    // Unpriced alert
+    if (unpriced.length > 0) {
+        document.getElementById('unpriced-alert').innerHTML = `
+            <div class="alert alert-warning">
+                ⚠️ ${unpriced.length} lot(s) need price assignment before they appear in marketplace.
+            </div>`;
+    }
+
+    if (lots.length === 0) {
+        document.getElementById('inventory-table').innerHTML =
+            '<p style="color:#718096;padding:20px">No inventory found.</p>';
+        return;
+    }
+
+    document.getElementById('inventory-table').innerHTML = `
+        <div class="table-wrap">
+        <table>
+            <thead><tr>
+                <th>Lot Number</th>
+                <th>Species</th>
+                <th>Weight</th>
+                <th>Available</th>
+                <th>Reserved</th>
+                <th>Price/kg</th>
+                <th>Location</th>
+                <th>Fisher</th>
+                <th>Catch Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${lots.map(l => `
+                <tr>
+                    <td><strong>${l.lot_number}</strong></td>
+                    <td>${(l.species || '—').replace('_',' ')}</td>
+                    <td>${l.weight_kg}kg</td>
+                    <td>${l.available_kg}kg</td>
+                    <td>${l.reserved_kg || 0}kg</td>
+                    <td>${l.selling_price_per_kg > 0
+                        ? formatKES(l.selling_price_per_kg)
+                        : '<span class="badge badge-warning">Unpriced</span>'}</td>
+                    <td>${l.landing_site || '—'}</td>
+                    <td>${l.source_name || '—'}</td>
+                    <td>${formatDate(l.catch_date)}</td>
+                    <td>${statusBadge(l.lot_status || 'available')}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm"
+                            onclick="openModal(${l.id}, '${l.lot_number}')">
+                            Set Price
+                        </button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function openModal(lotId, lotNumber) {
+    currentLotId = lotId;
+    document.getElementById('modal-lot-id').textContent = lotNumber;
+    document.getElementById('modal-price').value = '';
+    document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+    currentLotId = null;
+}
+
+async function setPrice() {
+    if (!currentLotId) return;
+    const price = parseFloat(document.getElementById('modal-price').value);
+    if (!price || price <= 0) {
+        alert('Please enter a valid price.');
+        return;
+    }
+
+    const result = await apiPatch(`/api/v1/inventory/${currentLotId}`, {
+        selling_price_per_kg: price
+    });
+
+    if (result) {
+        closeModal();
+        loadInventory();
+    } else {
+        alert('Failed to update price.');
+    }
+}
+
+loadInventory();
+</script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item active"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Orders</div>
+                <div class="page-subtitle">All orders — view, update status, manage fulfillment</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="stat-total">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Payment</div>
+                <div class="stat-value" id="stat-pending">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Confirmed</div>
+                <div class="stat-value" id="stat-confirmed">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Delivered</div>
+                <div class="stat-value" id="stat-delivered">—</div>
+            </div>
+        </div>
+
+        <!-- STATUS UPDATE MODAL -->
+        <div id="status-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:400px;">
+                <h3 style="margin-bottom:16px;">Update Order Status</h3>
+                <p style="margin-bottom:12px; color:#718096;">Order <strong id="modal-order-id"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">New Status</label>
+                    <select id="modal-status" class="form-control">
+                        <option value="pending_payment">Pending Payment</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitStatusUpdate()">Update</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ORDERS TABLE -->
+        <div class="card">
+            <div class="card-title">
+                All Orders
+                <div style="display:flex; gap:8px;">
+                    <select id="filter-status" class="form-control" style="width:160px" onchange="filterOrders()">
+                        <option value="">All Statuses</option>
+                        <option value="pending_payment">Pending Payment</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div id="orders-table"><div class="loading"><div class="spinner"></div>Loading orders...</div></div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error();
+showUser();
+
+let allOrders = [];
+let selectedOrderId = null;
+
+async function loadOrders() {
+    const data = await apiGet('/api/v1/orders/admin/all?limit=200');
+    if (!data) return;
+
+    allOrders = data.orders || [];
+
+    // Stats
+    document.getElementById('stat-total').textContent = data.total || 0;
+    document.getElementById('stat-pending').textContent =
+        allOrders.filter(o => o.status === 'pending_payment').length;
+    document.getElementById('stat-confirmed').textContent =
+        allOrders.filter(o => o.status === 'confirmed').length;
+    document.getElementById('stat-delivered').textContent =
+        allOrders.filter(o => o.status === 'delivered').length;
+
+    renderOrders(allOrders);
+}
+
+function filterOrders() {
+    const status = document.getElementById('filter-status').value;
+    const filtered = status ? allOrders.filter(o => o.status === status) : allOrders;
+    renderOrders(filtered);
+}
+
+function renderOrders(orders) {
+    if (orders.length === 0) {
+        document.getElementById('orders-table').innerHTML =
+            '<p style="padding:20px;color:#718096">No orders found.</p>';
+        return;
+    }
+
+    document.getElementById('orders-table').innerHTML = `
+        <div class="table-wrap">
+        <table>
+            <thead><tr>
+                <th>Order ID</th>
+                <th>Buyer</th>
+                <th>Species</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Type</th>
+                <th>LPO Ref</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr></thead>
+            <tbody>
+            ${orders.map(o => `
+                <tr>
+                    <td><strong>#${o.order_id}</strong></td>
+                    <td>${o.buyer_name || '—'}</td>
+                    <td>${(o.species || '—').replace('_',' ')}</td>
+                    <td>${o.quantity_kg}kg</td>
+                    <td>${formatKES(o.total_kes)}</td>
+                    <td><span class="badge badge-neutral">${o.order_type || 'marketplace'}</span></td>
+                    <td>${o.lpo_reference || '—'}</td>
+                    <td>${statusBadge(o.status)}</td>
+                    <td>${formatDate(o.created_at)}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm"
+                            onclick="openModal(${o.order_id}, '${o.status}')">
+                            Update
+                        </button>
+                        <button class="btn btn-outline btn-sm"
+                            onclick="viewReconciliation(${o.order_id})">
+                            Reconcile
+                        </button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function openModal(orderId, currentStatus) {
+    selectedOrderId = orderId;
+    document.getElementById('modal-order-id').textContent = `#${orderId}`;
+    document.getElementById('modal-status').value = currentStatus;
+    document.getElementById('status-modal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('status-modal').style.display = 'none';
+    selectedOrderId = null;
+}
+
+async function submitStatusUpdate() {
+    if (!selectedOrderId) return;
+    const status = document.getElementById('modal-status').value;
+    const result = await apiPatch(`/api/v1/orders/${selectedOrderId}/status`, { status });
+    if (result && result.success) {
+        closeModal();
+        loadOrders();
+    } else {
+        alert('Update failed: ' + (result?.detail || 'Unknown error'));
+    }
+}
+
+async function viewReconciliation(orderId) {
+    const data = await apiGet(`/api/v1/reconciliation/order/${orderId}`);
+    if (!data) return;
+    alert(
+        `Order #${orderId} Reconciliation\n\n` +
+        `Status: ${data.reconciliation_status}\n` +
+        `Issues: ${data.issues?.join(', ') || 'None'}\n` +
+        `Buyer Charged: ${data.buyer?.charged}\n` +
+        `Fisher Paid: ${data.fisher?.paid}\n` +
+        `Commission Correct: ${data.marinecatch?.commission_correct}`
+    );
+}
+
+loadOrders();
+</script>
+</body>
+</html>

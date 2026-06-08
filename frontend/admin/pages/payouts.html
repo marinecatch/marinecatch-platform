@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisher Payouts — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item active"><span class="icon">💚</span> Fisher Payouts</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Fisher Payouts</div>
+                <div class="page-subtitle">Platform-wide payout ledger</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- LEDGER SUMMARY -->
+        <div id="ledger-summary"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+
+        <!-- PENDING PAYOUTS -->
+        <div class="card">
+            <div class="card-title">⏳ Pending Payouts</div>
+            <div id="pending-payouts"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadPayouts() {
+    // Ledger summary
+    const ledger = await apiGet('/api/v1/payouts/ledger');
+    if (ledger) {
+        document.getElementById('ledger-summary').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Paid to Fishers</div>
+                    <div class="stat-value">${formatKES(ledger.total_paid_to_fishers_kes)}</div>
+                    <div class="stat-sub">${ledger.paid_count} payouts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value" style="color:#f0a500">${formatKES(ledger.total_pending_kes)}</div>
+                    <div class="stat-sub">${ledger.pending_count} payouts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-value" style="color:#dc3545">${formatKES(ledger.total_failed_kes)}</div>
+                    <div class="stat-sub">${ledger.failed_count} payouts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">MarineCatch Revenue</div>
+                    <div class="stat-value" style="color:#0a4f3c">${formatKES(ledger.total_marinecatch_revenue_kes)}</div>
+                    <div class="stat-sub">Commission earned</div>
+                </div>
+            </div>`;
+    }
+
+    // Pending payouts
+    const pending = await apiGet('/api/v1/payouts/pending');
+    if (pending) {
+        if (pending.length === 0) {
+            document.getElementById('pending-payouts').innerHTML =
+                '<p style="color:#28a745; padding:16px">✅ No pending payouts.</p>';
+        } else {
+            document.getElementById('pending-payouts').innerHTML = `
+                <div class="table-wrap"><table>
+                    <thead><tr>
+                        <th>Reference</th><th>Order</th><th>Fisher</th>
+                        <th>Phone</th><th>Amount</th><th>Status</th>
+                        <th>Days Since Payment</th><th>Action</th>
+                    </tr></thead>
+                    <tbody>
+                    ${pending.map(p => `
+                        <tr>
+                            <td><strong>${p.transaction_reference}</strong></td>
+                            <td>#${p.order_id}</td>
+                            <td>${p.fisher_name || '—'}</td>
+                            <td>${p.fisher_phone || '—'}</td>
+                            <td>${formatKES(p.payout_amount_kes)}</td>
+                            <td>${statusBadge(p.payout_status)}</td>
+                            <td>${p.days_since_payment !== null
+                                ? p.days_since_payment + ' days'
+                                : '—'}</td>
+                            <td>
+                                <button class="btn btn-accent btn-sm"
+                                    onclick="triggerPayout(${p.order_id})">
+                                    Pay Now
+                                </button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table></div>`;
+        }
+    }
+}
+
+async function triggerPayout(orderId) {
+    if (!confirm(`Trigger M-Pesa payout for order #${orderId}?`)) return;
+    const result = await apiPost(`/api/v1/payments/payout/${orderId}`, {});
+    if (result && result.success) {
+        alert(`✅ Payout initiated: ${result.message}`);
+        loadPayouts();
+    } else {
+        alert('Failed: ' + (result?.detail || 'Unknown error'));
+    }
+}
+
+loadPayouts();
+</script>
+</body>
+</html>
