@@ -46,15 +46,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # ── ADMIN PANEL ───────────────────────────────
-admin_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "admin")
-admin_dir = os.path.abspath(admin_dir)
-app.mount("/admin/static", StaticFiles(directory=os.path.join(admin_dir, "static")), name="admin-static")
-app.mount("/admin/pages", StaticFiles(directory=os.path.join(admin_dir, "pages")), name="admin-pages")
+import os
+# Works both locally and in Docker
+possible_paths = [
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "admin"),
+    "/frontend/admin",
+]
+admin_dir = None
+for path in possible_paths:
+    if os.path.exists(os.path.abspath(path)):
+        admin_dir = os.path.abspath(path)
+        break
 
-@app.get("/admin")
-@app.get("/admin/")
-def admin_redirect():
-    return FileResponse(os.path.join(admin_dir, "pages", "login.html"))
+if admin_dir:
+    app.mount("/admin/static", StaticFiles(directory=os.path.join(admin_dir, "static")), name="admin-static")
+    app.mount("/admin/pages", StaticFiles(directory=os.path.join(admin_dir, "pages")), name="admin-pages")
+
+    @app.get("/admin")
+    @app.get("/admin/")
+    def admin_redirect():
+        return FileResponse(os.path.join(admin_dir, "pages", "login.html"))
 # Routes
 app.include_router(health.router)
 app.include_router(users.router)
