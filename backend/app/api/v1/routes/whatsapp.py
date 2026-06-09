@@ -153,10 +153,264 @@ async def route_incoming_message(
     text:       str,
     button_id:  str,
 ):
-    """
-    Route incoming message to appropriate handler.
-    Keyword-based routing for MVP.
-    """
+    # TODO POST-LAUNCH: Expand fisher flows
+    # - Image posting for catch evidence and quality verification
+    # - Logistics coordination with drivers
+    # - Multilingual: Swahili menus for coastal fisher communities
+    # Priority: August 2026, after first real fishers onboard
+
+    from app.services.inventory_service import get_available_lots
+    from app.models.order import Order
+    from app.models.user import User, UserRole
+    from app.models.inventory_lot import InventoryLot
+    from app.models.payment import PaymentTransaction, PayoutStatus
+
+    # ── IDENTIFY USER ROLE ────────────────────────────────────
+    clean_phone = from_phone.replace("+", "").replace(" ", "")
+    user = db.query(User).filter(
+        User.phone.contains(clean_phone[-9:])
+    ).first()
+
+    user_role = user.role if user else "unknown"
+
+    # ── ROUTE BY ROLE ─────────────────────────────────────────
+    if user_role == "fisher":
+        await route_fisher_message(db, from_phone, text, button_id, user)
+    else:
+        await route_buyer_message(db, from_phone, text, button_id, user)
+
+
+async def route_fisher_message(
+    db:         Session,
+    from_phone: str,
+    text:       str,
+    button_id:  str,
+    fisher,
+):
+    """Handle incoming messages from fishers."""
+    from app.services.inventory_service import get_available_lots
+    from app.models.order import Order
+    from app.models.payment import PaymentTransaction, PayoutStatus
+    from app.models.inventory_lot import InventoryLot, LotStatus, OwnershipType
+    from datetime import datetime, timezone
+
+    fisher_name = fisher.name.split()[0] if fisher else "Fisher"
+
+    # ── FISHER MAIN MENU ──────────────────────────────────────
+    if text in ["hi", "hello", "habari", "menu", "start", "help"]:
+        await send_menu(
+            phone=   from_phone,
+            header=  f"Habari {fisher_name}! 🐟",
+            body=    "MarineCatch Africa\nChagua chaguo lako:",
+            footer=  "Powered by MarineCatch Africa",
+            buttons=[
+                {"id": "fisher_catch",   "title": "Log Catch 🐠"},
+                {"id": "fisher_payout",  "title": "My Payouts 💚"},
+                {"id": "fisher_prices",  "title": "Check Prices 💰"},
+            ]
+        )
+        return
+
+    # ── LOG CATCH ─────────────────────────────────────────────
+    if text in ["log catch", "catch", "samaki", "ingiza"] or button_id == "fisher_catch":
+        await send_text(
+            from_phone,
+            f"🐠 *Log Your Catch*\n\n"
+            f"Type your catch details in this format:\n\n"
+            f"*CATCH species weight site*\n\n"
+            f"Examples:\n"
+            f"• CATCH tuna 45 kibuyuni\n"
+            f"• CATCH octopus 20 shimoni\n"
+            f"• CATCH prawns 30 kinondo\n\n"
+            f"Available species: tuna, octopus, prawns, lobster, snapper, kingfish, sardines, crab\n\n"
+            f"Available sites: kibuyuni, kinondo, shimoni, ukunda, vanga"
+        )
+        return
+
+    # ── PROCESS CATCH SUBMISSION ──────────────────────────────
+    if text.startswith("catch "):
+        parts = text.split()
+        species_list = ["tuna", "octopus", "prawns", "lobster",
+                       "snapper", "kingfish", "sardines", "crab"]
+        landing_sites = ["kibuyuni", "kinondo", "shimoni", "ukunda", "vanga"]
+
+        if len(parts) >= 4:
+            species      = parts[1].lower()
+            weight_str   = parts[2]
+            landing_site = parts[3].lower()
+
+            if species not in species_list:
+                await send_text(from_phone,
+                    f"❌ Species '{species}' not recognized.\n\n"
+                    f"Valid species: {', '.join(species_list)}\n\n"
+                    f"Try again: CATCH tuna 45 kibuyuni")
+                return
+
+            if not weight_str.isdigit() or int(weight_str) <= 0:
+                await send_text(from_phone,
+                    "❌ Invalid weight. Please enter a number.\n\n"
+                    "Example: CATCH tuna 45 kibuyuni")
+                return
+
+            if landing_site not in landing_sites:
+                await send_text(from_phone,
+                    f"❌ Landing site '{landing_site}' not recognized.\n\n"
+                    f"Valid sites: {', '.join(landing_sites)}\n\n"
+                    f"Try again: CATCH tuna 45 kibuyuni")
+                return
+
+            weight_kg = int(weight_str)
+
+            # Generate lot number
+            today      = datetime.now(timezone.utc).strftime("%Y%m%d")
+            count      = db.query(InventoryLot).filter(
+                InventoryLot.lot_number.like(f"MC-WA-{today}-%")
+            ).count()
+            lot_number = f"MC-WA-{today}-{str(count + 1).zfill(4)}"
+
+            try:
+                lot = InventoryLot(
+                    lot_number           = lot_number,
+                    traceability_code    = f"MC-TRACE-WA-{lot_number}",
+                    species              = species,
+                    weight_kg            = float(weight_kg),
+                    available_kg         = float(weight_kg),
+                    reserved_kg          = 0.0,
+                    landing_site         = landing_site,
+                    catch_date           = datetime.now(timezone.utc).date(),
+                    source_user_id       = fisher.id,
+                    source_name          = fisher.name,
+                    ownership_type       = OwnershipType.MARKETPLACE,
+                    lot_status           = LotStatus.AVAILABLE,
+                    selling_price_per_kg = 0.0,
+                    notes                = f"Logged via WhatsApp by {fisher.name}. Awaiting price assignment.",
+                )
+                db.add(lot)
+                db.commit()
+
+                await send_text(
+                    from_phone,
+                    f"✅ *Catch Logged Successfully!*\n\n"
+                    f"• Species: {species.title()}\n"
+                    f"• Weight: {weight_kg}kg\n"
+                    f"• Site: {landing_site.title()}\n"
+                    f"• Lot: {lot_number}\n\n"
+                    f"Our team will contact you with pricing soon.\n\n"
+                    f"Asante {fisher_name}! 🐟"
+                )
+            except Exception as e:
+                await send_text(from_phone,
+                    "❌ Error saving catch. Please try again or call +254700000000")
+            return
+
+        await send_text(from_phone,
+            "❌ Format not recognized.\n\n"
+            "Use: *CATCH species weight site*\n"
+            "Example: CATCH tuna 45 kibuyuni")
+        return
+
+    # ── MY PAYOUTS ────────────────────────────────────────────
+    if text in ["payout", "payouts", "malipo", "pay"] or button_id == "fisher_payout":
+        from app.models.order import Order
+
+        orders = db.query(Order).filter(
+            Order.fisherman_id == fisher.id
+        ).all()
+
+        order_ids = [o.id for o in orders]
+        txns = db.query(PaymentTransaction).filter(
+            PaymentTransaction.order_id.in_(order_ids)
+        ).all() if order_ids else []
+
+        total_paid = sum(
+            t.supplier_amount or 0 for t in txns
+            if t.payout_status == PayoutStatus.PAID
+        )
+        total_pending = sum(
+            t.supplier_amount or 0 for t in txns
+            if t.payout_status in [PayoutStatus.PENDING, PayoutStatus.PROCESSING]
+        )
+
+        last_paid_txn = sorted(
+            [t for t in txns if t.payout_status == PayoutStatus.PAID],
+            key=lambda x: x.created_at or datetime.min,
+            reverse=True
+        )
+
+        last_date = last_paid_txn[0].created_at.strftime("%d %b %Y") \
+            if last_paid_txn else "No payments yet"
+
+        await send_text(
+            from_phone,
+            f"💚 *Malipo Yako — {fisher_name}*\n\n"
+            f"• Jumla Iliyolipwa: KES {total_paid:,.0f}\n"
+            f"• Inangoja: KES {total_pending:,.0f}\n"
+            f"• Malipo ya Mwisho: {last_date}\n\n"
+            f"Kwa maswali: +254700000000\n"
+            f"MarineCatch Africa 🐟"
+        )
+        return
+
+    # ── CHECK PRICES ──────────────────────────────────────────
+    if text in ["prices", "bei", "price"] or button_id == "fisher_prices":
+        from app.models.inventory_lot import InventoryLot, LotStatus
+
+        lots = db.query(InventoryLot).filter(
+            InventoryLot.lot_status == LotStatus.AVAILABLE,
+            InventoryLot.selling_price_per_kg > 0,
+        ).all()
+
+        if not lots:
+            await send_text(from_phone,
+                "Bei za sasa hazipo.\nPiga simu: +254700000000")
+            return
+
+        prices = {}
+        for lot in lots:
+            if lot.species not in prices:
+                prices[lot.species] = lot.selling_price_per_kg
+
+        lines = ["💰 *Bei za Sasa — MarineCatch*\n"]
+        for species, price in sorted(prices.items()):
+            lines.append(f"• {species.title()}: KES {price:,.0f}/kg")
+        lines.append("\nKwa bei bora zaidi: +254700000000")
+
+        await send_text(from_phone, "\n".join(lines))
+        return
+
+    # ── SUPPORT ───────────────────────────────────────────────
+    if text in ["support", "help", "msaada"]:
+        await send_text(
+            from_phone,
+            f"📞 *Msaada — MarineCatch Africa*\n\n"
+            f"Piga simu: +254700000000\n"
+            f"WhatsApp: +254700000000\n"
+            f"Email: support@marinecatch.co.ke\n\n"
+            f"Saa za kazi: Jumatatu-Jumamosi, 6am-8pm\n\n"
+            f"Type MENU kurudi kwenye menyu."
+        )
+        return
+
+    # ── DEFAULT ───────────────────────────────────────────────
+    await send_text(
+        from_phone,
+        f"Samahani {fisher_name}, sikuelewa. 🤔\n\n"
+        f"Type *MENU* kwa chaguo\n"
+        f"Type *CATCH tuna 45 kibuyuni* kusajili samaki\n"
+        f"Type *PAYOUT* kuona malipo\n"
+        f"Type *PRICES* kuona bei\n\n"
+        f"MarineCatch Africa 🐟"
+    )
+
+
+async def route_buyer_message(
+    db:         Session,
+    from_phone: str,
+    text:       str,
+    button_id:  str,
+    user,
+):
+    """Handle incoming messages from buyers and unknown users."""
     from app.services.inventory_service import get_available_lots
     from app.models.order import Order
     from app.models.user import User
@@ -196,7 +450,7 @@ async def route_incoming_message(
         lines.append(
             "\nType species name for details.\n"
             "Example: *tuna* or *octopus*\n\n"
-            "To order: type *ORDER tuna 20* (species + kg)"
+            "To order: type *ORDER tuna 20*"
         )
         await send_text(from_phone, "\n".join(lines))
         return
@@ -207,12 +461,9 @@ async def route_incoming_message(
     if text in species_list:
         lots = get_available_lots(db, species=text, limit=3)
         if not lots:
-            await send_text(
-                from_phone,
+            await send_text(from_phone,
                 f"No {text.title()} available right now.\n\n"
-                f"Type FISH to see all available species.\n"
-                f"Type MENU to go back."
-            )
+                f"Type FISH to see all available species.")
             return
 
         lines = [f"*{text.title()} Available* 🐟\n"]
@@ -223,15 +474,12 @@ async def route_incoming_message(
                 f"  Location: {lot.landing_site.title()}\n"
                 f"  Lot: {lot.lot_number}"
             )
-        lines.append(
-            f"\nTo order: type *ORDER {text} 20* (replace 20 with kg you need)"
-        )
+        lines.append(f"\nTo order: type *ORDER {text} 20*")
         await send_text(from_phone, "\n".join(lines))
         return
 
-    # ── ORDER STATUS LOOKUP ───────────────────────────────────
+    # ── ORDER STATUS ──────────────────────────────────────────
     if text.startswith("order status") or text.startswith("status"):
-        # Extract order ID — "order status 5" or "status 5"
         parts = text.split()
         order_id = None
         for part in parts:
@@ -240,39 +488,20 @@ async def route_incoming_message(
                 break
 
         if not order_id:
-            await send_text(
-                from_phone,
-                "To check your order status, type:\n"
-                "*ORDER STATUS 5* (replace 5 with your order ID)\n\n"
-                "Type MENU to go back."
-            )
+            await send_text(from_phone,
+                "To check order status:\n*ORDER STATUS 5*\n\nType MENU to go back.")
             return
 
-        # Find the order
         order = db.query(Order).filter(Order.id == order_id).first()
         if not order:
-            await send_text(
-                from_phone,
-                f"Order #{order_id} not found.\n\n"
-                "Please check your order ID and try again.\n"
-                "Type MENU to go back."
-            )
+            await send_text(from_phone,
+                f"Order #{order_id} not found.\nType MENU to go back.")
             return
 
-        # Find buyer to verify ownership
-        buyer = db.query(User).filter(User.id == order.buyer_id).first()
-        lot   = db.query(InventoryLot).filter(
-            InventoryLot.id == order.lot_id
-        ).first() if order.lot_id else None
-
         status_emoji = {
-            "pending_payment": "⏳",
-            "confirmed":       "✅",
-            "preparing":       "🔧",
-            "dispatched":      "🚚",
-            "delivered":       "📦",
-            "completed":       "✅",
-            "cancelled":       "❌",
+            "pending_payment": "⏳", "confirmed": "✅",
+            "preparing": "🔧", "dispatched": "🚚",
+            "delivered": "📦", "completed": "✅", "cancelled": "❌",
         }
         emoji = status_emoji.get(order.status.value, "📋")
 
@@ -285,84 +514,60 @@ async def route_incoming_message(
         )
         if order.delivery_address:
             message += f"• Delivery: {order.delivery_address}\n"
-        if lot:
-            message += f"• Lot: {lot.lot_number}\n"
-
         message += "\nType MENU to go back."
         await send_text(from_phone, message)
         return
 
-    # ── ORDER PLACEMENT REQUEST ───────────────────────────────
-    if text.startswith("order "):
+    # ── ORDER PLACEMENT ───────────────────────────────────────
+    if text.startswith("order ") and not text.startswith("order status"):
         parts = text.split()
-        # Expected: "order tuna 20" or "order prawns 50"
         if len(parts) >= 3 and parts[1] in species_list and parts[2].isdigit():
-            species    = parts[1]
-            quantity   = int(parts[2])
+            species  = parts[1]
+            quantity = int(parts[2])
+            lots     = get_available_lots(db, species=species, limit=1)
 
-            # Check availability
-            lots = get_available_lots(db, species=species, limit=1)
             if not lots:
-                await send_text(
-                    from_phone,
-                    f"Sorry, no {species.title()} available right now.\n\n"
-                    "Type FISH to see what's available.\n"
-                    "Type MENU to go back."
-                )
+                await send_text(from_phone,
+                    f"Sorry, no {species.title()} available.\n"
+                    "Type FISH to see what's available.")
                 return
 
-            lot        = lots[0]
-            total_kes  = quantity * lot.selling_price_per_kg
+            lot       = lots[0]
+            total_kes = quantity * lot.selling_price_per_kg
 
             if quantity > lot.available_kg:
-                await send_text(
-                    from_phone,
-                    f"Only {lot.available_kg}kg of {species.title()} available.\n\n"
-                    f"To order {lot.available_kg}kg, type:\n"
-                    f"*ORDER {species} {int(lot.available_kg)}*\n\n"
-                    "Type MENU to go back."
-                )
+                await send_text(from_phone,
+                    f"Only {lot.available_kg}kg available.\n"
+                    f"Type: *ORDER {species} {int(lot.available_kg)}*")
                 return
 
-            await send_text(
-                from_phone,
+            await send_text(from_phone,
                 f"📋 *Order Request Received*\n\n"
                 f"• Species: {species.title()}\n"
                 f"• Quantity: {quantity}kg\n"
                 f"• Price: KES {lot.selling_price_per_kg}/kg\n"
                 f"• Total: KES {total_kes:,.0f}\n"
                 f"• Location: {lot.landing_site.title()}\n\n"
-                f"Our team will contact you within 30 minutes to confirm.\n\n"
-                f"For urgent orders call: +254700000000\n\n"
-                f"Reference: {lot.lot_number}\n"
+                f"Our team will contact you within 30 minutes.\n\n"
+                f"Call: +254700000000\n"
+                f"Ref: {lot.lot_number}\n"
                 f"MarineCatch Africa 🐟"
             )
             return
 
-        # Malformed order command
-        await send_text(
-            from_phone,
-            "To place an order, type:\n"
-            "*ORDER species kg*\n\n"
-            "Examples:\n"
-            "• ORDER tuna 20\n"
-            "• ORDER prawns 50\n"
-            "• ORDER octopus 10\n\n"
-            "Type FISH to see available species."
-        )
+        await send_text(from_phone,
+            "To place an order:\n*ORDER species kg*\n\n"
+            "Examples:\n• ORDER tuna 20\n• ORDER prawns 50\n\n"
+            "Type FISH to see available species.")
         return
 
     # ── MY ORDERS ─────────────────────────────────────────────
     if text in ["my orders", "orders"] or button_id == "btn_orders":
-        await send_text(
-            from_phone,
+        await send_text(from_phone,
             "📦 *Check Your Order Status*\n\n"
-            "Type your order ID to get status:\n"
-            "*ORDER STATUS 1* (replace 1 with your order ID)\n\n"
-            "Don't have your order ID?\n"
-            "Contact us: orders@marinecatch.co.ke\n\n"
-            "Type MENU to go back."
-        )
+            "Type: *ORDER STATUS 1*\n(replace 1 with your order ID)\n\n"
+            "No order ID? Contact: orders@marinecatch.co.ke\n\n"
+            "Type MENU to go back.")
         return
 
     # ── PRICE INQUIRY ─────────────────────────────────────────
@@ -373,59 +578,40 @@ async def route_incoming_message(
             lots    = get_available_lots(db, species=species, limit=1)
             if lots:
                 lot = lots[0]
-                await send_text(
-                    from_phone,
+                await send_text(from_phone,
                     f"💰 *{species.title()} Price*\n\n"
-                    f"• Current price: KES {lot.selling_price_per_kg}/kg\n"
+                    f"• Price: KES {lot.selling_price_per_kg}/kg\n"
                     f"• Available: {lot.available_kg}kg\n"
-                    f"• Grade: {lot.grade}\n"
                     f"• Location: {lot.landing_site.title()}\n\n"
-                    f"To order: *ORDER {species} 20*\n"
-                    f"Type MENU to go back."
-                )
+                    f"To order: *ORDER {species} 20*")
             else:
-                await send_text(
-                    from_phone,
-                    f"No {species.title()} available right now.\n"
-                    "Type FISH to see all available species."
-                )
+                await send_text(from_phone,
+                    f"No {species.title()} available.\nType FISH for all species.")
             return
 
-        await send_text(
-            from_phone,
-            "💰 *Price Inquiry*\n\n"
-            "Type: *PRICE species*\n\n"
-            "Examples:\n"
-            "• PRICE tuna\n"
-            "• PRICE prawns\n"
-            "• PRICE octopus\n\n"
-            "Type FISH to see all available fish with prices."
-        )
+        await send_text(from_phone,
+            "💰 *Price Inquiry*\n\nType: *PRICE species*\n\n"
+            "Examples:\n• PRICE tuna\n• PRICE prawns\n\n"
+            "Type FISH to see all available fish.")
         return
 
     # ── SUPPORT ───────────────────────────────────────────────
     if text in ["support", "help", "msaada"] or button_id == "btn_support":
-        await send_text(
-            from_phone,
+        await send_text(from_phone,
             "📞 *MarineCatch Africa Support*\n\n"
-            "Orders & Procurement:\n"
-            "📧 orders@marinecatch.co.ke\n\n"
-            "Payments & Invoices:\n"
-            "📧 finance@marinecatch.co.ke\n\n"
-            "Available Mon-Sat, 6am-8pm EAT\n\n"
-            "Type MENU to return to main menu."
-        )
+            "Orders: orders@marinecatch.co.ke\n"
+            "Finance: finance@marinecatch.co.ke\n\n"
+            "Mon-Sat, 6am-8pm EAT\n\n"
+            "Type MENU to return.")
         return
 
     # ── DEFAULT ───────────────────────────────────────────────
-    await send_text(
-        from_phone,
+    await send_text(from_phone,
         "Sorry, I didn't understand that. 🤔\n\n"
         "Type *MENU* for options\n"
         "Type *FISH* to see available seafood\n"
         "Type *PRICE tuna* for price inquiry\n"
-        "Type *ORDER tuna 20* to place an order\n"
-        "Type *ORDER STATUS 1* to check order status\n\n"
+        "Type *ORDER tuna 20* to place an order\n\n"
         "MarineCatch Africa 🐟"
     )
 # ── OUTBOUND NOTIFICATIONS ────────────────────────────────────────
