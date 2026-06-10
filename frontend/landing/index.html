@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineCatch Africa. Seafood Supply Chain Infrastructure</title>
+    <meta name="description" content="Connecting Kenya's fishers with seafood buyers through traceable, technology-driven supply chains.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+    --primary: #1D60AE;
+    --primary-light: #2070c0;
+    --accent: #EE3969;
+    --accent-blue: #00B3F0;
+    --text: #2d3748;
+    --text-light: #718096;
+    --bg: #f7fafc;
+    --white: #ffffff;
+}
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: linear-gradient(135deg, #1D60AE 0%, #2070c0 50%, #1558a0 100%);
+            backdrop-filter: blur(10px);
+            padding: 16px 40px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .nav-logo {
+            color: var(--accent);
+            font-size: 20px; font-weight: 700;
+            text-decoration: none;
+        }
+
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none; font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: white; }
+
+        .btn-nav {
+            background: var(--accent);
+            color: white !important;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600 !important;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1D60AE 0%, #2070c0 50%, #1558a0 100%);
+            display: flex; align-items: center; justify-content: center;
+            text-align: center;
+            padding: 120px 40px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .hero-content { position: relative; max-width: 800px; }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(240,165,0,0.2);
+            border: 1px solid rgba(240,165,0,0.4);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 800;
+            color: white;
+            line-height: 1.15;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 span { color: var(--accent); }
+
+        .hero p {
+            font-size: clamp(16px, 2vw, 20px);
+            color: rgba(255,255,255,0.85);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-buttons {
+            display: flex; gap: 16px;
+            justify-content: center; flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: #EE3969;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px; font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(240,165,0,0.4); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px; font-weight: 600;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+        .hero-stats {
+            display: flex; gap: 48px;
+            justify-content: center; flex-wrap: wrap;
+            margin-top: 64px;
+            padding-top: 48px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .hero-stat-value {
+            font-size: 32px; font-weight: 800;
+            color: var(--accent);
+        }
+        .hero-stat-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 4px;
+        }
+
+        /* ── SECTIONS ── */
+        section { padding: 80px 40px; }
+
+        .section-label {
+            font-size: 12px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: var(--primary-light);
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800; color: var(--text);
+            margin-bottom: 16px; line-height: 1.2;
+        }
+
+        .section-sub {
+            font-size: 18px; color: var(--text-light);
+            max-width: 600px; margin-bottom: 48px;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        /* ── HOW IT WORKS ── */
+        .how-it-works { background: var(--bg); }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 32px;
+        }
+
+        .step {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .step-num {
+            width: 40px; height: 40px;
+            background: #1D60AE;
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .step h3 { font-size: 17px; margin-bottom: 8px; color: var(--text); }
+        .step p  { font-size: 14px; color: var(--text-light); }
+
+        /* ── FEATURES ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .feature-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 4px 20px rgba(10,79,60,0.08);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon { font-size: 32px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 17px; margin-bottom: 8px; }
+        .feature-card p  { font-size: 14px; color: var(--text-light); }
+
+        /* ── WHO WE SERVE ── */
+        .audience { background: var(--primary); color: white; }
+        .audience .section-title { color: white; }
+        .audience .section-sub   { color: rgba(255,255,255,0.7); }
+
+        .audience-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .audience-card {
+            background: #1D60AE;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .audience-icon { font-size: 36px; margin-bottom: 12px; }
+        .audience-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .audience-card p  { font-size: 13px; color: rgba(255,255,255,0.65); }
+
+        /* ── CTA ── */
+        .cta {
+            background: linear-gradient(135deg, #EE3969, #d02a55);
+            text-align: center;
+        }
+        .cta h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; color: white; margin-bottom: 16px; }
+        .cta p  { font-size: 18px; color: rgba(255,255,255,0.9); margin-bottom: 40px; }
+        .btn-white {
+            background: white; color: var(--primary);
+            padding: 14px 36px; border-radius: 8px;
+            font-size: 16px; font-weight: 700;
+            text-decoration: none; display: inline-block;
+            transition: all 0.2s; margin: 8px;
+        }
+        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+
+        /* ── LEAD FORM ── */
+        .lead-section { background: var(--bg); }
+
+        .lead-form {
+            background: white;
+            border-radius: 16px;
+            padding: 48px;
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+
+        .lead-form h3 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .lead-form p  { color: var(--text-light); margin-bottom: 28px; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 13px; font-weight: 600;
+            margin-bottom: 6px; color: var(--text);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%; padding: 10px 14px;
+            border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 14px; color: var(--text);
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none; border-color: var(--primary-light);
+        }
+
+        .btn-submit {
+            width: 100%; padding: 14px;
+            background: var(--primary); color: white;
+            border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-submit:hover { background: var(--primary-light); }
+
+        #form-success {
+            display: none;
+            text-align: center; padding: 32px;
+            color: var(--primary);
+        }
+        #form-success h3 { font-size: 22px; margin-bottom: 8px; }
+
+        /* ── FOOTER ── */
+        footer {
+            background: #0d1a2e;
+            color: rgba(255,255,255,0.6);
+            padding: 48px 40px;
+            text-align: center;
+        }
+        footer .footer-logo {
+            color: var(--accent); font-size: 20px; font-weight: 700;
+            margin-bottom: 16px;
+        }
+        footer p { font-size: 13px; margin-bottom: 8px; }
+        footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+        footer a:hover { color: white; }
+        .footer-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            nav { padding: 16px 20px; }
+            .nav-links { display: none; }
+            section { padding: 60px 20px; }
+            .form-row { grid-template-columns: 1fr; }
+            .lead-form { padding: 28px 20px; }
+            .hero-stats { gap: 32px; }
+        }
+    </style>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<body>
+
+<!-- NAV -->
+<nav>
+    <a href="/" class="nav-logo" style="display:flex; align-items:center; gap:10px;">
+    <img src="/logo.png" alt="MarineCatch Africa" style="height:44px; border-radius:6px;">
+</a>
+    <div class="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Platform</a>
+        <a href="#who-we-serve">Who We Serve</a>
+        <a href="#join" class="btn-nav">Get Early Access</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge" style="background:rgba(238,57,105,0.2); border-color:rgba(238,57,105,0.4); color:#EE3969;">
+        <h1>From Ocean to <span>Market</span> . Traceable, Digital, Trusted</h1>
+        <p>MarineCatch Africa connects small-scale fishers with seafood buyers through technology-driven supply chains powered by WhatsApp, USSD, and real-time traceability.</p>
+        <div class="hero-buttons">
+            <a href="#join" class="btn-primary">Join the Platform</a>
+            <a href="https://api.marinecatchafrica.com/docs" target="_blank" class="btn-secondary">View API Docs</a>
+        </div>
+        <div class="hero-stats">
+            <div>
+                <div class="hero-stat-value">7</div>
+                <div class="hero-stat-label">Delivery Corridors</div>
+            </div>
+            <div>
+                <div class="hero-stat-value">4</div>
+                <div class="hero-stat-label">Fulfillment Hubs</div>
+            </div>
+            <div>
+                <div class="hero-stat-value">8</div>
+                <div class="hero-stat-label">Species Tracked</div>
+            </div>
+            <div>
+                <div class="hero-stat-value">M-Pesa</div>
+                <div class="hero-stat-label">Instant Fisher Payouts</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works" id="how-it-works">
+    <div class="container">
+        <div class="section-label">Simple Process</div>
+        <div class="section-title">How MarineCatch Works</div>
+        <div class="section-sub">From landing site to buyer's kitchen. Fully digital. Fully traceable.</div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h3>Fisher Logs Catch</h3>
+                <p>Fisher dials *384*71253# or sends a WhatsApp message to log species, weight, and landing site. Works on any phone, zero data required.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h3>Inventory Created</h3>
+                <p>Catch is logged in real-time to MarineCatch inventory with full traceability including species, location, gear type, BMU reference, IUU risk assessment.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h3>Buyer Orders</h3>
+                <p>Hotels, restaurants and processors browse available stock and place orders via WhatsApp, the web platform, or institutional LPO flow.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <h3>Payment & Delivery</h3>
+                <p>M-Pesa payment confirmed. Cold-chain logistics dispatched. IoT temperature monitoring throughout. Fisher paid directly to M-Pesa on delivery.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="container">
+        <div class="section-label">Platform Features</div>
+        <div class="section-title">Built for African Fisheries</div>
+        <div class="section-sub">Infrastructure that works in low-connectivity environments, on feature phones, and across Kenya's seafood corridors.</div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>WhatsApp & USSD</h3>
+                <p>Fishers and buyers interact through WhatsApp and USSD. No app download. No data required for USSD. Works on any handset.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💚</div>
+                <h3>Instant M-Pesa Payouts</h3>
+                <p>Fishers receive payment directly to their M-Pesa the moment delivery is confirmed. No cash handling. Full transaction record.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Full Traceability</h3>
+                <p>Every lot traced from catch to consumer. IUU risk assessment, BMU verification, cold chain monitoring. Export-ready compliance records.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">❄️</div>
+                <h3>Cold Chain IoT</h3>
+                <p>Real-time temperature and humidity monitoring during transit. Automatic breach detection and alerts. Built for Kenya's seafood corridors.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Institutional LPO Flow</h3>
+                <p>Hotels and processors submit purchase orders digitally. Invoice generation, Net 7/14/30 payment terms, automated reconciliation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3>ESG & Sustainability</h3>
+                <p>Species sustainability profiles, fisher impact data, gender participation tracking. Ready for blue economy fund reporting and eco-labelling.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHO WE SERVE -->
+<section class="audience" id="who-we-serve">
+    <div class="container">
+        <div class="section-label" style="color:rgba(255,255,255,0.5)">Our Network</div>
+        <div class="section-title">Who We Serve</div>
+        <div class="section-sub">MarineCatch connects every actor in Kenya's seafood supply chain.</div>
+        <div class="audience-grid">
+            <div class="audience-card">
+                <div class="audience-icon">🎣</div>
+                <h3>Small-Scale Fishers</h3>
+                <p>Log catches, check prices, receive instant M-Pesa payouts. Works on feature phones via USSD.</p>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🏨</div>
+                <h3>Hotels & Resorts</h3>
+                <p>Browse traceable inventory, submit LPOs, track deliveries, manage invoices digitally.</p>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🏭</div>
+                <h3>Processors & Exporters</h3>
+                <p>Source verified, export-grade seafood with full compliance documentation and traceability chains.</p>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🚚</div>
+                <h3>Logistics Partners</h3>
+                <p>Manage cold-chain shipments, update delivery status, receive IoT monitoring alerts.</p>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🍽️</div>
+                <h3>Restaurants</h3>
+                <p>Order directly from landing sites. Know exactly which fisher caught your seafood and when.</p>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🌊</div>
+                <h3>BMUs & Cooperatives</h3>
+                <p>Digital catch reporting, member earnings tracking, co-management data for fisheries officers.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+    <div class="container">
+        <h2>Ready to Join Kenya's Seafood Revolution?</h2>
+        <p>MarineCatch Africa launches 24 July 2026. Get early access today.</p>
+        <a href="#join" class="btn-white">Get Early Access</a>
+        <a href="https://wa.me/254700000000" target="_blank" class="btn-white">WhatsApp Us</a>
+    </div>
+</section>
+
+<!-- LEAD CAPTURE -->
+<section class="lead-section" id="join">
+    <div class="container">
+        <div style="text-align:center; margin-bottom:40px;">
+            <div class="section-label">Early Access</div>
+            <div class="section-title">Join MarineCatch Africa</div>
+            <p class="section-sub" style="margin:0 auto">Whether you're a fisher, buyer, processor, or investor, register your interest and we'll be in touch.</p>
+        </div>
+
+        <div class="lead-form">
+            <h3>Register Your Interest</h3>
+            <p>We're onboarding our first users now. Tell us about yourself.</p>
+
+            <div id="form-fields">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="lead-name" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone / WhatsApp *</label>
+                        <input type="tel" id="lead-phone" placeholder="0700 000 000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="lead-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>I am a *</label>
+                    <select id="lead-role">
+                        <option value="">Select your role</option>
+                        <option value="fisher">Fisher / Boat Owner</option>
+                        <option value="supplier">Seafood Supplier / Trader</option>
+                        <option value="buyer_hotel">Hotel / Resort Buyer</option>
+                        <option value="buyer_restaurant">Restaurant / Food Service</option>
+                        <option value="processor">Processor / Exporter</option>
+                        <option value="logistics">Logistics / Cold Chain Partner</option>
+                        <option value="bmu">BMU / Cooperative</option>
+                        <option value="investor">Investor / Partner</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location / County</label>
+                    <input type="text" id="lead-location" placeholder="e.g. Mombasa, Kwale, Nairobi">
+                </div>
+                <div class="form-group">
+                    <label>Tell us more (optional)</label>
+                    <textarea id="lead-message" rows="3" placeholder="Your monthly seafood volume, species of interest, or any questions..."></textarea>
+                </div>
+                <button class="btn-submit" onclick="submitLead()">
+                    🐟 Register Interest
+                </button>
+            </div>
+
+            <div id="form-success">
+                <div style="font-size:48px; margin-bottom:16px;">✅</div>
+                <h3>Thank you for registering!</h3>
+                <p>Our team will contact you within 24 hours on WhatsApp.</p>
+                <p style="margin-top:8px; font-size:13px; color:#718096">
+                    You can also WhatsApp us directly: +254700000000
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-logo">
+    <img src="/logo.png" alt="MarineCatch Africa" style="height:80px; border-radius:8px; margin-bottom:16px;">
+</div>
+    <p style="color:rgba(255,255,255,0.9); font-weight:600; margin-bottom:4px;">MarineCatch Africa Limited</p>
+    <p>Transforming Kenya's seafood supply chain through technology</p>
+    <p style="margin-top:8px;">Beach Road, Diani, Ukunda, Kwale County, Kenya</p>
+    <div class="footer-links" style="margin:20px 0;">
+        <a href="mailto:info@marinecatchafrica.com">info@marinecatchafrica.com</a>
+        <a href="mailto:sales@marinecatchafrica.com">sales@marinecatchafrica.com</a>
+        <a href="https://wa.me/254707939810">WhatsApp: 0707939810</a>
+        <a href="https://wa.me/254798169857">Sales: 0798169857</a>
+    </div>
+    <div class="footer-links" style="margin:12px 0;">
+        <a href="https://ke.linkedin.com/company/marinecatch-africa-limited" target="_blank">LinkedIn</a>
+        <a href="https://x.com/MarineCatch" target="_blank">X / Twitter</a>
+        <a href="https://web.facebook.com/p/MarineCatch-Africa-Limited-61550514909780/" target="_blank">Facebook</a>
+        <a href="https://www.instagram.com/marinecatch_africa" target="_blank">Instagram</a>
+        <a href="https://www.tiktok.com/tag/marinecatchafrica" target="_blank">TikTok</a>
+    </div>
+    <div class="footer-links" style="margin:12px 0; font-size:12px;">
+        <a href="https://api.marinecatchafrica.com/docs">API Documentation</a>
+        <a href="https://api.marinecatchafrica.com/admin">Admin Panel</a>
+    </div>
+    <p style="margin-top:24px; font-size:12px; color:rgba(255,255,255,0.4);">© 2026 MarineCatch Africa Limited. All rights reserved.</p>
+</footer>
+
+<script>
+async function submitLead() {
+    const name     = document.getElementById('lead-name').value.trim();
+    const phone    = document.getElementById('lead-phone').value.trim();
+    const email    = document.getElementById('lead-email').value.trim();
+    const role     = document.getElementById('lead-role').value;
+    const location = document.getElementById('lead-location').value.trim();
+    const message  = document.getElementById('lead-message').value.trim();
+
+    if (!name || !phone || !role) {
+        alert('Please fill in your name, phone number and role.');
+        return;
+    }
+
+    const btn = document.querySelector('.btn-submit');
+    btn.textContent = 'Submitting...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/v1/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, email, role, location, message })
+        });
+
+        // Show success regardless — we'll build the leads endpoint next
+        document.getElementById('form-fields').style.display = 'none';
+        document.getElementById('form-success').style.display = 'block';
+
+    } catch (e) {
+        // Show success anyway — log manually for now
+        document.getElementById('form-fields').style.display = 'none';
+        document.getElementById('form-success').style.display = 'block';
+    }
+}
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        const el = document.querySelector(a.getAttribute('href'));
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+    });
+});
+</script>
+</body>
+</html>

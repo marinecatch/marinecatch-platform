@@ -168,7 +168,7 @@ async function loadInventory() {
                 <tr>
                     <td><strong>${l.lot_number}</strong></td>
                     <td>${(l.species || '—').replace('_',' ')}</td>
-                    <td>${l.weight_kg}kg</td>
+                    <td>${(l.weight_kg || l.total_weight_kg || '?')}kg</td>
                     <td>${l.available_kg}kg</td>
                     <td>${l.reserved_kg || 0}kg</td>
                     <td>${l.selling_price_per_kg > 0

@@ -66,6 +66,11 @@ if admin_dir:
     @app.get("/admin/")
     def admin_redirect():
         return FileResponse(os.path.join(admin_dir, "pages", "login.html"))
+   # Landing page static files
+landing_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing")
+landing_dir = os.path.abspath(landing_dir)
+if os.path.exists(landing_dir):
+    app.mount("/landing", StaticFiles(directory=landing_dir), name="landing-static")     
 # Routes
 app.include_router(health.router)
 app.include_router(users.router)
@@ -83,25 +88,21 @@ app.include_router(whatsapp.router, prefix="/api/v1")
 app.include_router(ussd.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
+    landing_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "index.html"
+    )
+    landing_path = os.path.abspath(landing_path)
+    if os.path.exists(landing_path):
+        return FileResponse(landing_path)
     return {
         "service": "MarineCatch Africa API",
-        "version": "0.1.0",
-        "status": "running",
-        "docs": "/docs",
-        "endpoints": {
-            "health": "/health",
-            "users": "/api/v1/users",
-            "fish": "/api/v1/fish",
-            "orders": "/api/v1/orders",
-            "inventory": "/api/v1/inventory",
-            "payments":  "/api/v1/payments",
-            "reconciliation": "/api/v1/reconciliation",
-            "payouts": "/api/v1/payouts",
-            "lpo": "/api/v1/lpo",
-            "documents": "/api/v1/documents",
-            "logistics":       "/api/v1/logistics",
-            "esg":             "/api/v1/esg",
-            "whatsapp":        "/api/v1/whatsapp",
-            "ussd":            "/api/v1/ussd"
-        }
+        "version": "1.0.0",
+        "status":  "running",
+        "docs":    "/docs",
     }
+@app.get("/logo.png")
+def serve_logo():
+    logo_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "logo.png"
+    )
+    return FileResponse(os.path.abspath(logo_path))
