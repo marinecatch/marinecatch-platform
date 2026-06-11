@@ -512,7 +512,7 @@
         <h2>Ready to Join Kenya's Seafood Revolution?</h2>
         <p>MarineCatch Africa launches 24 July 2026. Get early access today.</p>
         <a href="#join" class="btn-white">Get Early Access</a>
-        <a href="https://wa.me/254700000000" target="_blank" class="btn-white">WhatsApp Us</a>
+        <a href="https://wa.me/254707939810" target="_blank" class="btn-white">WhatsApp Us</a>
     </div>
 </section>
 
@@ -537,7 +537,7 @@
                     </div>
                     <div class="form-group">
                         <label>Phone / WhatsApp *</label>
-                        <input type="tel" id="lead-phone" placeholder="0700 000 000">
+                        <input type="tel" id="lead-phone" placeholder="0707939810">
                     </div>
                 </div>
                 <div class="form-group">
@@ -577,7 +577,7 @@
                 <h3>Thank you for registering!</h3>
                 <p>Our team will contact you within 24 hours on WhatsApp.</p>
                 <p style="margin-top:8px; font-size:13px; color:#718096">
-                    You can also WhatsApp us directly: +254700000000
+                    You can also WhatsApp us directly: +254707939810
                 </p>
             </div>
         </div>
@@ -630,7 +630,7 @@ async function submitLead() {
     btn.disabled = true;
 
     try {
-        const res = await fetch('/api/v1/leads', {
+       const res = await fetch('/api/v1/users/leads', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone, email, role, location, message })

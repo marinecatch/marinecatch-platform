@@ -107,3 +107,69 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User account not found")
     return user
+    # ── LEAD CAPTURE ──────────────────────────────────────────────────
+
+class LeadCreate(BaseModel):
+    name:     str
+    phone:    str
+    email:    Optional[str] = None
+    role:     str
+    location: Optional[str] = None
+    message:  Optional[str] = None
+
+@router.post("/leads", status_code=201, tags=["Leads"])
+def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
+    """
+    Capture lead from landing page registration form.
+    Stores as inactive user for follow-up.
+    No authentication required.
+    """
+    from app.models.user import User
+    from passlib.context import CryptContext
+    import secrets
+
+    # Check if phone already registered
+    existing = db.query(User).filter(
+        User.phone.contains(payload.phone[-9:])
+    ).first()
+
+    if existing:
+        return {
+            "success": True,
+            "message": "Already registered. Our team will be in touch.",
+            "existing": True
+        }
+
+    pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    # Map role to system role
+    role_map = {
+        "fisher":           "fisher",
+        "supplier":         "fisher",
+        "buyer_hotel":      "buyer",
+        "buyer_restaurant": "buyer",
+        "processor":        "buyer",
+        "logistics":        "buyer",
+        "bmu":              "fisher",
+        "investor":         "buyer",
+        "other":            "buyer",
+    }
+    system_role = role_map.get(payload.role, "buyer")
+
+    lead = User(
+    name            = payload.name,
+    phone           = payload.phone,
+    email           = payload.email or f"lead_{secrets.token_hex(4)}@marinecatch.co.ke",
+    hashed_password = pwd.hash(secrets.token_hex(16)),
+    role            = system_role,
+    location        = payload.location or "",
+    business_name   = f"{payload.role}: {payload.message or ''}"[:200],
+    is_active       = False,
+)
+    db.add(lead)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Registration received. Our team will contact you within 24 hours on WhatsApp."
+    }
