@@ -12,6 +12,7 @@ from app.services.user_service import (
 )
 from app.core.security import verify_password, create_token, decode_token
 from pydantic import BaseModel
+from typing import Optional
 
 router   = APIRouter(prefix="/api/v1/users", tags=["Users"])
 security = HTTPBearer()
