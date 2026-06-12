@@ -11,6 +11,7 @@ from app.services.user_service import (
     get_all_users
 )
 from app.core.security import verify_password, create_token, decode_token
+from pydantic import BaseModel
 
 router   = APIRouter(prefix="/api/v1/users", tags=["Users"])
 security = HTTPBearer()
@@ -107,7 +108,8 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User account not found")
     return user
-    # ── LEAD CAPTURE ──────────────────────────────────────────────────
+    
+# ── LEAD CAPTURE ──────────────────────────────────────────────────
 
 class LeadCreate(BaseModel):
     name:     str
