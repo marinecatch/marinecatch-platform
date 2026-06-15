@@ -76,6 +76,7 @@
                     <option value="crab">Crab</option>
                 </select>
                 <button class="btn btn-outline btn-sm" onclick="loadInventory()">🔄 Refresh</button>
+                <button class="btn btn-primary btn-sm" onclick="openCreateLot()">➕ Create Lot</button>
             </div>
         </div>
 
@@ -87,7 +88,79 @@
             <div class="card-title">All Inventory Lots</div>
             <div id="inventory-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
         </div>
-
+<!-- CREATE LOT MODAL -->
+        <div id="create-lot-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; overflow-y:auto;">
+            <div style="background:white; border-radius:8px; padding:24px; width:500px; max-width:95%; margin:20px auto;">
+                <h3 style="margin-bottom:16px;">➕ Create Inventory Lot</h3>
+                <div class="form-group">
+                    <label class="form-label">Species *</label>
+                    <select id="cl-species" class="form-control">
+                        <option value="tuna">Tuna</option>
+                        <option value="octopus">Octopus</option>
+                        <option value="prawns">Prawns</option>
+                        <option value="lobster">Lobster</option>
+                        <option value="snapper">Snapper</option>
+                        <option value="kingfish">Kingfish</option>
+                        <option value="sardines">Sardines</option>
+                        <option value="crab">Crab</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Weight (kg) *</label>
+                    <input type="number" id="cl-weight" class="form-control" placeholder="e.g. 50" min="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Selling Price per kg (KES) *</label>
+                    <input type="number" id="cl-selling-price" class="form-control" placeholder="e.g. 780" min="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ownership Type *</label>
+                    <select id="cl-ownership" class="form-control">
+                        <option value="marketplace">Marketplace (Fisher owns)</option>
+                        <option value="marinecatch_owned">MarineCatch Owned (We bought it)</option>
+                        <option value="consignment">Consignment</option>
+                    </select>
+                </div>
+                <div class="form-group" id="cl-purchase-group">
+                    <label class="form-label">Purchase Price per kg (KES)</label>
+                    <input type="number" id="cl-purchase-price" class="form-control" placeholder="e.g. 650">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Landing Site *</label>
+                    <select id="cl-landing-site" class="form-control">
+                        <option value="kibuyuni">Kibuyuni</option>
+                        <option value="kinondo">Kinondo</option>
+                        <option value="shimoni">Shimoni</option>
+                        <option value="ukunda">Ukunda</option>
+                        <option value="vanga">Vanga</option>
+                        <option value="mwambao">Mwambao</option>
+                        <option value="majoreni">Majoreni</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Condition</label>
+                    <select id="cl-condition" class="form-control">
+                        <option value="fresh">Fresh</option>
+                        <option value="frozen">Frozen</option>
+                        <option value="dried">Dried</option>
+                        <option value="live">Live</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Catch Date</label>
+                    <input type="date" id="cl-catch-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="cl-notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+                </div>
+                <div id="cl-error" style="color:red; margin-bottom:12px; display:none;"></div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closeCreateLot()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitCreateLot()">Create Lot</button>
+                </div>
+            </div>
+        </div>
         <!-- PRICE MODAL -->
         <div id="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
             <div style="background:white; border-radius:8px; padding:24px; width:400px; max-width:90%;">
@@ -112,6 +185,67 @@ if (!requireAuth()) throw new Error('Not authenticated');
 showUser();
 
 let currentLotId = null;
+function openCreateLot() {
+    const modal = document.getElementById('create-lot-modal');
+    modal.style.display = 'flex';
+    // Set today's date
+    document.getElementById('cl-catch-date').value = new Date().toISOString().split('T')[0];
+    // Show/hide purchase price based on ownership
+    document.getElementById('cl-ownership').addEventListener('change', function() {
+        const pg = document.getElementById('cl-purchase-group');
+        pg.style.display = this.value === 'marinecatch_owned' ? 'block' : 'none';
+    });
+}
+
+function closeCreateLot() {
+    document.getElementById('create-lot-modal').style.display = 'none';
+    document.getElementById('cl-error').style.display = 'none';
+}
+
+async function submitCreateLot() {
+    const token   = localStorage.getItem('mc_token');
+    const species = document.getElementById('cl-species').value;
+    const weight  = parseFloat(document.getElementById('cl-weight').value);
+    const selling = parseFloat(document.getElementById('cl-selling-price').value);
+    const ownership = document.getElementById('cl-ownership').value;
+    const landing = document.getElementById('cl-landing-site').value;
+    const condition = document.getElementById('cl-condition').value;
+    const catchDate = document.getElementById('cl-catch-date').value;
+    const notes   = document.getElementById('cl-notes').value;
+    const purchase = parseFloat(document.getElementById('cl-purchase-price').value) || null;
+
+    const errEl = document.getElementById('cl-error');
+
+    if (!species || !weight || !selling || !landing) {
+        errEl.textContent = 'Please fill in all required fields.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    // Build query string for the API
+    let url = `/api/v1/inventory/?species=${encodeURIComponent(species)}&weight_kg=${weight}&selling_price_per_kg=${selling}&landing_site=${encodeURIComponent(landing)}&condition=${condition}`;
+    if (catchDate) url += `&catch_date=${catchDate}`;
+    if (notes)     url += `&notes=${encodeURIComponent(notes)}`;
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeCreateLot();
+            loadInventory();
+            alert(`✅ Lot created: ${data.lot_number}`);
+        } else {
+            errEl.textContent = data.detail || 'Failed to create lot.';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
 
 async function loadInventory() {
     const species = document.getElementById('filter-species').value;
