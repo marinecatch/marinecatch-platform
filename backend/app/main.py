@@ -105,8 +105,9 @@ def serve_logo():
     logo_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "logo.png"
     )
-    return FileResponse(os.path.abspath(logo_path))
-    @app.get("/kenia.png")
+   return FileResponse(os.path.abspath(logo_path))
+
+@app.get("/kenia.png")
 def serve_kenia():
     return FileResponse(os.path.abspath(os.path.join(
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "kenia.png")))
