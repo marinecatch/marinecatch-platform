@@ -66,6 +66,21 @@ if admin_dir:
     @app.get("/admin/")
     def admin_redirect():
         return FileResponse(os.path.join(admin_dir, "pages", "login.html"))
+        # Buyer portal
+@app.get("/buyer")
+def serve_buyer():
+    buyer_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "buyer", "index.html"
+    )
+    return FileResponse(os.path.abspath(buyer_path))
+
+# Fisher portal
+@app.get("/fisher")
+def serve_fisher():
+    fisher_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "fisher", "index.html"
+    )
+    return FileResponse(os.path.abspath(fisher_path))
    # Landing page static files
 landing_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing")
 landing_dir = os.path.abspath(landing_dir)

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineCatch — Fisher Portal</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f0fff4; color:#2d3748; }
+        .header { background:#276749; color:white; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .header-logo { font-size:20px; font-weight:700; }
+        .header-sub { font-size:12px; opacity:0.7; margin-top:2px; }
+        .badge { background:rgba(255,255,255,0.15); padding:4px 12px; border-radius:20px; font-size:13px; }
+        .btn { padding:8px 16px; border-radius:6px; border:none; cursor:pointer; font-size:14px; font-weight:500; }
+        .btn-primary { background:#276749; color:white; }
+        .btn-outline { background:transparent; border:1px solid #e2e8f0; color:#4a5568; }
+        .btn-sm { padding:6px 12px; font-size:13px; }
+        .container { max-width:900px; margin:0 auto; padding:24px; }
+        .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; }
+        .tab { padding:8px 20px; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; color:#718096; border:none; background:none; }
+        .tab.active { background:#276749; color:white; }
+        .card { background:white; border-radius:8px; border:1px solid #e2e8f0; padding:20px; margin-bottom:16px; }
+        .card-title { font-size:16px; font-weight:600; margin-bottom:16px; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:16px; margin-bottom:24px; }
+        .stat { background:white; border-radius:8px; padding:16px; border:1px solid #e2e8f0; text-align:center; }
+        .stat-val { font-size:28px; font-weight:700; color:#276749; }
+        .stat-lbl { font-size:12px; color:#718096; margin-top:4px; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:10px 12px; font-size:12px; color:#718096; text-transform:uppercase; border-bottom:2px solid #e2e8f0; }
+        td { padding:12px; border-bottom:1px solid #f7fafc; font-size:14px; }
+        .form-group { margin-bottom:16px; }
+        .form-label { display:block; font-size:13px; font-weight:500; color:#4a5568; margin-bottom:6px; }
+        .form-control { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; }
+        .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f0fff4; }
+        .login-box { background:white; border-radius:12px; padding:40px; width:400px; max-width:95%; border:1px solid #e2e8f0; }
+        .login-logo { font-size:32px; text-align:center; margin-bottom:8px; }
+        .login-title { font-size:22px; font-weight:700; text-align:center; margin-bottom:4px; }
+        .login-sub { font-size:14px; color:#718096; text-align:center; margin-bottom:24px; }
+        .error { color:#e53e3e; font-size:13px; margin-bottom:12px; display:none; }
+        .success { color:#276749; font-size:13px; margin-bottom:12px; display:none; }
+        .lot-row { border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:10px; }
+        .lot-row h4 { font-size:15px; font-weight:600; }
+        .lot-row p { font-size:13px; color:#718096; margin-top:4px; }
+        .badge-status { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+        .badge-available { background:#c6f6d5; color:#276749; }
+        .badge-sold { background:#fed7d7; color:#742a2a; }
+        .badge-reserved { background:#fefcbf; color:#744210; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="login-wrap">
+    <div class="login-box">
+        <div class="login-logo">🎣</div>
+        <div class="login-title">MarineCatch Africa</div>
+        <div class="login-sub">Fisher Portal — Dhibiti Mauzo Yako</div>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="login-email" class="form-control" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="Password">
+        </div>
+        <div id="login-error" class="error"></div>
+        <button class="btn btn-primary" style="width:100%; background:#276749" onclick="doLogin()">Ingia / Sign In</button>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+    <div class="header">
+        <div>
+            <div class="header-logo">🎣 MarineCatch Africa</div>
+            <div class="header-sub">Fisher Portal</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <span class="badge">👤 <span id="fisher-name">Fisher</span></span>
+            <button class="btn btn-outline" style="color:white; border-color:rgba(255,255,255,0.3)" onclick="doLogout()">Toka</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-val" id="s-lots">—</div>
+                <div class="stat-lbl">My Lots</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-kg">—</div>
+                <div class="stat-lbl">Total kg Listed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-value">—</div>
+                <div class="stat-lbl">Inventory Value (KES)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-earned">—</div>
+                <div class="stat-lbl">Earned (KES)</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('lots')">🐟 My Catch</button>
+            <button class="tab" onclick="showTab('log')">➕ Log Catch</button>
+            <button class="tab" onclick="showTab('payouts')">💰 Payments</button>
+        </div>
+
+        <!-- MY LOTS -->
+        <div id="tab-lots">
+            <div class="card">
+                <div class="card-title">My Inventory Lots</div>
+                <div id="lots-list"><div style="text-align:center;padding:20px;color:#718096">Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- LOG CATCH -->
+        <div id="tab-log" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Log New Catch</div>
+                <div class="form-group">
+                    <label class="form-label">Species *</label>
+                    <select id="lc-species" class="form-control">
+                        <option value="tuna">Tuna / Jodari</option>
+                        <option value="octopus">Octopus / Pweza</option>
+                        <option value="prawns">Prawns / Kamba</option>
+                        <option value="lobster">Lobster / Kamba Kochi</option>
+                        <option value="snapper">Snapper / Changu</option>
+                        <option value="kingfish">Kingfish / Nguru</option>
+                        <option value="sardines">Sardines / Dagaa</option>
+                        <option value="crab">Crab / Kaa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Weight (kg) *</label>
+                    <input type="number" id="lc-weight" class="form-control" placeholder="e.g. 45">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Selling Price per kg (KES) *</label>
+                    <input type="number" id="lc-price" class="form-control" placeholder="e.g. 780">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Landing Site *</label>
+                    <select id="lc-site" class="form-control">
+                        <option value="kibuyuni">Kibuyuni</option>
+                        <option value="kinondo">Kinondo</option>
+                        <option value="shimoni">Shimoni</option>
+                        <option value="ukunda">Ukunda</option>
+                        <option value="vanga">Vanga</option>
+                        <option value="mwambao">Mwambao</option>
+                        <option value="majoreni">Majoreni</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Condition</label>
+                    <select id="lc-condition" class="form-control">
+                        <option value="fresh">Fresh / Mbichi</option>
+                        <option value="frozen">Frozen / Ganda</option>
+                        <option value="live">Live / Hai</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <input type="text" id="lc-notes" class="form-control" placeholder="Any notes about this catch">
+                </div>
+                <div id="lc-error" class="error"></div>
+                <div id="lc-success" class="success"></div>
+                <button class="btn btn-primary" style="background:#276749; width:100%" onclick="logCatch()">
+                    ✅ Ingiza Samaki / Submit Catch
+                </button>
+            </div>
+        </div>
+
+        <!-- PAYOUTS -->
+        <div id="tab-payouts" style="display:none">
+            <div class="card">
+                <div class="card-title">💰 My Payments</div>
+                <div id="payouts-list"><div style="text-align:center;padding:20px;color:#718096">Loading...</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('mc_fisher_token');
+let currentUser = null;
+
+async function doLogin() {
+    const email = document.getElementById('login-email').value;
+    const pass  = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    try {
+        const res  = await fetch(`${API}/api/v1/users/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password: pass})
+        });
+        const data = await res.json();
+        if (res.ok && data.access_token) {
+            token = data.access_token;
+            currentUser = data.user;
+            localStorage.setItem('mc_fisher_token', token);
+            showApp();
+        } else {
+            errEl.textContent = data.detail || 'Invalid credentials';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Connection error.';
+        errEl.style.display = 'block';
+    }
+}
+
+function doLogout() {
+    localStorage.removeItem('mc_fisher_token');
+    location.reload();
+}
+
+function showApp() {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('fisher-name').textContent = currentUser?.name || 'Fisher';
+    loadMyLots();
+}
+
+function showTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    ['lots','log','payouts'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+    });
+    if (tab === 'payouts') loadPayouts();
+}
+
+async function loadMyLots() {
+    try {
+        const res  = await fetch(`${API}/api/v1/inventory/my-lots/list`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        const lots = data.lots || [];
+
+        document.getElementById('s-lots').textContent  = data.total_lots || 0;
+        document.getElementById('s-kg').textContent    = (data.total_available_kg || 0) + 'kg';
+        document.getElementById('s-value').textContent = 'KES ' + (data.total_value_kes || 0).toLocaleString();
+        document.getElementById('s-earned').textContent = '—';
+
+        if (!lots.length) {
+            document.getElementById('lots-list').innerHTML = '<div style="text-align:center;padding:20px;color:#718096">No lots yet. Use Log Catch to add your first catch.</div>';
+            return;
+        }
+
+        document.getElementById('lots-list').innerHTML = lots.map(lot => `
+            <div class="lot-row">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <h4>🐟 ${lot.species?.charAt(0).toUpperCase() + lot.species?.slice(1)}</h4>
+                        <p>Weight: ${lot.weight_kg}kg &nbsp;|&nbsp; Available: ${lot.available_kg}kg &nbsp;|&nbsp; Reserved: ${lot.reserved_kg}kg</p>
+                        <p>Price: KES ${lot.selling_price_per_kg?.toLocaleString()}/kg &nbsp;|&nbsp; Catch: ${lot.catch_date || '—'}</p>
+                        <p style="font-size:12px; margin-top:4px; color:#a0aec0">${lot.lot_number}</p>
+                    </div>
+                    <span class="badge-status badge-${lot.lot_status}">${lot.lot_status?.replace('_',' ')}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        document.getElementById('lots-list').innerHTML = '<div style="color:red;padding:12px">Failed to load lots.</div>';
+    }
+}
+
+async function logCatch() {
+    const species   = document.getElementById('lc-species').value;
+    const weight    = parseFloat(document.getElementById('lc-weight').value);
+    const price     = parseFloat(document.getElementById('lc-price').value);
+    const site      = document.getElementById('lc-site').value;
+    const condition = document.getElementById('lc-condition').value;
+    const notes     = document.getElementById('lc-notes').value;
+    const errEl     = document.getElementById('lc-error');
+    const sucEl     = document.getElementById('lc-success');
+
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    if (!weight || weight <= 0) { errEl.textContent = 'Please enter weight'; errEl.style.display = 'block'; return; }
+    if (!price  || price  <= 0) { errEl.textContent = 'Please enter price';  errEl.style.display = 'block'; return; }
+
+    try {
+        const url = `${API}/api/v1/inventory/?species=${species}&weight_kg=${weight}&selling_price_per_kg=${price}&landing_site=${site}&condition=${condition}${notes ? '&notes=' + encodeURIComponent(notes) : ''}`;
+        const res  = await fetch(url, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        if (res.ok) {
+            sucEl.textContent = `✅ Catch logged! Lot: ${data.lot_number}`;
+            sucEl.style.display = 'block';
+            document.getElementById('lc-weight').value = '';
+            document.getElementById('lc-price').value  = '';
+            document.getElementById('lc-notes').value  = '';
+            loadMyLots();
+        } else {
+            errEl.textContent = data.detail || 'Failed to log catch';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function loadPayouts() {
+    document.getElementById('payouts-list').innerHTML = '<div style="text-align:center;padding:20px;color:#718096">Payment history coming soon. Contact support: +254700000000</div>';
+}
+
+window.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') doLogin();
+});
+
+if (token) {
+    fetch(`${API}/api/v1/users/me`, {headers: {'Authorization': `Bearer ${token}`}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.id) { currentUser = data; showApp(); }
+            else localStorage.removeItem('mc_fisher_token');
+        })
+        .catch(() => localStorage.removeItem('mc_fisher_token'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineCatch — Buyer Portal</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+        .header { background:#1a365d; color:white; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .header-logo { font-size:20px; font-weight:700; }
+        .header-sub { font-size:12px; opacity:0.7; margin-top:2px; }
+        .header-right { display:flex; gap:12px; align-items:center; }
+        .badge { background:rgba(255,255,255,0.15); padding:4px 12px; border-radius:20px; font-size:13px; }
+        .btn { padding:8px 16px; border-radius:6px; border:none; cursor:pointer; font-size:14px; font-weight:500; }
+        .btn-primary { background:#2b6cb0; color:white; }
+        .btn-outline { background:transparent; border:1px solid #e2e8f0; color:#4a5568; }
+        .btn-success { background:#276749; color:white; }
+        .btn-sm { padding:6px 12px; font-size:13px; }
+        .container { max-width:1100px; margin:0 auto; padding:24px; }
+        .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; }
+        .tab { padding:8px 20px; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; color:#718096; border:none; background:none; }
+        .tab.active { background:#2b6cb0; color:white; }
+        .card { background:white; border-radius:8px; border:1px solid #e2e8f0; padding:20px; margin-bottom:16px; }
+        .card-title { font-size:16px; font-weight:600; margin-bottom:16px; color:#2d3748; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:16px; margin-bottom:24px; }
+        .stat { background:white; border-radius:8px; padding:16px; border:1px solid #e2e8f0; text-align:center; }
+        .stat-val { font-size:28px; font-weight:700; color:#2b6cb0; }
+        .stat-lbl { font-size:12px; color:#718096; margin-top:4px; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:10px 12px; font-size:12px; color:#718096; text-transform:uppercase; border-bottom:2px solid #e2e8f0; }
+        td { padding:12px; border-bottom:1px solid #f7fafc; font-size:14px; }
+        tr:hover td { background:#f7fafc; }
+        .badge-status { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; text-transform:uppercase; }
+        .badge-available { background:#c6f6d5; color:#276749; }
+        .badge-pending { background:#fefcbf; color:#744210; }
+        .badge-confirmed { background:#bee3f8; color:#2c5282; }
+        .badge-delivered { background:#c6f6d5; color:#276749; }
+        .form-group { margin-bottom:16px; }
+        .form-label { display:block; font-size:13px; font-weight:500; color:#4a5568; margin-bottom:6px; }
+        .form-control { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; }
+        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+        .modal-box { background:white; border-radius:8px; padding:24px; width:440px; max-width:95%; }
+        .empty { text-align:center; padding:40px; color:#718096; }
+        .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f7fafc; }
+        .login-box { background:white; border-radius:12px; padding:40px; width:400px; max-width:95%; border:1px solid #e2e8f0; }
+        .login-logo { font-size:32px; text-align:center; margin-bottom:8px; }
+        .login-title { font-size:22px; font-weight:700; text-align:center; margin-bottom:4px; }
+        .login-sub { font-size:14px; color:#718096; text-align:center; margin-bottom:24px; }
+        .error { color:#e53e3e; font-size:13px; margin-bottom:12px; display:none; }
+        .lot-card { border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+        .lot-info h4 { font-size:16px; font-weight:600; margin-bottom:4px; }
+        .lot-info p { font-size:13px; color:#718096; }
+        .lot-price { text-align:right; }
+        .lot-price .price { font-size:20px; font-weight:700; color:#2b6cb0; }
+        .lot-price .avail { font-size:12px; color:#718096; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page" class="login-wrap">
+    <div class="login-box">
+        <div class="login-logo">🌊</div>
+        <div class="login-title">MarineCatch Africa</div>
+        <div class="login-sub">Buyer Portal — Fresh Seafood Direct</div>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="login-email" class="form-control" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="Password">
+        </div>
+        <div id="login-error" class="error"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+        <p style="text-align:center; margin-top:16px; font-size:13px; color:#718096;">
+            Need access? Contact <a href="mailto:orders@marinecatch.co.ke">orders@marinecatch.co.ke</a>
+        </p>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+    <div class="header">
+        <div>
+            <div class="header-logo">🌊 MarineCatch Africa</div>
+            <div class="header-sub">Buyer Portal</div>
+        </div>
+        <div class="header-right">
+            <span class="badge">👤 <span id="buyer-name">Buyer</span></span>
+            <button class="btn btn-outline" style="color:white; border-color:rgba(255,255,255,0.3)" onclick="doLogout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-val" id="s-orders">—</div>
+                <div class="stat-lbl">My Orders</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-pending">—</div>
+                <div class="stat-lbl">Pending</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-spent">—</div>
+                <div class="stat-lbl">Total Spent (KES)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" id="s-lots">—</div>
+                <div class="stat-lbl">Lots Available</div>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('inventory')">🐟 Browse Fish</button>
+            <button class="tab" onclick="showTab('orders')">📦 My Orders</button>
+        </div>
+
+        <!-- INVENTORY TAB -->
+        <div id="tab-inventory">
+            <div class="card">
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                    <select id="f-species" class="form-control" style="width:160px" onchange="loadInventory()">
+                        <option value="">All Species</option>
+                        <option value="tuna">Tuna</option>
+                        <option value="octopus">Octopus</option>
+                        <option value="prawns">Prawns</option>
+                        <option value="lobster">Lobster</option>
+                        <option value="snapper">Snapper</option>
+                        <option value="kingfish">Kingfish</option>
+                        <option value="sardines">Sardines</option>
+                        <option value="crab">Crab</option>
+                    </select>
+                    <select id="f-condition" class="form-control" style="width:140px" onchange="loadInventory()">
+                        <option value="">All Conditions</option>
+                        <option value="fresh">Fresh</option>
+                        <option value="frozen">Frozen</option>
+                        <option value="live">Live</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="loadInventory()">🔄 Refresh</button>
+                </div>
+            </div>
+            <div id="inventory-list"><div class="empty">Loading inventory...</div></div>
+        </div>
+
+        <!-- ORDERS TAB -->
+        <div id="tab-orders" style="display:none">
+            <div class="card">
+                <div class="card-title">My Orders</div>
+                <div id="orders-list"><div class="empty">Loading orders...</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ORDER MODAL -->
+<div id="order-modal" class="modal">
+    <div class="modal-box">
+        <h3 style="margin-bottom:16px;">Place Order</h3>
+        <div id="order-lot-info" style="background:#f7fafc; padding:12px; border-radius:6px; margin-bottom:16px; font-size:14px;"></div>
+        <div class="form-group">
+            <label class="form-label">Quantity (kg) *</label>
+            <input type="number" id="o-quantity" class="form-control" placeholder="e.g. 20" min="1">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Delivery Address *</label>
+            <input type="text" id="o-address" class="form-control" placeholder="e.g. Neptune Hotels, Diani Beach Road">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Notes (optional)</label>
+            <input type="text" id="o-notes" class="form-control" placeholder="Any special instructions">
+        </div>
+        <div id="o-quote" style="background:#ebf8ff; padding:12px; border-radius:6px; margin-bottom:16px; display:none; font-size:14px;"></div>
+        <div id="o-error" class="error"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeOrderModal()">Cancel</button>
+            <button class="btn btn-outline btn-sm" onclick="getQuote()">Get Quote</button>
+            <button class="btn btn-success" onclick="placeOrder()">Place Order</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('mc_buyer_token');
+let currentUser = null;
+let currentLot = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────
+async function doLogin() {
+    const email = document.getElementById('login-email').value;
+    const pass  = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    try {
+        const res = await fetch(`${API}/api/v1/users/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password: pass})
+        });
+        const data = await res.json();
+        if (res.ok && data.access_token) {
+            token = data.access_token;
+            currentUser = data.user;
+            localStorage.setItem('mc_buyer_token', token);
+            showApp();
+        } else {
+            errEl.textContent = data.detail || 'Invalid credentials';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Connection error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+function doLogout() {
+    localStorage.removeItem('mc_buyer_token');
+    location.reload();
+}
+
+function showApp() {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('buyer-name').textContent = currentUser?.name || 'Buyer';
+    loadInventory();
+    loadOrders();
+    loadStats();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function showTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
+    document.getElementById('tab-orders').style.display    = tab === 'orders'    ? 'block' : 'none';
+    if (tab === 'orders') loadOrders();
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────────
+async function loadInventory() {
+    const species   = document.getElementById('f-species').value;
+    const condition = document.getElementById('f-condition').value;
+    let url = `${API}/api/v1/inventory/?`;
+    if (species)   url += `species=${species}&`;
+    if (condition) url += `condition=${condition}&`;
+
+    try {
+        const res  = await fetch(url);
+        const data = await res.json();
+        const lots = data.lots || [];
+
+        document.getElementById('s-lots').textContent = lots.length;
+
+        if (!lots.length) {
+            document.getElementById('inventory-list').innerHTML = '<div class="empty">No fish available right now. Check back soon.</div>';
+            return;
+        }
+
+        document.getElementById('inventory-list').innerHTML = lots.map(lot => `
+            <div class="lot-card">
+                <div class="lot-info">
+                    <h4>🐟 ${lot.species.charAt(0).toUpperCase() + lot.species.slice(1)}</h4>
+                    <p>📍 ${lot.landing_site.charAt(0).toUpperCase() + lot.landing_site.slice(1)} &nbsp;|&nbsp; 
+                       🏷️ ${lot.grade || 'A'} Grade &nbsp;|&nbsp; 
+                       ❄️ ${lot.condition || 'fresh'}</p>
+                    <p style="margin-top:4px">👤 ${lot.source_name} &nbsp;|&nbsp; 📅 ${lot.catch_date || 'Today'}</p>
+                    <p style="margin-top:4px; font-size:12px; color:#a0aec0;">Lot: ${lot.lot_number}</p>
+                </div>
+                <div class="lot-price">
+                    <div class="price">KES ${lot.selling_price_per_kg?.toLocaleString()}/kg</div>
+                    <div class="avail">${lot.available_kg}kg available</div>
+                    <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        document.getElementById('inventory-list').innerHTML = '<div class="empty">Failed to load inventory.</div>';
+    }
+}
+
+// ── ORDERS ────────────────────────────────────────────────────────
+async function loadOrders() {
+    if (!token) return;
+    try {
+        const res  = await fetch(`${API}/api/v1/orders/my`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        const orders = Array.isArray(data) ? data : (data.orders || []);
+
+        document.getElementById('s-orders').textContent  = orders.length;
+        document.getElementById('s-pending').textContent = orders.filter(o => o.status === 'pending_payment').length;
+        document.getElementById('s-spent').textContent   = 'KES ' + orders
+            .filter(o => o.payment_status === 'paid')
+            .reduce((sum, o) => sum + (o.total_buyer_pays_kes || 0), 0)
+            .toLocaleString();
+
+        if (!orders.length) {
+            document.getElementById('orders-list').innerHTML = '<div class="empty">No orders yet. Browse fish to place your first order.</div>';
+            return;
+        }
+
+        document.getElementById('orders-list').innerHTML = `
+            <table>
+                <thead><tr>
+                    <th>Order</th><th>Species</th><th>Qty</th><th>Total</th><th>Status</th><th>Date</th>
+                </tr></thead>
+                <tbody>
+                ${orders.map(o => `
+                    <tr>
+                        <td><strong>${o.order_number}</strong></td>
+                        <td>${o.species?.charAt(0).toUpperCase() + o.species?.slice(1) || '—'}</td>
+                        <td>${o.quantity_kg}kg</td>
+                        <td>KES ${o.total_buyer_pays_kes?.toLocaleString()}</td>
+                        <td><span class="badge-status badge-${o.status}">${o.status?.replace('_', ' ')}</span></td>
+                        <td>${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('orders-list').innerHTML = '<div class="empty">Failed to load orders.</div>';
+    }
+}
+
+async function loadStats() {
+    // Stats loaded inside loadOrders and loadInventory
+}
+
+// ── ORDER MODAL ───────────────────────────────────────────────────
+function openOrder(lot) {
+    currentLot = lot;
+    document.getElementById('order-lot-info').innerHTML = `
+        <strong>${lot.species.charAt(0).toUpperCase() + lot.species.slice(1)}</strong> — 
+        ${lot.available_kg}kg available at KES ${lot.selling_price_per_kg?.toLocaleString()}/kg<br>
+        📍 ${lot.landing_site} &nbsp;|&nbsp; Lot: ${lot.lot_number}`;
+    document.getElementById('o-quote').style.display = 'none';
+    document.getElementById('o-error').style.display = 'none';
+    document.getElementById('o-quantity').value = '';
+    document.getElementById('o-address').value  = '';
+    document.getElementById('order-modal').style.display = 'flex';
+}
+
+function closeOrderModal() {
+    document.getElementById('order-modal').style.display = 'none';
+    currentLot = null;
+}
+
+async function getQuote() {
+    const qty = parseFloat(document.getElementById('o-quantity').value);
+    if (!qty || qty <= 0) return;
+    try {
+        const res  = await fetch(`${API}/api/v1/inventory/${currentLot.id}/quote?quantity_kg=${qty}`);
+        const data = await res.json();
+        const q = document.getElementById('o-quote');
+        q.innerHTML = `
+            <strong>Price Breakdown:</strong><br>
+            Fish value: KES ${data.fish_value_kes?.toLocaleString()}<br>
+            Commission: KES ${data.platform_commission_kes?.toLocaleString()}<br>
+            <strong>Total: KES ${data.total_buyer_pays_kes?.toLocaleString()}</strong>`;
+        q.style.display = 'block';
+    } catch(e) {}
+}
+
+async function placeOrder() {
+    if (!token) { alert('Please log in first'); return; }
+    const qty     = parseFloat(document.getElementById('o-quantity').value);
+    const address = document.getElementById('o-address').value;
+    const notes   = document.getElementById('o-notes').value;
+    const errEl   = document.getElementById('o-error');
+    errEl.style.display = 'none';
+
+    if (!qty || qty <= 0) { errEl.textContent = 'Please enter quantity'; errEl.style.display = 'block'; return; }
+    if (!address) { errEl.textContent = 'Please enter delivery address'; errEl.style.display = 'block'; return; }
+
+    try {
+        const res  = await fetch(`${API}/api/v1/orders/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({
+                lot_id: currentLot.id,
+                quantity_kg: qty,
+                delivery_address: address,
+                notes: notes
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeOrderModal();
+            alert(`✅ Order placed!\nOrder: ${data.order_number}\nTotal: KES ${data.total_buyer_pays_kes?.toLocaleString()}`);
+            loadOrders();
+            loadInventory();
+        } else {
+            errEl.textContent = data.detail || 'Failed to place order';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') doLogin(); });
+
+if (token) {
+    // Try to restore session
+    fetch(`${API}/api/v1/users/me`, {headers: {'Authorization': `Bearer ${token}`}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.id) {
+                currentUser = data;
+                showApp();
+            } else {
+                localStorage.removeItem('mc_buyer_token');
+            }
+        })
+        .catch(() => localStorage.removeItem('mc_buyer_token'));
+} 
+</script>
+</body>
+</html>
