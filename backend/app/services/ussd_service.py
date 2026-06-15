@@ -153,11 +153,23 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
             f"(Example: 45 for 45kg)"
         )
 
-    # Step 3 — Choose landing site
+    # Step 3 — Enter price per kg
     if level == 3:
         weight_str = parts[2]
         if not weight_str.isdigit() or int(weight_str) <= 0:
             return "END Invalid weight. Please try again.\nDial *384*71253#"
+        species = SPECIES_MAP.get(parts[1], "unknown")
+        return (
+            f"CON {species.title()} — {parts[2]}kg\n\n"
+            f"Enter price per kg (KES):\n"
+            f"(Example: 780 for KES 780/kg)"
+        )
+
+    # Step 4 — Choose landing site
+    if level == 4:
+        price_str = parts[3]
+        if not price_str.isdigit() or int(price_str) <= 0:
+            return "END Invalid price. Please try again.\nDial *384*71253#"
         return (
             "CON Select landing site:\n\n"
             "1. Kibuyuni\n"
@@ -168,28 +180,28 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
             "6. Other"
         )
 
-    # Step 4 — Confirm
-    if level == 4:
-        site_num = parts[3]
+    # Step 5 — Confirm
+    if level == 5:
+        site_num = parts[4]
         if site_num not in LANDING_SITES:
             return "END Invalid landing site. Please try again.\nDial *384*71253#"
-
         species      = SPECIES_MAP.get(parts[1], "unknown")
         weight_kg    = int(parts[2])
+        price_kg     = int(parts[3])
         landing_site = LANDING_SITES[site_num]
-
         return (
             f"CON Confirm catch / Thibitisha:\n\n"
             f"Species: {species.title()}\n"
             f"Weight: {weight_kg}kg\n"
+            f"Price: KES {price_kg}/kg\n"
             f"Site: {landing_site.title()}\n\n"
             f"1. Confirm / Thibitisha\n"
             f"2. Cancel / Ghairi"
         )
 
-    # Step 5 — Save to database
-    if level == 5:
-        confirmation = parts[4]
+    # Step 6 — Save to database
+    if level == 6:
+        confirmation = parts[5]
 
         if confirmation == "2":
             return "END Catch cancelled.\nDial *384*71253# to try again."
@@ -199,7 +211,8 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
 
         species      = SPECIES_MAP.get(parts[1], "unknown")
         weight_kg    = int(parts[2])
-        landing_site = LANDING_SITES.get(parts[3], "other")
+        price_kg     = int(parts[3])
+        landing_site = LANDING_SITES.get(parts[4], "other")
 
         # Find fisher by phone
         fisher = db.query(User).filter(
@@ -237,8 +250,8 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
                 source_name        = fisher_name,
                 ownership_type     = OwnershipType.MARKETPLACE,
                 lot_status         = LotStatus.AVAILABLE,
-                selling_price_per_kg = 0.0,
-                notes              = f"Logged via USSD by {phone}. Awaiting price assignment.",
+                selling_price_per_kg = float(price_kg),
+                notes              = f"Logged via USSD by {phone}.",
             )
 
             db.add(lot)
@@ -249,9 +262,9 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
                 f"Lot: {lot_number}\n"
                 f"Species: {species.title()}\n"
                 f"Weight: {weight_kg}kg\n"
+                f"Price: KES {price_kg}/kg\n"
                 f"Site: {landing_site.title()}\n\n"
-                f"Our team will contact you\n"
-                f"with pricing soon. Asante!"
+                f"Asante! Thank you!"
             )
 
         except Exception as e:
