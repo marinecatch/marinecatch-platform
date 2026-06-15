@@ -106,3 +106,17 @@ def serve_logo():
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "logo.png"
     )
     return FileResponse(os.path.abspath(logo_path))
+    @app.get("/kenia.png")
+def serve_kenia():
+    return FileResponse(os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "kenia.png")))
+
+@app.get("/sotehub.webp")
+def serve_sotehub():
+    return FileResponse(os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "sotehub.webp")))
+
+@app.get("/mpesa.png")
+def serve_mpesa():
+    return FileResponse(os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "mpesa.png")))
