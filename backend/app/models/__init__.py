@@ -14,3 +14,4 @@ from app.models.esg import (
     CatchEvent, SpeciesSustainabilityProfile,
     FisherImpactProfile, TraceabilityChain, ComplianceDocument
 )
+from app.models.fisher_cluster import FisherCluster
