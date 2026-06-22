@@ -136,3 +136,14 @@ def serve_sotehub():
 def serve_mpesa():
     return FileResponse(os.path.abspath(os.path.join(
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "mpesa.png")))
+@app.get("/privacy")
+def serve_privacy():
+    path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "privacy.html"))
+    return FileResponse(path)
+
+@app.get("/terms")
+def serve_terms():
+    path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "terms.html"))
+    return FileResponse(path)        
