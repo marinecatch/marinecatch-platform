@@ -15,3 +15,4 @@ from app.models.esg import (
     FisherImpactProfile, TraceabilityChain, ComplianceDocument
 )
 from app.models.fisher_cluster import FisherCluster
+from app.models.organization import Organization

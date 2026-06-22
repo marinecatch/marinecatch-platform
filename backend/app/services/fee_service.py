@@ -26,17 +26,59 @@
 from app.models.inventory_lot import InventoryLot, OwnershipType
 
 
-# ── COMMISSION TIERS ──────────────────────────────────────────────
-# Tiered commission based on order value
-# Lower rate for larger orders — incentivises volume buyers
+# ── MARKETPLACE COMMISSION TIERS ──────────────────────────────────
+# OOC11 recommendation: seller 10-14%, buyer 3-5%
+# Tiered by order value — lower rate for larger orders
 
-COMMISSION_TIERS = [
-    (5_000,   0.035),   # Under KES 5,000 → 3.5%
-    (50_000,  0.025),   # KES 5,000–50,000 → 2.5%
-    (200_000, 0.020),   # KES 50,000–200,000 → 2.0%
-    (float('inf'), 0.015),  # Over KES 200,000 → 1.5%
+MARKETPLACE_SELLER_COMMISSION = [
+    (5_000,        0.14),   # Under KES 5,000 → 14%
+    (50_000,       0.12),   # KES 5,000–50,000 → 12%
+    (200_000,      0.11),   # KES 50,000–200,000 → 11%
+    (float('inf'), 0.10),   # Over KES 200,000 → 10%
 ]
 
+MARKETPLACE_BUYER_FEE = [
+    (5_000,        0.05),   # Under KES 5,000 → 5%
+    (50_000,       0.04),   # KES 5,000–50,000 → 4%
+    (200_000,      0.035),  # KES 50,000–200,000 → 3.5%
+    (float('inf'), 0.03),   # Over KES 200,000 → 3%
+]
+
+# ── ENTERPRISE COMMISSION TIERS ───────────────────────────────────
+# For verified enterprise buyers (processors, exporters, hotels)
+# Lower rates + subscription model
+
+ENTERPRISE_SELLER_COMMISSION = [
+    (50_000,       0.08),   # Under KES 50,000 → 8%
+    (200_000,      0.06),   # KES 50,000–200,000 → 6%
+    (500_000,      0.05),   # KES 200,000–500,000 → 5%
+    (float('inf'), 0.04),   # Over KES 500,000 → 4%
+]
+
+ENTERPRISE_BUYER_FEE = [
+    (50_000,       0.03),   # Under KES 50,000 → 3%
+    (200_000,      0.025),  # KES 50,000–200,000 → 2.5%
+    (float('inf'), 0.02),   # Over KES 200,000 → 2%
+]
+
+# ── SUBSCRIPTION TIERS ────────────────────────────────────────────
+# Monthly subscription for enterprise accounts
+# Reduces per-transaction fees
+
+SUBSCRIPTION_TIERS = {
+    "basic":      {"monthly_kes": 0,       "discount": 0.0,  "label": "Free"},
+    "standard":   {"monthly_kes": 5_000,   "discount": 0.15, "label": "Standard"},
+    "enterprise": {"monthly_kes": 15_000,  "discount": 0.30, "label": "Enterprise"},
+    "api":        {"monthly_kes": 25_000,  "discount": 0.40, "label": "API Partner"},
+}
+
+# ── LEGACY TIERS (kept for backward compatibility) ─────────────────
+COMMISSION_TIERS = [
+    (5_000,        0.035),
+    (50_000,       0.025),
+    (200_000,      0.020),
+    (float('inf'), 0.015),
+]
 
 # ── LOGISTICS TIERS ───────────────────────────────────────────────
 # Delivery cost by distance
@@ -57,38 +99,100 @@ EXPORT_QA_MULTIPLIER = 2.5
 
 
 # ── COMMISSION CALCULATOR ─────────────────────────────────────────
-def calculate_commission(fish_value_kes: float, ownership_type: str) -> dict:
+def calculate_commission(
+    fish_value_kes: float,
+    ownership_type: str,
+    buyer_tier: str = "marketplace",
+    subscription: str = "basic"
+) -> dict:
     """
-    Calculate platform commission based on order value and ownership type.
+    Calculate platform commission based on OOC11 tiered model.
 
-    Marketplace: commission applies — MarineCatch facilitates
-    MarineCatch-owned: no commission — MC already has margin baked in
-    Consignment: commission applies
-    Contract: negotiated rate — uses standard tier for now
+    buyer_tier:
+      marketplace  → standard rates (10-14% seller, 3-5% buyer)
+      enterprise   → reduced rates (4-8% seller, 2-3% buyer)
+
+    subscription:
+      basic        → no discount
+      standard     → 15% discount on fees
+      enterprise   → 30% discount on fees
+      api          → 40% discount on fees
+
+    MarineCatch-owned: no commission — margin built into price.
     """
-    # MarineCatch-owned inventory — no commission, margin is in the price
-    if ownership_type == OwnershipType.MARINECATCH_OWNED.value:
+    # MarineCatch-owned — no commission
+    if ownership_type in [
+        OwnershipType.MARINECATCH_OWNED.value,
+        "marinecatch_owned"
+    ]:
         return {
-            "commission_rate":    "0%",
+            "commission_rate":     "0%",
             "commission_rate_pct": 0.0,
-            "commission_kes":     0.0,
-            "note":               "MarineCatch-owned: margin built into price"
+            "commission_kes":      0.0,
+            "buyer_fee_rate":      "0%",
+            "buyer_fee_kes":       0.0,
+            "total_platform_kes":  0.0,
+            "note": "MarineCatch-owned: margin built into selling price"
         }
 
-    # Find applicable tier
-    rate = COMMISSION_TIERS[-1][1]  # default to lowest rate
-    for threshold, tier_rate in COMMISSION_TIERS:
+    # Select tier tables
+    if buyer_tier == "enterprise":
+        seller_tiers = ENTERPRISE_SELLER_COMMISSION
+        buyer_tiers  = ENTERPRISE_BUYER_FEE
+    else:
+        seller_tiers = MARKETPLACE_SELLER_COMMISSION
+        buyer_tiers  = MARKETPLACE_BUYER_FEE
+
+    # Find seller commission rate
+    seller_rate = seller_tiers[-1][1]
+    for threshold, rate in seller_tiers:
         if fish_value_kes < threshold:
-            rate = tier_rate
+            seller_rate = rate
             break
 
-    commission_kes = round(fish_value_kes * rate, 2)
+    # Find buyer fee rate
+    buyer_rate = buyer_tiers[-1][1]
+    for threshold, rate in buyer_tiers:
+        if fish_value_kes < threshold:
+            buyer_rate = rate
+            break
+
+    # Apply subscription discount
+    discount = SUBSCRIPTION_TIERS.get(subscription, {}).get("discount", 0.0)
+    seller_rate = round(seller_rate * (1 - discount), 4)
+    buyer_rate  = round(buyer_rate  * (1 - discount), 4)
+
+    seller_commission_kes = round(fish_value_kes * seller_rate, 2)
+    buyer_fee_kes         = round(fish_value_kes * buyer_rate, 2)
+    total_platform_kes    = round(seller_commission_kes + buyer_fee_kes, 2)
 
     return {
-        "commission_rate":     f"{rate * 100:.1f}%",
-        "commission_rate_pct": rate,
-        "commission_kes":      commission_kes,
-        "note":                f"Tiered commission at {rate * 100:.1f}%"
+        "commission_rate":      f"{seller_rate * 100:.1f}%",
+        "commission_rate_pct":  seller_rate,
+        "commission_kes":       seller_commission_kes,
+        "buyer_fee_rate":       f"{buyer_rate * 100:.1f}%",
+        "buyer_fee_rate_pct":   buyer_rate,
+        "buyer_fee_kes":        buyer_fee_kes,
+        "total_platform_kes":   total_platform_kes,
+        "buyer_tier":           buyer_tier,
+        "subscription":         subscription,
+        "note": (
+            f"{buyer_tier.title()} tier — "
+            f"seller {seller_rate*100:.1f}% + "
+            f"buyer {buyer_rate*100:.1f}%"
+            + (f" ({int(discount*100)}% subscription discount)" if discount else "")
+        )
+    }
+
+
+def get_subscription_info(subscription: str = "basic") -> dict:
+    """Return subscription tier details."""
+    tier = SUBSCRIPTION_TIERS.get(subscription, SUBSCRIPTION_TIERS["basic"])
+    return {
+        "tier":        subscription,
+        "label":       tier["label"],
+        "monthly_kes": tier["monthly_kes"],
+        "discount_pct": int(tier["discount"] * 100),
     }
 
 

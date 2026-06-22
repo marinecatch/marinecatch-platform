@@ -12,7 +12,7 @@
 # Eldoret Partner — partner    — Eldoret
 # BMU Coordinator — coordinator— Shimoni
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.connection import Base
@@ -91,7 +91,11 @@ class User(Base):
     settlement_account_id       = Column(String(100), nullable=True)
     settlement_account_type     = Column(String(30),  nullable=True)
     settlement_account_verified = Column(Boolean, default=False, nullable=False)
-    
+    # Organization linkage
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+    buyer_type      = Column(String(30), nullable=True)
+    # individual, hotel, restaurant, processor, exporter, wholesaler
+    # Replaces multiple user roles with cleaner buyer_type field
     # ── STATUS + TIMESTAMPS ───────────────────────────────────
     is_active  = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
