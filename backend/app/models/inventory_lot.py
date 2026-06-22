@@ -256,6 +256,19 @@ class InventoryLot(Base):
         default=LogisticsResponsibility.BUYER, nullable=True
     )
     # ── STATUS ─────────
+    # ── VISIBILITY ────────────────────────────────────────────
+    # Controls who can see this inventory lot.
+    # Recommended by Alpha Seafood — commercial confidentiality.
+    visibility      = Column(
+        String(20),
+        default="public",
+        nullable=False,
+        index=True
+    )
+    # public        → visible to all buyers on marketplace
+    # partner_only  → visible to verified partners only
+    # private       → admin and owner only
+    # api_shared    → accessible via API with valid key
     lot_status = Column(
         SAEnum(LotStatus, name="lotstatus", create_type=False,
                values_callable=lambda x: [e.value for e in x]),
