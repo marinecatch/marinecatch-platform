@@ -80,6 +80,7 @@ def browse_inventory(
                 "traceability_code":    lot.traceability_code,
                 "species":              lot.species,
                 "product_form":         lot.product_form,
+                "weight_kg":            lot.weight_kg,
                 "available_kg":         lot.available_kg,
                 "selling_price_per_kg": lot.selling_price_per_kg,
                 "total_value_kes":      round(
