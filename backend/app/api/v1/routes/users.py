@@ -89,15 +89,6 @@ def get_me(
         "created_at":    user.created_at,
     }
 
-@router.get("/")
-def list_users(db: Session = Depends(get_db)):
-    users = get_all_users(db)
-    return [
-        {"id": u.id, "name": u.name, "email": u.email,
-         "role": u.role, "location": u.location}
-        for u in users
-    ]
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -109,6 +100,29 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User account not found")
     return user
+@router.get("/")
+def list_users(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    from app.models.user import User
+    users = db.query(User).order_by(User.id.asc()).all()
+    return [
+        {
+            "id":            u.id,
+            "name":          u.name,
+            "email":         u.email,
+            "phone":         u.phone,
+            "role":          u.role,
+            "location":      u.location,
+            "business_name": u.business_name,
+            "is_active":     u.is_active,
+            "created_at":    u.created_at,
+        }
+        for u in users
+    ]
     
 # ── LEAD CAPTURE ──────────────────────────────────────────────────
 
