@@ -166,6 +166,10 @@
             <div style="background:white; border-radius:8px; padding:24px; width:400px; max-width:90%;">
                 <h3 style="margin-bottom:16px;">Set Price</h3>
                 <p style="margin-bottom:12px; color:#718096;">Lot <strong id="modal-lot-id"></strong></p>
+                <div class="form-group" id="modal-weight-group">
+                    <label class="form-label">Weight (kg) — if missing</label>
+                    <input type="number" id="modal-weight" class="form-control" placeholder="e.g. 50" min="1">
+                </div>
                 <div class="form-group">
                     <label class="form-label">Price per kg (KES)</label>
                     <input type="number" id="modal-price" class="form-control" placeholder="e.g. 780" min="1">
@@ -337,21 +341,20 @@ function closeModal() {
 
 async function setPrice() {
     if (!currentLotId) return;
-    const price = parseFloat(document.getElementById('modal-price').value);
+    const price  = parseFloat(document.getElementById('modal-price').value);
+    const weight = parseFloat(document.getElementById('modal-weight').value);
     if (!price || price <= 0) {
         alert('Please enter a valid price.');
         return;
     }
-
-    const result = await apiPatch(`/api/v1/inventory/${currentLotId}`, {
-        selling_price_per_kg: price
-    });
-
-    if (result) {
+    const payload = { selling_price_per_kg: price };
+    if (weight && weight > 0) payload.weight_kg = weight;
+    const result = await apiPatch(`/api/v1/inventory/${currentLotId}`, payload);
+    if (result && result.success) {
         closeModal();
         loadInventory();
     } else {
-        alert('Failed to update price.');
+        alert('Failed to update price. ' + (result?.detail || ''));
     }
 }
 
