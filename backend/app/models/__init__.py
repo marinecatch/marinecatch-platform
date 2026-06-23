@@ -16,3 +16,4 @@ from app.models.esg import (
 )
 from app.models.fisher_cluster import FisherCluster
 from app.models.organization import Organization
+from app.models.fisheries_data import Species, LandingSite, HistoricalLanding

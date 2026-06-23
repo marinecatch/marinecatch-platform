@@ -59,19 +59,29 @@
                 <div class="stat-value" id="stat-admins">—</div>
             </div>
         </div>
-
+        <div class="stat-card">
+    <div class="stat-label">Leads</div>
+    <div class="stat-value" id="stat-leads" style="color:#f0a500">—</div>
+    <div class="stat-sub">Awaiting follow-up</div>
+</div>
         <!-- FILTER -->
         <div class="card">
-            <div style="display:flex; gap:12px; align-items:center;">
-                <select id="filter-role" class="form-control" style="width:160px" onchange="loadUsers()">
-                    <option value="">All Roles</option>
-                    <option value="fisher">Fishers</option>
-                    <option value="buyer">Buyers</option>
-                    <option value="admin">Admins</option>
-                </select>
-                <button class="btn btn-outline btn-sm" onclick="loadUsers()">🔄 Refresh</button>
-            </div>
-        </div>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <select id="filter-role" class="form-control" style="width:160px" onchange="loadUsers()">
+            <option value="">All Roles</option>
+            <option value="fisher">Fishers</option>
+            <option value="buyer">Buyers</option>
+            <option value="admin">Admins</option>
+        </select>
+        <select id="filter-active" class="form-control" style="width:160px" onchange="loadUsers()">
+            <option value="true">Active Users</option>
+            <option value="false">Leads (Inactive)</option>
+            <option value="">All</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="loadUsers()">🔄 Refresh</button>
+        <button class="btn btn-accent btn-sm" onclick="exportLeads()">📥 Export Leads CSV</button>
+    </div>
+</div>
 
         <!-- USERS TABLE -->
         <div class="card">
@@ -91,14 +101,23 @@ async function loadUsers() {
     const data = await apiGet('/api/v1/users/');
     if (!data) return;
 
-    const users = Array.isArray(data) ? data : (data.users || []);
-    const role  = document.getElementById('filter-role').value;
-    const filtered = role ? users.filter(u => u.role === role) : users;
+    const allUsers = Array.isArray(data) ? data : (data.users || []);
+    const role     = document.getElementById('filter-role').value;
+    const active   = document.getElementById('filter-active').value;
 
-    document.getElementById('stat-total').textContent   = users.length;
-    document.getElementById('stat-fishers').textContent = users.filter(u => u.role === 'fisher').length;
-    document.getElementById('stat-buyers').textContent  = users.filter(u => u.role === 'buyer').length;
-    document.getElementById('stat-admins').textContent  = users.filter(u => u.role === 'admin').length;
+    let filtered = allUsers;
+    if (role)   filtered = filtered.filter(u => u.role === role);
+    if (active === 'true')  filtered = filtered.filter(u => u.is_active === true);
+    if (active === 'false') filtered = filtered.filter(u => u.is_active === false);
+
+    const activeUsers = allUsers.filter(u => u.is_active);
+    const leads       = allUsers.filter(u => !u.is_active);
+
+    document.getElementById('stat-total').textContent   = activeUsers.length;
+    document.getElementById('stat-fishers').textContent = activeUsers.filter(u => u.role === 'fisher').length;
+    document.getElementById('stat-buyers').textContent  = activeUsers.filter(u => u.role === 'buyer').length;
+    document.getElementById('stat-admins').textContent  = activeUsers.filter(u => u.role === 'admin').length;
+    document.getElementById('stat-leads').textContent   = leads.length;
 
     if (filtered.length === 0) {
         document.getElementById('users-table').innerHTML =
@@ -106,11 +125,16 @@ async function loadUsers() {
         return;
     }
 
+    const isLeadView = active === 'false';
+
     document.getElementById('users-table').innerHTML = `
         <div class="table-wrap"><table>
             <thead><tr>
                 <th>ID</th><th>Name</th><th>Email</th><th>Phone</th>
-                <th>Role</th><th>Location</th><th>Business</th><th>Active</th><th>Joined</th>
+                <th>Role</th><th>Location</th>
+                ${isLeadView ? '<th>Interest</th>' : '<th>Business</th>'}
+                <th>Status</th><th>Date</th>
+                ${isLeadView ? '<th>Action</th>' : ''}
             </tr></thead>
             <tbody>
             ${filtered.map(u => `
@@ -121,14 +145,36 @@ async function loadUsers() {
                     <td>${u.phone || '—'}</td>
                     <td>${statusBadge(u.role)}</td>
                     <td>${u.location || '—'}</td>
-                    <td>${u.business_name || '—'}</td>
+                    <td style="font-size:12px">${u.business_name || '—'}</td>
                     <td>${u.is_active
                         ? '<span class="badge badge-success">Active</span>'
-                        : '<span class="badge badge-danger">Inactive</span>'}</td>
+                        : '<span class="badge badge-warning">Lead</span>'}</td>
                     <td>${formatDate(u.created_at)}</td>
+                    ${isLeadView ? `<td>
+                        <a href="https://wa.me/${u.phone?.replace(/\D/g,'')}" target="_blank" class="btn btn-primary btn-sm">WhatsApp</a>
+                    </td>` : ''}
                 </tr>`).join('')}
             </tbody>
         </table></div>`;
+}
+
+function exportLeads() {
+    apiGet('/api/v1/users/').then(data => {
+        const allUsers = Array.isArray(data) ? data : (data.users || []);
+        const leads = allUsers.filter(u => !u.is_active);
+        const csv = [
+            'Name,Phone,Email,Role Interest,Location,Date',
+            ...leads.map(l =>
+                `"${l.name}","${l.phone}","${l.email}","${l.business_name || ''}","${l.location || ''}","${l.created_at}"`
+            )
+        ].join('\n');
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `marinecatch_leads_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+    });
 }
 
 loadUsers();
