@@ -354,3 +354,51 @@ def get_fee_breakdown(
         delivery_distance_km= delivery_distance_km,
         is_export_grade=      is_export_grade,
     )
+    # ── PROTECTED — update lot price (admin only) ─────────────────────
+@router.patch("/{lot_id}")
+def update_lot(
+    lot_id:  int,
+    selling_price_per_kg: Optional[float] = None,
+    min_price_per_kg:     Optional[float] = None,
+    lot_status:           Optional[str]   = None,
+    visibility:           Optional[str]   = None,
+    notes:                Optional[str]   = None,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Update inventory lot fields.
+    Admin only — used by Set Price button in admin panel.
+    """
+    if str(current_user.role).lower() not in ["admin", "userrole.admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin only"
+        )
+
+    lot = get_lot_by_id(db, lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    if selling_price_per_kg is not None and selling_price_per_kg > 0:
+        lot.selling_price_per_kg = selling_price_per_kg
+    if min_price_per_kg is not None:
+        lot.min_price_per_kg = min_price_per_kg
+    if lot_status is not None:
+        lot.lot_status = lot_status
+    if visibility is not None:
+        lot.visibility = visibility
+    if notes is not None:
+        lot.notes = notes
+
+    db.commit()
+    db.refresh(lot)
+
+    return {
+        "success":              True,
+        "lot_number":           lot.lot_number,
+        "selling_price_per_kg": lot.selling_price_per_kg,
+        "lot_status":           lot.lot_status,
+        "visibility":           lot.visibility,
+        "message":              f"Lot {lot.lot_number} updated successfully"
+    }
