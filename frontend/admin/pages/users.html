@@ -107,17 +107,17 @@ async function loadUsers() {
 
     let filtered = allUsers;
     if (role)   filtered = filtered.filter(u => u.role === role);
-    if (active === 'true')  filtered = filtered.filter(u => u.is_active === true);
-    if (active === 'false') filtered = filtered.filter(u => u.is_active === false);
+    if (active === 'true')  filtered = filtered.filter(u => u.is_active === true || u.is_active === 'true');
+    if (active === 'false') filtered = filtered.filter(u => !u.is_active || u.is_active === 'false');
 
-    const activeUsers = allUsers.filter(u => u.is_active);
-    const leads       = allUsers.filter(u => !u.is_active);
+    const activeUsers = allUsers.filter(u => u.is_active === true || u.is_active === 'true');
+    const leads       = allUsers.filter(u => !u.is_active || u.is_active === 'false');
 
-    document.getElementById('stat-total').textContent   = activeUsers.length;
-    document.getElementById('stat-fishers').textContent = activeUsers.filter(u => u.role === 'fisher').length;
-    document.getElementById('stat-buyers').textContent  = activeUsers.filter(u => u.role === 'buyer').length;
-    document.getElementById('stat-admins').textContent  = activeUsers.filter(u => u.role === 'admin').length;
-    document.getElementById('stat-leads').textContent   = leads.length;
+document.getElementById('stat-total').textContent   = activeUsers.length;
+document.getElementById('stat-fishers').textContent = activeUsers.filter(u => u.role === 'fisher').length;
+document.getElementById('stat-buyers').textContent  = activeUsers.filter(u => u.role === 'buyer').length;
+document.getElementById('stat-admins').textContent  = activeUsers.filter(u => u.role === 'admin').length;
+document.getElementById('stat-leads').textContent   = leads.length;
 
     if (filtered.length === 0) {
         document.getElementById('users-table').innerHTML =
