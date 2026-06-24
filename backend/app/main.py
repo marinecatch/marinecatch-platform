@@ -21,7 +21,8 @@ from app.api.v1.routes import (
     esg,
     whatsapp,
     ussd,
-    analytics
+    analytics,
+    settlement
 )
 
 @asynccontextmanager
@@ -103,6 +104,7 @@ app.include_router(esg.router, prefix="/api/v1")
 app.include_router(whatsapp.router, prefix="/api/v1")
 app.include_router(ussd.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(settlement.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     landing_path = os.path.join(
