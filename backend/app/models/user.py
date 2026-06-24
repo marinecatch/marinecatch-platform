@@ -108,3 +108,11 @@ class User(Base):
 
     def __repr__(self):
         return f"<User id={self.id} name={self.name} role={self.role}>"
+
+    # Credit and financial profile
+    credit_score            = Column(String, default="unrated")
+    credit_limit_kes        = Column(Float, default=0.0)
+    payment_terms           = Column(String, default="immediate")
+    outstanding_balance_kes = Column(Float, default=0.0)
+    on_time_payment_rate    = Column(Float, default=0.0)
+    total_orders_count      = Column(Integer, default=0)

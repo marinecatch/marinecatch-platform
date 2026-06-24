@@ -81,3 +81,9 @@ class Order(Base):
 
     def __repr__(self):
         return f"<Order id={self.id} species={self.species} status={self.status}>"
+
+    # Payment and settlement
+    payment_terms   = Column(String, default="immediate")
+    settlement_mode = Column(String, default="escrow")
+    due_date        = Column(DateTime(timezone=True), nullable=True)
+    paid_at         = Column(DateTime(timezone=True), nullable=True)
