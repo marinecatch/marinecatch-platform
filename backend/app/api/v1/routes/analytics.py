@@ -205,9 +205,10 @@ def platform_summary(db: Session = Depends(get_db)):
         InventoryLot.lot_status == LotStatus.AVAILABLE
     ).scalar() or 0
     total_users     = db.query(User).filter(User.is_active == True).count()
-    total_fishers   = db.query(User).filter(
-        User.role.in_(["fisher", "UserRole.FISHER"])
-    ).count()
+    from sqlalchemy import text
+    total_fishers = db.execute(
+        text("SELECT COUNT(*) FROM users WHERE LOWER(role::text) LIKE '%fisher%'")
+    ).scalar() or 0
     total_orders    = db.query(Order).count()
     species_count   = db.query(InventoryLot.species).filter(
         InventoryLot.is_active == True
