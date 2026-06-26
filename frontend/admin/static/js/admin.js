@@ -13,7 +13,7 @@ function setToken(token) {
 function clearToken() {
     localStorage.removeItem('mc_admin_token');
     localStorage.removeItem('mc_admin_user');
-    window.location.href = '/admin/login.html';
+    window.location.href = '/admin/pages/login.html';
 }
 
 function getUser() {

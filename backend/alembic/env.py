@@ -2,6 +2,10 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from app.models.trade_receivable import TradeReceivable
+from app.models.supplier_payment import SupplierPayment
+from app.models.escrow import EscrowAccount
+from app.models.fisher_advance import FisherAdvance
 
 from alembic import context
 

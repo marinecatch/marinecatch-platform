@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item active"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Settlement Management</div>
+                <div class="page-subtitle">Trade receivables, supplier payments, working capital</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- WORKING CAPITAL POSITION -->
+        <div id="working-capital-section">
+            <div class="loading"><div class="spinner"></div>Loading working capital...</div>
+        </div>
+
+        <!-- TABS -->
+        <div style="display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border);">
+            <button class="btn btn-primary btn-sm" onclick="showTab('receivables')" id="tab-btn-receivables">📥 Receivables (Buyers Owe Us)</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('payables')" id="tab-btn-payables">📤 Payables (We Owe Suppliers)</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('overdue')" id="tab-btn-overdue">⚠️ Overdue</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('new-receivable')" id="tab-btn-new-receivable">➕ New Invoice</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('new-payable')" id="tab-btn-new-payable">➕ New Supplier Payment</button>
+        </div>
+
+        <!-- RECEIVABLES TAB -->
+        <div id="tab-receivables">
+            <div class="card">
+                <div class="card-title">
+                    Trade Receivables — What Buyers Owe MarineCatch
+                    <button class="btn btn-outline btn-sm" onclick="loadReceivables()">🔄 Refresh</button>
+                </div>
+                <div id="receivables-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- PAYABLES TAB -->
+        <div id="tab-payables" style="display:none">
+            <div class="card">
+                <div class="card-title">
+                    Supplier Payments — What MarineCatch Owes
+                    <button class="btn btn-outline btn-sm" onclick="loadPayables()">🔄 Refresh</button>
+                </div>
+                <div id="payables-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- OVERDUE TAB -->
+        <div id="tab-overdue" style="display:none">
+            <div class="card">
+                <div class="card-title" style="color:var(--danger)">
+                    ⚠️ Overdue Receivables — Action Required
+                </div>
+                <div id="overdue-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- NEW RECEIVABLE TAB -->
+        <div id="tab-new-receivable" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Record New Delivery Invoice</div>
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:20px;">
+                    Create this after delivering to a buyer and getting their procurement stamp.
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Buyer *</label>
+                        <select id="nr-buyer" class="form-control">
+                            <option value="">Select buyer...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Invoice Amount (KES) *</label>
+                        <input type="number" id="nr-amount" class="form-control" placeholder="e.g. 45000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payment Terms *</label>
+                        <select id="nr-terms" class="form-control">
+                            <option value="immediate">Immediate</option>
+                            <option value="net_3">NET 3</option>
+                            <option value="net_7">NET 7</option>
+                            <option value="net_14">NET 14</option>
+                            <option value="net_30" selected>NET 30</option>
+                            <option value="net_45">NET 45</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Species</label>
+                        <input type="text" id="nr-species" class="form-control" placeholder="e.g. Prawns, Tuna">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantity (kg)</label>
+                        <input type="number" id="nr-qty" class="form-control" placeholder="e.g. 50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Delivery Location</label>
+                        <input type="text" id="nr-location" class="form-control" placeholder="e.g. Neptune Hotels, Diani">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Received By (Hotel Staff)</label>
+                        <input type="text" id="nr-received-by" class="form-control" placeholder="e.g. John Procurement">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Order ID (optional)</label>
+                        <input type="number" id="nr-order-id" class="form-control" placeholder="Link to order">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="nr-notes" class="form-control" placeholder="Any additional notes">
+                </div>
+                <div id="nr-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div id="nr-success" style="color:var(--success); font-size:13px; margin-bottom:12px; display:none"></div>
+                <button class="btn btn-primary" onclick="createReceivable()">Create Invoice Record</button>
+            </div>
+        </div>
+
+        <!-- NEW PAYABLE TAB -->
+        <div id="tab-new-payable" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Record Supplier Purchase</div>
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:20px;">
+                    Create this when MarineCatch receives seafood from a fisher or supplier.
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Supplier / Fisher *</label>
+                        <select id="np-supplier" class="form-control">
+                            <option value="">Select supplier...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Purchase Amount (KES) *</label>
+                        <input type="number" id="np-amount" class="form-control" placeholder="e.g. 32000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payment Terms *</label>
+                        <select id="np-terms" class="form-control">
+                            <option value="immediate" selected>Immediate</option>
+                            <option value="net_3">NET 3</option>
+                            <option value="net_7">NET 7</option>
+                            <option value="net_14">NET 14</option>
+                            <option value="net_30">NET 30</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Species</label>
+                        <input type="text" id="np-species" class="form-control" placeholder="e.g. Prawns">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantity (kg)</label>
+                        <input type="number" id="np-qty" class="form-control" placeholder="e.g. 50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lot ID (optional)</label>
+                        <input type="number" id="np-lot-id" class="form-control" placeholder="Link to inventory lot">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="np-notes" class="form-control" placeholder="Any additional notes">
+                </div>
+                <div id="np-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div id="np-success" style="color:var(--success); font-size:13px; margin-bottom:12px; display:none"></div>
+                <button class="btn btn-primary" onclick="createPayable()">Record Supplier Purchase</button>
+            </div>
+        </div>
+
+        <!-- RECORD PAYMENT MODAL -->
+        <div id="payment-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:440px; max-width:90%;">
+                <h3 style="margin-bottom:16px;" id="payment-modal-title">Record Payment</h3>
+                <div class="form-group">
+                    <label class="form-label">Amount (KES) *</label>
+                    <input type="number" id="pm-amount" class="form-control" placeholder="Amount received">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payment Method *</label>
+                    <select id="pm-method" class="form-control">
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="pesa_link">Pesa Link</option>
+                        <option value="mpesa_paybill">M-Pesa Paybill</option>
+                        <option value="cash">Cash</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="mpesa_b2c">M-Pesa B2C</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reference / Transaction ID</label>
+                    <input type="text" id="pm-reference" class="form-control" placeholder="Bank ref, M-Pesa ref, etc.">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="pm-notes" class="form-control" placeholder="Optional notes">
+                </div>
+                <div id="pm-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closePaymentModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitPayment()">Record Payment</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+let paymentModalMode = null; // 'receivable' or 'payable'
+let paymentModalId   = null;
+
+// ── TABS ──────────────────────────────────────────────────────────
+function showTab(tab) {
+    ['receivables','payables','overdue','new-receivable','new-payable'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = 'none';
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) { btn.className = 'btn btn-outline btn-sm'; }
+    });
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    const activeBtn = document.getElementById(`tab-btn-${tab}`);
+    if (activeBtn) activeBtn.className = 'btn btn-primary btn-sm';
+
+    if (tab === 'receivables')    loadReceivables();
+    if (tab === 'payables')       loadPayables();
+    if (tab === 'overdue')        loadOverdue();
+    if (tab === 'new-receivable') loadBuyers();
+    if (tab === 'new-payable')    loadSuppliers();
+}
+
+// ── WORKING CAPITAL ───────────────────────────────────────────────
+async function loadWorkingCapital() {
+    const data = await apiGet('/api/v1/settlement/working-capital');
+    if (!data) return;
+
+    document.getElementById('working-capital-section').innerHTML = `
+        <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card">
+                <div class="stat-label">Buyers Owe Us</div>
+                <div class="stat-value" style="color:var(--success)">${formatKES(data.receivables.outstanding_kes)}</div>
+                <div class="stat-sub">Trade receivables outstanding</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Overdue Receivables</div>
+                <div class="stat-value" style="color:var(--danger)">${formatKES(data.receivables.overdue_kes)}</div>
+                <div class="stat-sub">Past due date</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">We Owe Suppliers</div>
+                <div class="stat-value" style="color:var(--warning)">${formatKES(data.payables.outstanding_kes)}</div>
+                <div class="stat-sub">Supplier payments pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Net Position</div>
+                <div class="stat-value" style="color:${data.working_capital.net_position_kes >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                    ${formatKES(Math.abs(data.working_capital.net_position_kes))}
+                </div>
+                <div class="stat-sub">${data.working_capital.net_position_kes >= 0 ? '✅ Owed more than we owe' : '⚠️ Owe more than we are owed'}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Invoiced</div>
+                <div class="stat-value">${formatKES(data.receivables.total_invoiced_kes)}</div>
+                <div class="stat-sub">All time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Collected</div>
+                <div class="stat-value">${formatKES(data.receivables.total_collected_kes)}</div>
+                <div class="stat-sub">All time</div>
+            </div>
+        </div>`;
+}
+
+// ── RECEIVABLES ───────────────────────────────────────────────────
+async function loadReceivables() {
+    const data = await apiGet('/api/v1/settlement/receivables');
+    if (!data) return;
+
+    const receivables = data.receivables || [];
+    if (!receivables.length) {
+        document.getElementById('receivables-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No receivables yet. Create one after your next delivery.</p>';
+        return;
+    }
+
+    document.getElementById('receivables-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Invoice</th><th>Buyer</th><th>Species</th><th>Total</th>
+                <th>Paid</th><th>Outstanding</th><th>Terms</th>
+                <th>Due Date</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${receivables.map(r => `
+                <tr>
+                    <td><strong>${r.invoice_number}</strong></td>
+                    <td>${r.buyer_name}</td>
+                    <td>${r.species || '—'} ${r.quantity_kg ? r.quantity_kg + 'kg' : ''}</td>
+                    <td>${formatKES(r.total_kes)}</td>
+                    <td>${formatKES(r.paid_kes)}</td>
+                    <td><strong>${formatKES(r.outstanding_kes)}</strong></td>
+                    <td><span class="badge badge-neutral">${r.payment_terms?.replace('_',' ').toUpperCase()}</span></td>
+                    <td>${formatDate(r.due_date)}</td>
+                    <td>${statusBadge(r.status)}</td>
+                    <td>
+                        ${r.status !== 'paid' ? `
+                        <button class="btn btn-primary btn-sm"
+                            onclick="openPaymentModal('receivable', ${r.id}, '${r.invoice_number}', ${r.outstanding_kes})">
+                            Record Payment
+                        </button>` : '<span style="color:var(--success)">✅ Paid</span>'}
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+// ── PAYABLES ──────────────────────────────────────────────────────
+async function loadPayables() {
+    const data = await apiGet('/api/v1/settlement/supplier-payments');
+    if (!data) return;
+
+    const payments = data.payments || [];
+    if (!payments.length) {
+        document.getElementById('payables-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No supplier payments recorded yet.</p>';
+        return;
+    }
+
+    document.getElementById('payables-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Reference</th><th>Supplier</th><th>Species</th><th>Amount</th>
+                <th>Paid</th><th>Outstanding</th><th>Terms</th>
+                <th>Due Date</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${payments.map(p => `
+                <tr>
+                    <td><strong>${p.reference}</strong></td>
+                    <td>${p.supplier_name}<br>
+                        <a href="https://wa.me/${p.supplier_phone?.replace(/\D/g,'')}" target="_blank"
+                           style="font-size:11px; color:var(--primary-light)">
+                           📱 ${p.supplier_phone || ''}
+                        </a>
+                    </td>
+                    <td>${p.species || '—'} ${p.quantity_kg ? p.quantity_kg + 'kg' : ''}</td>
+                    <td>${formatKES(p.purchase_amount_kes)}</td>
+                    <td>${formatKES(p.paid_amount_kes)}</td>
+                    <td><strong>${formatKES(p.outstanding_kes)}</strong></td>
+                    <td><span class="badge badge-neutral">${p.payment_terms?.replace('_',' ').toUpperCase()}</span></td>
+                    <td>${formatDate(p.agreed_payment_date)}</td>
+                    <td>${statusBadge(p.status)}</td>
+                    <td>
+                        ${p.status !== 'paid' ? `
+                        <button class="btn btn-accent btn-sm"
+                            onclick="openPaymentModal('payable', ${p.id}, '${p.reference}', ${p.outstanding_kes})">
+                            Pay Now
+                        </button>` : '<span style="color:var(--success)">✅ Paid</span>'}
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+// ── OVERDUE ───────────────────────────────────────────────────────
+async function loadOverdue() {
+    const data = await apiGet('/api/v1/settlement/receivables/overdue');
+    if (!data) return;
+
+    const overdue = data.overdue || [];
+    if (!overdue.length) {
+        document.getElementById('overdue-table').innerHTML =
+            '<p style="color:var(--success);padding:20px">✅ No overdue receivables.</p>';
+        return;
+    }
+
+    document.getElementById('overdue-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Invoice</th><th>Buyer</th><th>Outstanding</th>
+                <th>Due Date</th><th>Days Overdue</th><th>Contact</th>
+            </tr></thead>
+            <tbody>
+            ${overdue.map(r => `
+                <tr>
+                    <td><strong>${r.invoice_number}</strong></td>
+                    <td>${r.buyer_name}</td>
+                    <td><strong style="color:var(--danger)">${formatKES(r.outstanding_kes)}</strong></td>
+                    <td>${formatDate(r.due_date)}</td>
+                    <td><span class="badge badge-danger">${r.days_overdue} days</span></td>
+                    <td>
+                        <a href="https://wa.me/${r.buyer_phone?.replace(/\D/g,'')}" target="_blank"
+                           class="btn btn-primary btn-sm">
+                           WhatsApp
+                        </a>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+// ── LOAD USERS FOR DROPDOWNS ──────────────────────────────────────
+async function loadBuyers() {
+    const data = await apiGet('/api/v1/users/');
+    if (!data) return;
+    const users  = Array.isArray(data) ? data : (data.users || []);
+    const buyers = users.filter(u => u.role === 'buyer' && u.is_active);
+    const select = document.getElementById('nr-buyer');
+    select.innerHTML = '<option value="">Select buyer...</option>' +
+        buyers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+}
+
+async function loadSuppliers() {
+    const data = await apiGet('/api/v1/users/');
+    if (!data) return;
+    const users     = Array.isArray(data) ? data : (data.users || []);
+    const suppliers = users.filter(u => (u.role === 'fisher' || u.role === 'supplier') && u.is_active);
+    const select    = document.getElementById('np-supplier');
+    select.innerHTML = '<option value="">Select supplier...</option>' +
+        suppliers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+}
+
+// ── CREATE RECEIVABLE ─────────────────────────────────────────────
+async function createReceivable() {
+    const buyer_id  = document.getElementById('nr-buyer').value;
+    const amount    = parseFloat(document.getElementById('nr-amount').value);
+    const terms     = document.getElementById('nr-terms').value;
+    const species   = document.getElementById('nr-species').value;
+    const qty       = document.getElementById('nr-qty').value;
+    const location  = document.getElementById('nr-location').value;
+    const received  = document.getElementById('nr-received-by').value;
+    const order_id  = document.getElementById('nr-order-id').value;
+    const notes     = document.getElementById('nr-notes').value;
+    const errEl     = document.getElementById('nr-error');
+    const sucEl     = document.getElementById('nr-success');
+
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    if (!buyer_id || !amount) {
+        errEl.textContent = 'Please select buyer and enter amount.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/settlement/receivables', {
+        buyer_id:          parseInt(buyer_id),
+        gross_amount_kes:  amount,
+        payment_terms:     terms,
+        species:           species || null,
+        quantity_kg:       qty ? parseFloat(qty) : null,
+        delivery_location: location || null,
+        received_by:       received || null,
+        order_id:          order_id ? parseInt(order_id) : null,
+        notes:             notes || null,
+    });
+
+    if (result && result.invoice_number) {
+        sucEl.textContent = `✅ Invoice ${result.invoice_number} created. Due: ${new Date(result.due_date).toLocaleDateString()}`;
+        sucEl.style.display = 'block';
+        loadWorkingCapital();
+    } else {
+        errEl.textContent = result?.detail || 'Failed to create invoice.';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── CREATE PAYABLE ────────────────────────────────────────────────
+async function createPayable() {
+    const supplier_id = document.getElementById('np-supplier').value;
+    const amount      = parseFloat(document.getElementById('np-amount').value);
+    const terms       = document.getElementById('np-terms').value;
+    const species     = document.getElementById('np-species').value;
+    const qty         = document.getElementById('np-qty').value;
+    const lot_id      = document.getElementById('np-lot-id').value;
+    const notes       = document.getElementById('np-notes').value;
+    const errEl       = document.getElementById('np-error');
+    const sucEl       = document.getElementById('np-success');
+
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    if (!supplier_id || !amount) {
+        errEl.textContent = 'Please select supplier and enter amount.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/settlement/supplier-payments', {
+        supplier_id:         parseInt(supplier_id),
+        purchase_amount_kes: amount,
+        payment_terms:       terms,
+        species:             species || null,
+        quantity_kg:         qty ? parseFloat(qty) : null,
+        lot_id:              lot_id ? parseInt(lot_id) : null,
+        notes:               notes || null,
+    });
+
+    if (result && result.reference) {
+        sucEl.textContent = `✅ Payment ${result.reference} recorded. Due: ${new Date(result.agreed_payment_date).toLocaleDateString()}`;
+        sucEl.style.display = 'block';
+        loadWorkingCapital();
+    } else {
+        errEl.textContent = result?.detail || 'Failed to record payment.';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── PAYMENT MODAL ─────────────────────────────────────────────────
+function openPaymentModal(mode, id, reference, outstanding) {
+    paymentModalMode = mode;
+    paymentModalId   = id;
+    document.getElementById('payment-modal-title').textContent =
+        mode === 'receivable'
+            ? `Record Payment — ${reference}`
+            : `Record Payout — ${reference}`;
+    document.getElementById('pm-amount').value    = outstanding;
+    document.getElementById('pm-reference').value = '';
+    document.getElementById('pm-notes').value     = '';
+    document.getElementById('pm-error').style.display = 'none';
+    document.getElementById('payment-modal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').style.display = 'none';
+    paymentModalMode = null;
+    paymentModalId   = null;
+}
+
+async function submitPayment() {
+    const amount    = parseFloat(document.getElementById('pm-amount').value);
+    const method    = document.getElementById('pm-method').value;
+    const reference = document.getElementById('pm-reference').value;
+    const notes     = document.getElementById('pm-notes').value;
+    const errEl     = document.getElementById('pm-error');
+
+    if (!amount || amount <= 0) {
+        errEl.textContent = 'Please enter a valid amount.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    let result;
+    if (paymentModalMode === 'receivable') {
+        result = await apiPost(
+            `/api/v1/settlement/receivables/${paymentModalId}/payment`,
+            { amount_paid: amount, payment_method: method,
+              payment_reference: reference, notes }
+        );
+    } else {
+        result = await apiPost(
+            `/api/v1/settlement/supplier-payments/${paymentModalId}/payout`,
+            { amount_paid: amount, payment_method: method,
+              mpesa_reference: method.includes('mpesa') ? reference : null,
+              bank_reference:  method.includes('bank') || method === 'pesa_link' ? reference : null,
+              notes }
+        );
+    }
+
+    if (result && result.success) {
+        closePaymentModal();
+        loadWorkingCapital();
+        loadReceivables();
+        loadPayables();
+    } else {
+        errEl.textContent = result?.detail || 'Payment failed.';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadWorkingCapital();
+loadReceivables();
+</script>
+</body>
+</html>
