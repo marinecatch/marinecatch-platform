@@ -6,6 +6,8 @@ from app.models.trade_receivable import TradeReceivable
 from app.models.supplier_payment import SupplierPayment
 from app.models.escrow import EscrowAccount
 from app.models.fisher_advance import FisherAdvance
+from app.models.compliance_profile import ComplianceProfile
+from app.models.quality_inspection import QualityInspection
 
 from alembic import context
 
