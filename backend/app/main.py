@@ -152,4 +152,10 @@ def serve_privacy():
 def serve_terms():
     path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "terms.html"))
-    return FileResponse(path)        
+    return FileResponse(path)    
+@app.get("/insights")
+def serve_insights():
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights.html"
+    )
+    return FileResponse(os.path.abspath(path))   

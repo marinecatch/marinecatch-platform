@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insights — MarineCatch Africa</title>
+    <meta name="description" content="Market intelligence, fisheries data and industry insights from MarineCatch Africa.">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+
+        /* NAV */
+        nav { background:#0D2137; padding:16px 40px; display:flex; justify-content:space-between; align-items:center; }
+        .nav-logo { color:white; font-size:18px; font-weight:700; text-decoration:none; letter-spacing:0.5px; }
+        .nav-links { display:flex; gap:24px; }
+        .nav-links a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; }
+        .nav-links a:hover { color:white; }
+        .nav-cta { background:#1D60AE; color:white; padding:8px 20px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:500; }
+
+        /* HERO */
+        .hero { background:linear-gradient(135deg, #0D2137 0%, #1D60AE 100%); color:white; padding:80px 40px; text-align:center; }
+        .hero-tag { background:rgba(0,179,240,0.2); color:#00B3F0; border:1px solid rgba(0,179,240,0.3); padding:6px 16px; border-radius:20px; font-size:12px; letter-spacing:1px; text-transform:uppercase; display:inline-block; margin-bottom:20px; }
+        .hero h1 { font-size:40px; font-weight:700; margin-bottom:16px; max-width:600px; margin-left:auto; margin-right:auto; }
+        .hero p { font-size:16px; opacity:0.75; max-width:500px; margin:0 auto; }
+
+        /* ARTICLES */
+        .container { max-width:1000px; margin:0 auto; padding:60px 40px; }
+        .section-title { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:#718096; font-weight:600; margin-bottom:32px; }
+        .articles { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:24px; margin-bottom:60px; }
+        .article-card { background:white; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0; transition:transform 0.2s, box-shadow 0.2s; cursor:pointer; text-decoration:none; color:inherit; display:block; }
+        .article-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,0.08); }
+        .article-img { height:160px; display:flex; align-items:center; justify-content:center; font-size:48px; }
+        .article-body { padding:20px; }
+        .article-tag { font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:8px; }
+        .article-title { font-size:17px; font-weight:700; color:#0D2137; margin-bottom:8px; line-height:1.4; }
+        .article-excerpt { font-size:13px; color:#718096; line-height:1.6; margin-bottom:12px; }
+        .article-meta { font-size:11px; color:#a0aec0; }
+
+        /* DATA SECTION */
+        .data-section { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:32px; margin-bottom:40px; }
+        .data-section h2 { font-size:20px; font-weight:700; color:#0D2137; margin-bottom:8px; }
+        .data-section p { font-size:14px; color:#718096; margin-bottom:24px; line-height:1.7; }
+        .data-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; margin-bottom:20px; }
+        .data-stat { background:#F7FAFC; border-radius:8px; padding:16px; text-align:center; border:1px solid #e2e8f0; }
+        .data-stat-val { font-size:26px; font-weight:700; color:#1D60AE; }
+        .data-stat-lbl { font-size:11px; color:#718096; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+        .species-list { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+        .species-item { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#F7FAFC; border-radius:6px; font-size:13px; }
+        .species-name { font-weight:600; color:#0D2137; }
+        .species-val { color:#276749; font-weight:600; }
+
+        /* NEWSLETTER */
+        .newsletter { background:linear-gradient(135deg, #0D2137, #1D60AE); border-radius:10px; padding:40px; text-align:center; color:white; }
+        .newsletter h2 { font-size:22px; font-weight:700; margin-bottom:8px; }
+        .newsletter p { opacity:0.75; margin-bottom:24px; font-size:14px; }
+        .newsletter-form { display:flex; gap:12px; max-width:400px; margin:0 auto; }
+        .newsletter-form input { flex:1; padding:10px 16px; border-radius:6px; border:none; font-size:14px; }
+        .newsletter-form button { padding:10px 20px; background:#00B3F0; color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px; white-space:nowrap; }
+
+        /* FOOTER */
+        footer { background:#0D2137; color:rgba(255,255,255,0.6); text-align:center; padding:24px; font-size:13px; }
+        footer a { color:#00B3F0; text-decoration:none; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/" class="nav-logo">🌊 MarineCatch Africa</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/insights" style="color:white">Insights</a>
+        <a href="/buyer">Buyers</a>
+        <a href="/fisher">Fishers</a>
+    </div>
+    <a href="/buyer" class="nav-cta">Get Started</a>
+</nav>
+
+<div class="hero">
+    <div class="hero-tag">Market Intelligence</div>
+    <h1>Insights from the Blue Economy</h1>
+    <p>Data, analysis and perspectives on African seafood supply chains, fisheries, and maritime trade.</p>
+</div>
+
+<div class="container">
+
+    <!-- Featured Articles -->
+    <div class="section-title">Latest Insights</div>
+    <div class="articles">
+
+        <a href="/insights/ooc11-recap" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#0D2137,#1D60AE)">🌊</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#1D60AE">Conference</div>
+                <div class="article-title">OOC11: What the Industry Told Us</div>
+                <div class="article-excerpt">Key takeaways from the Our Ocean Conference — what processors, exporters and BMUs said about digital infrastructure in African fisheries.</div>
+                <div class="article-meta">June 2026 · 5 min read</div>
+            </div>
+        </a>
+
+        <a href="/insights/kibuyuni-bmu-data" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#276749,#00B3F0)">📊</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#276749">Data</div>
+                <div class="article-title">What BMU Landing Data Reveals About Kwale Fisheries</div>
+                <div class="article-excerpt">An analysis of 2024–2025 Kibuyuni BMU catch records — top species, price trends, and seasonal patterns that procurement teams need to know.</div>
+                <div class="article-meta">June 2026 · 7 min read</div>
+            </div>
+        </a>
+
+        <a href="/insights/supply-chain-infrastructure" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#744210,#C05621)">🏗️</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#C05621">Strategy</div>
+                <div class="article-title">Why African Seafood Needs Infrastructure, Not Just Apps</div>
+                <div class="article-excerpt">The difference between a marketplace and supply chain infrastructure — and why that distinction matters for fishers, processors and investors.</div>
+                <div class="article-meta">May 2026 · 6 min read</div>
+            </div>
+        </a>
+
+        <a href="/insights/fisher-cluster-model" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#553C9A,#1D60AE)">👥</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#553C9A">Operations</div>
+                <div class="article-title">The Fisher Cluster Model — Scaling Inclusion Without Losing Control</div>
+                <div class="article-excerpt">How organizing fishers into verified clusters of 5–20 creates predictable supply, easier compliance, and a pathway to group financing.</div>
+                <div class="article-meta">June 2026 · 4 min read</div>
+            </div>
+        </a>
+
+        <a href="/insights/traceability-export" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#0D2137,#276749)">📋</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#276749">Compliance</div>
+                <div class="article-title">Traceability as a Trade Enabler — From Kibuyuni to the EU</div>
+                <div class="article-excerpt">How digital catch documentation changes market access for Kenyan seafood exporters — and what the EU IUU regulation requires.</div>
+                <div class="article-meta">July 2026 · 5 min read</div>
+            </div>
+        </a>
+
+        <a href="/insights/blue-economy-africa" class="article-card">
+            <div class="article-img" style="background:linear-gradient(135deg,#00B3F0,#1D60AE)">🌍</div>
+            <div class="article-body">
+                <div class="article-tag" style="color:#00B3F0">Vision</div>
+                <div class="article-title">The Blue Economy Opportunity in Sub-Saharan Africa</div>
+                <div class="article-excerpt">Africa's coastline represents one of the world's most underutilized economic assets. Here's what digital infrastructure can unlock.</div>
+                <div class="article-meta">July 2026 · 8 min read</div>
+            </div>
+        </a>
+
+    </div>
+
+    <!-- BMU Data Section -->
+    <div class="data-section">
+        <h2>📊 Kibuyuni Fisheries Intelligence — 2025 Data</h2>
+        <p>MarineCatch Africa works with Kibuyuni Beach Management Unit to digitize landing records collected for Kenya Fisheries Service. This data powers our procurement planning, price intelligence, and supply forecasting. Data used with BMU permission for market analytics.</p>
+
+        <div class="data-grid">
+            <div class="data-stat">
+                <div class="data-stat-val">34</div>
+                <div class="data-stat-lbl">Landing Records</div>
+            </div>
+            <div class="data-stat">
+                <div class="data-stat-val">19</div>
+                <div class="data-stat-lbl">Species Tracked</div>
+            </div>
+            <div class="data-stat">
+                <div class="data-stat-val">52,600kg</div>
+                <div class="data-stat-lbl">Total Volume 2025</div>
+            </div>
+            <div class="data-stat">
+                <div class="data-stat-val">KES 12.8M</div>
+                <div class="data-stat-lbl">Total Landing Value</div>
+            </div>
+            <div class="data-stat">
+                <div class="data-stat-val">7</div>
+                <div class="data-stat-lbl">Landing Sites</div>
+            </div>
+            <div class="data-stat">
+                <div class="data-stat-val">Q3–Q4</div>
+                <div class="data-stat-lbl">Peak Season</div>
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:16px; margin-top:8px;">Top Species by Volume (Kibuyuni 2025)</div>
+        <div class="species-list">
+            <div class="species-item"><span class="species-name">Scavenger (Changgu)</span><span class="species-val">25,791kg</span></div>
+            <div class="species-item"><span class="species-name">Rabbit Fish (Tafi)</span><span class="species-val">10,788kg</span></div>
+            <div class="species-item"><span class="species-name">Cavalla/Jack (Kole Kole)</span><span class="species-val">7,693kg</span></div>
+            <div class="species-item"><span class="species-name">Snapper (Tembo)</span><span class="species-val">4,692kg</span></div>
+            <div class="species-item"><span class="species-name">Sardines (Dagaa)</span><span class="species-val">3,319kg</span></div>
+            <div class="species-item"><span class="species-name">Barracuda (Tengezi)</span><span class="species-val">620kg</span></div>
+        </div>
+    </div>
+
+    <!-- Newsletter -->
+    <div class="newsletter">
+        <h2>Stay Informed</h2>
+        <p>Market intelligence, fisheries data and platform updates — delivered monthly.</p>
+        <div class="newsletter-form">
+            <input type="email" placeholder="your@email.com" />
+            <button onclick="subscribeNewsletter(this)">Subscribe</button>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    <p>© 2026 MarineCatch Africa · Kwale County, Kenya · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>
+</footer>
+
+<script>
+function subscribeNewsletter(btn) {
+    const email = btn.previousElementSibling.value;
+    if (!email) return;
+    btn.textContent = 'Subscribed ✓';
+    btn.style.background = '#276749';
+    btn.previousElementSibling.value = '';
+}
+</script>
+
+</body>
+</html>
