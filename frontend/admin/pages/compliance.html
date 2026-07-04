@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item active"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Compliance & Quality</div>
+                <div class="page-subtitle">Member IDs, verification levels, quality inspections</div>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-primary btn-sm" onclick="seedProfiles()">
+                    🌱 Seed Member IDs
+                </button>
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid" id="compliance-stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Members</div>
+                <div class="stat-value" id="stat-total">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Level 1 (Registered)</div>
+                <div class="stat-value" id="stat-l1">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Level 2 (BMU Verified)</div>
+                <div class="stat-value" id="stat-l2" style="color:var(--accent-blue)">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Level 3 (KRA Verified)</div>
+                <div class="stat-value" id="stat-l3" style="color:var(--success)">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Inspections</div>
+                <div class="stat-value" id="stat-pending-insp" style="color:var(--warning)">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Inspections Done</div>
+                <div class="stat-value" id="stat-insp-done">—</div>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div style="display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border);">
+            <button class="btn btn-primary btn-sm" onclick="showTab('members')" id="tab-btn-members">👥 Member Profiles</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('pending-inspection')" id="tab-btn-pending-inspection">⏳ Pending Inspection</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('inspections')" id="tab-btn-inspections">🔍 All Inspections</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('new-inspection')" id="tab-btn-new-inspection">➕ Record Inspection</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('verify')" id="tab-btn-verify">✅ Verify Member</button>
+        </div>
+
+        <!-- MEMBERS TAB -->
+        <div id="tab-members">
+            <div class="card">
+                <div class="card-title">
+                    All Member Profiles
+                    <button class="btn btn-outline btn-sm" onclick="loadProfiles()">🔄 Refresh</button>
+                </div>
+                <div id="profiles-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- PENDING INSPECTION TAB -->
+        <div id="tab-pending-inspection" style="display:none">
+            <div class="card">
+                <div class="card-title">⏳ Lots Awaiting Quality Inspection</div>
+                <div id="pending-insp-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- ALL INSPECTIONS TAB -->
+        <div id="tab-inspections" style="display:none">
+            <div class="card">
+                <div class="card-title">All Quality Inspections</div>
+                <div id="inspections-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- NEW INSPECTION TAB -->
+        <div id="tab-new-inspection" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Record Quality Inspection</div>
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:20px;">
+                    Complete this after physically inspecting a seafood lot. Grade determines marketplace eligibility.
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Lot ID *</label>
+                        <input type="number" id="ni-lot-id" class="form-control" placeholder="Lot ID number">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Grade *</label>
+                        <select id="ni-grade" class="form-control">
+                            <option value="A">A — Premium (hotels, export)</option>
+                            <option value="B">B — Good (restaurants, processors)</option>
+                            <option value="C">C — Acceptable (local market)</option>
+                            <option value="R">R — Rejected</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Disposition *</label>
+                        <select id="ni-disposition" class="form-control">
+                            <option value="marketplace">Marketplace</option>
+                            <option value="direct_sale">Direct Sale</option>
+                            <option value="processing_only">Processing Only</option>
+                            <option value="return_to_fisher">Return to Fisher</option>
+                            <option value="animal_feed">Animal Feed</option>
+                            <option value="disposed">Disposed</option>
+                            <option value="donated">Donated</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temperature (°C)</label>
+                        <input type="number" id="ni-temp" class="form-control" placeholder="e.g. 3.5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Declared Weight (kg)</label>
+                        <input type="number" id="ni-declared-kg" class="form-control" placeholder="Fisher declared weight">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Verified Weight (kg)</label>
+                        <input type="number" id="ni-verified-kg" class="form-control" placeholder="Actual weighed weight">
+                    </div>
+                </div>
+
+                <p style="font-size:13px; font-weight:600; margin:16px 0 8px;">Quality Checks</p>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-smell"> Smell OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-texture"> Texture OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-appearance"> Appearance OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-ice"> Ice Ratio OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-temp-ok"> Temperature OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-gills"> Gills OK
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                        <input type="checkbox" id="ni-eyes"> Eyes Clear
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Rejection Reason (if rejected)</label>
+                    <input type="text" id="ni-rejection" class="form-control"
+                        placeholder="e.g. Temperature abuse, spoilage, wrong species">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="ni-notes" class="form-control" placeholder="Any additional notes">
+                </div>
+                <div id="ni-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div id="ni-success" style="color:var(--success); font-size:13px; margin-bottom:12px; display:none"></div>
+                <button class="btn btn-primary" onclick="submitInspection()">Record Inspection</button>
+            </div>
+        </div>
+
+        <!-- VERIFY MEMBER TAB -->
+        <div id="tab-verify" style="display:none">
+            <div class="card">
+                <div class="card-title">✅ Verify Member</div>
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:20px;">
+                    Verify identity, BMU membership, or KRA PIN for a registered member.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">User ID *</label>
+                    <input type="number" id="v-user-id" class="form-control" placeholder="User ID">
+                </div>
+
+                <p style="font-size:13px; font-weight:600; margin:16px 0 8px;">National ID Verification</p>
+                <div style="display:flex; gap:12px; margin-bottom:20px;">
+                    <input type="text" id="v-national-id" class="form-control" placeholder="National ID number">
+                    <button class="btn btn-primary" onclick="verifyNationalID()" style="white-space:nowrap">Verify ID</button>
+                </div>
+
+                <p style="font-size:13px; font-weight:600; margin:16px 0 8px;">BMU Verification</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <input type="text" id="v-bmu-number" class="form-control" placeholder="BMU membership number">
+                    <input type="text" id="v-bmu-name" class="form-control" placeholder="BMU name (e.g. Kibuyuni BMU)">
+                    <input type="text" id="v-landing-site" class="form-control" placeholder="Default landing site">
+                    <input type="number" id="v-cluster-id" class="form-control" placeholder="Fisher cluster ID (optional)">
+                </div>
+                <button class="btn btn-primary" onclick="verifyBMU()" style="margin-bottom:20px">Verify BMU</button>
+
+                <p style="font-size:13px; font-weight:600; margin:16px 0 8px;">KRA PIN Verification</p>
+                <div style="display:flex; gap:12px; margin-bottom:20px;">
+                    <input type="text" id="v-kra-pin" class="form-control" placeholder="KRA PIN (e.g. A123456789B)">
+                    <button class="btn btn-primary" onclick="verifyKRA()" style="white-space:nowrap">Verify KRA</button>
+                </div>
+
+                <div id="v-result" style="font-size:13px; padding:12px; border-radius:6px; display:none;"></div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+function showTab(tab) {
+    ['members','pending-inspection','inspections','new-inspection','verify'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = 'none';
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.className = 'btn btn-outline btn-sm';
+    });
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    const activeBtn = document.getElementById(`tab-btn-${tab}`);
+    if (activeBtn) activeBtn.className = 'btn btn-primary btn-sm';
+
+    if (tab === 'members')             loadProfiles();
+    if (tab === 'pending-inspection')  loadPendingInspections();
+    if (tab === 'inspections')         loadInspections();
+}
+
+async function loadStats() {
+    const profiles = await apiGet('/api/v1/compliance/profiles');
+    const pending  = await apiGet('/api/v1/compliance/inspections/pending');
+    const inspections = await apiGet('/api/v1/compliance/inspections');
+
+    if (profiles) {
+        const p = profiles.profiles || [];
+        document.getElementById('stat-total').textContent = p.length;
+        document.getElementById('stat-l1').textContent = p.filter(x => x.compliance_level === 1).length;
+        document.getElementById('stat-l2').textContent = p.filter(x => x.compliance_level === 2).length;
+        document.getElementById('stat-l3').textContent = p.filter(x => x.compliance_level >= 3).length;
+    }
+    if (pending) {
+        document.getElementById('stat-pending-insp').textContent = pending.total || 0;
+    }
+    if (inspections) {
+        document.getElementById('stat-insp-done').textContent = inspections.total || 0;
+    }
+}
+
+async function loadProfiles() {
+    const data = await apiGet('/api/v1/compliance/profiles');
+    if (!data) return;
+    const profiles = data.profiles || [];
+
+    if (!profiles.length) {
+        document.getElementById('profiles-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No profiles yet. Click "Seed Member IDs" to create profiles for existing users.</p>';
+        return;
+    }
+
+    const levelLabel = {0:'Lead', 1:'Registered', 2:'BMU Verified', 3:'Tax Compliant', 4:'Export Ready'};
+    const levelColor = {0:'neutral', 1:'info', 2:'warning', 3:'success', 4:'success'};
+
+    document.getElementById('profiles-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Member ID</th><th>Name</th><th>Role</th><th>Phone</th>
+                <th>Level</th><th>Phone</th><th>ID</th><th>BMU</th><th>KRA</th>
+                <th>Trust Score</th><th>Transactions</th>
+            </tr></thead>
+            <tbody>
+            ${profiles.map(p => `
+                <tr>
+                    <td><strong style="color:var(--primary)">${p.member_id || '—'}</strong></td>
+                    <td>${p.user_name}</td>
+                    <td>${statusBadge(p.user_role?.replace('UserRole.','').toLowerCase() || 'unknown')}</td>
+                    <td>${p.user_phone || '—'}</td>
+                    <td><span class="badge badge-${levelColor[p.compliance_level] || 'neutral'}">
+                        L${p.compliance_level} — ${levelLabel[p.compliance_level] || 'Unknown'}
+                    </span></td>
+                    <td>${p.phone_verified ? '✅' : '❌'}</td>
+                    <td>${p.national_id_verified ? '✅' : '❌'}</td>
+                    <td>${p.bmu_verified ? '✅ ' + (p.bmu_name || '') : '❌'}</td>
+                    <td>${p.kra_verified ? '✅' : '❌'}</td>
+                    <td>
+                        <strong>${p.trust_score || 0}/100</strong>
+                    </td>
+                    <td>${p.total_transactions || 0}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadPendingInspections() {
+    const data = await apiGet('/api/v1/compliance/inspections/pending');
+    if (!data) return;
+    const lots = data.pending || [];
+
+    if (!lots.length) {
+        document.getElementById('pending-insp-table').innerHTML =
+            '<p style="color:var(--success);padding:20px">✅ All lots have been inspected.</p>';
+        return;
+    }
+
+    document.getElementById('pending-insp-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Lot ID</th><th>Lot Number</th><th>Species</th>
+                <th>Weight</th><th>Landing Site</th><th>Fisher</th>
+                <th>Catch Date</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${lots.map(l => `
+                <tr>
+                    <td>${l.lot_id}</td>
+                    <td><strong>${l.lot_number}</strong></td>
+                    <td>${l.species}</td>
+                    <td>${l.weight_kg}kg</td>
+                    <td>${l.landing_site || '—'}</td>
+                    <td>${l.source_name || '—'}</td>
+                    <td>${formatDate(l.catch_date)}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm"
+                            onclick="prefillInspection(${l.lot_id})">
+                            Inspect
+                        </button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadInspections() {
+    const data = await apiGet('/api/v1/compliance/inspections');
+    if (!data) return;
+    const inspections = data.inspections || [];
+
+    if (!inspections.length) {
+        document.getElementById('inspections-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No inspections recorded yet.</p>';
+        return;
+    }
+
+    const gradeColor = {'A':'success', 'B':'info', 'C':'warning', 'R':'danger'};
+
+    document.getElementById('inspections-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Lot</th><th>Species</th><th>Weight</th>
+                <th>Grade</th><th>Status</th><th>Disposition</th>
+                <th>Temp °C</th><th>Inspector</th><th>Date</th>
+            </tr></thead>
+            <tbody>
+            ${inspections.map(i => `
+                <tr>
+                    <td><strong>${i.lot_number}</strong></td>
+                    <td>${i.species}</td>
+                    <td>${i.weight_kg}kg</td>
+                    <td><span class="badge badge-${gradeColor[i.grade] || 'neutral'}">${i.grade}</span></td>
+                    <td>${statusBadge(i.status)}</td>
+                    <td><span class="badge badge-neutral">${i.disposition?.replace('_',' ') || '—'}</span></td>
+                    <td>${i.temperature_c ? i.temperature_c + '°C' : '—'}</td>
+                    <td>${i.inspector_name || '—'}</td>
+                    <td>${formatDate(i.inspected_at)}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function prefillInspection(lotId) {
+    showTab('new-inspection');
+    document.getElementById('ni-lot-id').value = lotId;
+}
+
+async function submitInspection() {
+    const lot_id      = parseInt(document.getElementById('ni-lot-id').value);
+    const grade       = document.getElementById('ni-grade').value;
+    const disposition = document.getElementById('ni-disposition').value;
+    const temp        = document.getElementById('ni-temp').value;
+    const declared_kg = document.getElementById('ni-declared-kg').value;
+    const verified_kg = document.getElementById('ni-verified-kg').value;
+    const rejection   = document.getElementById('ni-rejection').value;
+    const notes       = document.getElementById('ni-notes').value;
+    const errEl       = document.getElementById('ni-error');
+    const sucEl       = document.getElementById('ni-success');
+
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    if (!lot_id) {
+        errEl.textContent = 'Please enter a Lot ID.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/compliance/inspections', {
+        lot_id,
+        grade,
+        disposition,
+        temperature_c:      temp ? parseFloat(temp) : null,
+        temperature_ok:     document.getElementById('ni-temp-ok').checked,
+        smell_ok:           document.getElementById('ni-smell').checked,
+        texture_ok:         document.getElementById('ni-texture').checked,
+        appearance_ok:      document.getElementById('ni-appearance').checked,
+        ice_ratio_ok:       document.getElementById('ni-ice').checked,
+        gills_ok:           document.getElementById('ni-gills').checked,
+        eyes_ok:            document.getElementById('ni-eyes').checked,
+        declared_weight_kg: declared_kg ? parseFloat(declared_kg) : null,
+        verified_weight_kg: verified_kg ? parseFloat(verified_kg) : null,
+        rejection_reason:   rejection || null,
+        notes:              notes || null,
+    });
+
+    if (result && result.success) {
+        sucEl.textContent = `✅ Inspection recorded. Lot ${result.lot_number} — Grade ${result.grade} — ${result.disposition}`;
+        sucEl.style.display = 'block';
+        loadStats();
+    } else {
+        errEl.textContent = result?.detail || 'Failed to record inspection.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function verifyNationalID() {
+    const user_id     = parseInt(document.getElementById('v-user-id').value);
+    const national_id = document.getElementById('v-national-id').value;
+    if (!user_id || !national_id) return;
+
+    const result = await apiPost('/api/v1/compliance/verify/national-id',
+        { user_id, national_id });
+    showVerifyResult(result);
+}
+
+async function verifyBMU() {
+    const user_id               = parseInt(document.getElementById('v-user-id').value);
+    const bmu_membership_number = document.getElementById('v-bmu-number').value;
+    const bmu_name              = document.getElementById('v-bmu-name').value;
+    const default_landing_site  = document.getElementById('v-landing-site').value;
+    const cluster_id            = document.getElementById('v-cluster-id').value;
+    if (!user_id || !bmu_membership_number || !bmu_name) return;
+
+    const result = await apiPost('/api/v1/compliance/verify/bmu', {
+        user_id, bmu_membership_number, bmu_name,
+        default_landing_site: default_landing_site || null,
+        fisher_cluster_id:    cluster_id ? parseInt(cluster_id) : null,
+    });
+    showVerifyResult(result);
+}
+
+async function verifyKRA() {
+    const user_id = parseInt(document.getElementById('v-user-id').value);
+    const kra_pin = document.getElementById('v-kra-pin').value;
+    if (!user_id || !kra_pin) return;
+
+    const result = await apiPost('/api/v1/compliance/verify/kra',
+        { user_id, kra_pin });
+    showVerifyResult(result);
+}
+
+function showVerifyResult(result) {
+    const el = document.getElementById('v-result');
+    if (result && result.success) {
+        el.style.background = '#d4edda';
+        el.style.color      = '#155724';
+        el.style.display    = 'block';
+        el.textContent      = `✅ Verified. Member ID: ${result.member_id} — Level ${result.compliance_level}`;
+        loadStats();
+    } else {
+        el.style.background = '#f8d7da';
+        el.style.color      = '#721c24';
+        el.style.display    = 'block';
+        el.textContent      = `❌ ${result?.detail || 'Verification failed'}`;
+    }
+}
+
+async function seedProfiles() {
+    const result = await apiPost('/api/v1/compliance/seed-existing-users', {});
+    if (result && result.success) {
+        alert(`✅ Created ${result.profiles_created} member profiles`);
+        loadStats();
+        loadProfiles();
+    }
+}
+
+loadStats();
+loadProfiles();
+</script>
+</body>
+</html>
