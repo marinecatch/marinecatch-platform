@@ -159,3 +159,9 @@ def serve_insights():
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights.html"
     )
     return FileResponse(os.path.abspath(path))   
+@app.get("/insights/traceability-certification")
+def serve_traceability_article():
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "traceability-certification.html"
+    )
+    return FileResponse(os.path.abspath(path))
