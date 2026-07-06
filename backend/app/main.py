@@ -165,3 +165,38 @@ def serve_traceability_article():
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "traceability-certification.html"
     )
     return FileResponse(os.path.abspath(path))
+@app.get("/insights/financial-inclusion")
+def serve_financial_inclusion_article():
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "financial-inclusion.html"
+    )
+    return FileResponse(os.path.abspath(path))
+@app.get("/insights/ooc11-recap")
+def serve_ooc11():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "ooc11-recap.html")
+    return FileResponse(os.path.abspath(path))
+
+@app.get("/insights/kibuyuni-bmu-data")
+def serve_bmu_data():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "kibuyuni-bmu-data.html")
+    return FileResponse(os.path.abspath(path))
+
+@app.get("/insights/supply-chain-infrastructure")
+def serve_supply_chain():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "supply-chain-infrastructure.html")
+    return FileResponse(os.path.abspath(path))
+
+@app.get("/insights/fisher-cluster-model")
+def serve_fisher_cluster():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "fisher-cluster-model.html")
+    return FileResponse(os.path.abspath(path))
+
+@app.get("/insights/blue-economy-africa")
+def serve_blue_economy():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "blue-economy-africa.html")
+    return FileResponse(os.path.abspath(path))
+
+@app.get("/insights/financial-inclusion")
+def serve_financial_inclusion():
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "financial-inclusion.html")
+    return FileResponse(os.path.abspath(path))

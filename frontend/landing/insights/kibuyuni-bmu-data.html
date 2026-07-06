@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Coastal Fisheries Data Reveals About Kwale — MarineCatch Africa Insights</title>
+    <meta name="description" content="An analysis of coastal fisheries landing patterns in Kwale County and what procurement teams need to know about seasonal supply.">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+        nav { background:#0D2137; padding:16px 40px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+        .nav-logo { color:white; font-size:18px; font-weight:700; text-decoration:none; font-family:'Cinzel', Georgia, serif; }
+        .nav-links { display:flex; gap:24px; }
+        .nav-links a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; }
+        .nav-links a:hover { color:white; }
+        .article-hero { background:linear-gradient(135deg,#276749 0%,#00B3F0 100%); padding:60px 40px; color:white; }
+        .article-hero-inner { max-width:720px; margin:0 auto; }
+        .back-link { color:rgba(255,255,255,0.6); text-decoration:none; font-size:13px; display:inline-block; margin-bottom:24px; }
+        .back-link:hover { color:white; }
+        .article-tag { background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3); padding:5px 14px; border-radius:20px; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; display:inline-block; margin-bottom:16px; }
+        .article-hero h1 { font-size:36px; font-weight:800; line-height:1.25; margin-bottom:16px; font-family:'Cinzel', Georgia, serif; }
+        .article-hero .subtitle { font-size:16px; opacity:0.75; line-height:1.6; margin-bottom:24px; }
+        .article-meta { font-size:13px; opacity:0.55; display:flex; gap:16px; flex-wrap:wrap; }
+        .article-wrap { max-width:720px; margin:0 auto; padding:56px 24px 80px; }
+        .article-body { font-size:16.5px; line-height:1.9; color:#374151; }
+        .article-body h2 { font-size:23px; font-weight:800; color:#0D2137; margin:48px 0 16px; font-family:'Cinzel', Georgia, serif; }
+        .article-body p { margin-bottom:22px; }
+        .pullquote { border-left:4px solid #276749; padding:20px 28px; margin:36px 0; background:white; border-radius:0 8px 8px 0; font-size:19px; font-style:italic; color:#0D2137; line-height:1.6; font-weight:500; }
+        .callout { background:linear-gradient(135deg,#276749,#00B3F0); color:white; border-radius:10px; padding:32px; margin:40px 0; }
+        .callout h3 { font-size:14px; font-weight:700; margin-bottom:14px; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:1px; }
+        .callout p { font-size:15px; opacity:0.85; line-height:1.8; margin:0; }
+        .data-note { background:#FEFCBF; border:1px solid #F6E05E; border-radius:8px; padding:16px 20px; font-size:13px; color:#744210; margin:32px 0; line-height:1.7; }
+        .insights-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:32px 0; }
+        .insight-card { background:white; border-radius:8px; padding:20px; border:1px solid #e2e8f0; border-top:3px solid #276749; }
+        .insight-card strong { display:block; font-size:14px; color:#0D2137; margin-bottom:8px; }
+        .insight-card span { font-size:13px; color:#718096; line-height:1.7; }
+        .author-box { background:white; border-radius:10px; padding:24px; border:1px solid #e2e8f0; margin-top:56px; display:flex; gap:16px; align-items:center; }
+        .author-avatar { width:52px; height:52px; background:linear-gradient(135deg,#0D2137,#1D60AE); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:20px; flex-shrink:0; }
+        .author-info strong { display:block; color:#0D2137; font-size:15px; margin-bottom:4px; }
+        .author-info span { font-size:13px; color:#718096; line-height:1.5; }
+        .related { margin-top:60px; padding-top:40px; border-top:1px solid #e2e8f0; }
+        .related h3 { font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#718096; font-weight:600; margin-bottom:20px; }
+        .related-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .related-card { background:white; border-radius:8px; padding:18px; border:1px solid #e2e8f0; text-decoration:none; color:inherit; display:block; transition:transform 0.15s; }
+        .related-card:hover { transform:translateY(-2px); }
+        .related-card .tag { font-size:11px; color:#1D60AE; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .related-card h4 { font-size:15px; font-weight:700; color:#0D2137; line-height:1.4; }
+        footer { background:#0D2137; color:rgba(255,255,255,0.55); text-align:center; padding:28px; font-size:13px; }
+        footer a { color:#00B3F0; text-decoration:none; }
+        @media(max-width:640px) { .article-hero { padding:40px 20px; } .article-hero h1 { font-size:26px; } .insights-grid { grid-template-columns:1fr; } .related-grid { grid-template-columns:1fr; } nav { padding:14px 20px; } .nav-links { display:none; } }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="/" class="nav-logo">MarineCatch Africa</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/insights">Insights</a>
+        <a href="/buyer">Buyers</a>
+        <a href="/fisher">Fishers</a>
+    </div>
+</nav>
+
+<div class="article-hero">
+    <div class="article-hero-inner">
+        <a href="/insights" class="back-link">&#8592; Back to Insights</a>
+        <div class="article-tag">Data</div>
+        <h1>What Coastal Fisheries Data Reveals About Kwale</h1>
+        <p class="subtitle">An analysis of landing patterns in Kwale County and what procurement teams need to know about seasonal supply, dominant species, and pricing trends.</p>
+        <div class="article-meta">
+            <span>June 2026</span>
+            <span>7 min read</span>
+            <span>MarineCatch Africa</span>
+        </div>
+    </div>
+</div>
+
+<div class="article-wrap">
+    <div class="article-body">
+
+        <div class="data-note">
+            This analysis is based on coastal fisheries landing data collected in partnership with BMU stakeholders in Kwale County, Kenya, covering 2024 and 2025. The data is collected on behalf of Kenya Fisheries Service. It is used here with permission for market intelligence purposes. Raw data remains the property of the relevant government authorities. Figures are presented in aggregated and anonymized form to protect individual fisher and BMU confidentiality.
+        </div>
+
+        <p>Procurement decisions in seafood are still largely made on intuition, relationships, and whatever the market looked like last season. For hotel purchasing managers, restaurant group buyers, and seafood processors sourcing from Kenya's coast, the absence of structured market intelligence is a real operational problem — one that leads to overpayment during abundance, shortages during peak demand, and missed opportunities in species that the market has undervalued.</p>
+
+        <p>Kwale County's coastline is one of the most productive fishing areas on Kenya's Indian Ocean coast. The landing sites from Majoreni in the south to Ukunda in the north serve hundreds of active fishers and dozens of species. Understanding what actually lands there, when, and at what price is commercially valuable information that has until recently existed only in handwritten BMU registers.</p>
+
+        <h2>The Dominant Pattern: Demersals Drive Volume</h2>
+
+        <p>The most consistent finding across multiple seasons of landing data is the dominance of demersal species by volume. Reef fish — scavengers, snappers, rabbit fish, parrotfish, and rock cod — account for the majority of total catch weight across Kwale's landing sites in most months of the year.</p>
+
+        <p>This matters for procurement planning because demersal supply is relatively stable across the year compared to pelagic species. A hotel or restaurant group building a menu around reef fish can source with greater reliability than one dependent on the highly seasonal pelagic catch.</p>
+
+        <p>The commercial implication is also significant. Demersal species command moderate to good prices at landing and hold quality well under proper cold chain conditions. They are the workhorses of the Kwale coast fishery and, currently, the most reliable category for consistent procurement.</p>
+
+        <div class="pullquote">
+            Reef fish account for the majority of catch volume across most months. A buyer building around demersal species can source with greater reliability than one dependent on seasonal pelagics.
+        </div>
+
+        <h2>The Seasonal Opportunity: Pelagic Peaks in Q3 and Q4</h2>
+
+        <p>Where the data becomes particularly interesting for buyers willing to plan ahead is in the pelagic pattern. Species like cavalla, kingfish, and larger predatory fish show clear peaks in the third and fourth quarters of the year, roughly corresponding to the southeast monsoon transition period from August through November.</p>
+
+        <p>During these months, pelagic catch volumes can increase substantially compared to the rest of the year. Prices at landing, in well-supplied seasons, tend to soften during peak volume months — creating a window for buyers who are positioned to purchase and store at volume to lock in better prices than they would achieve through spot procurement across the year.</p>
+
+        <p>Processors with cold storage capacity and buyers with the flexibility to plan their purchasing around seasonal patterns have a clear advantage here. The data confirms what experienced fishing community members already know: the timing of procurement decisions matters as much as the price negotiated on any given day.</p>
+
+        <h2>The Undervalued Category: High-Value Species</h2>
+
+        <p>Crustaceans — lobster, prawns, and crab — represent a small fraction of total landing volume but a disproportionately large share of landing value. Price per kilogram for high-quality lobster and large prawns is dramatically higher than for demersal or pelagic fish, and demand from hotel buyers and exporters consistently exceeds what the local supply can reliably provide.</p>
+
+        <p>The gap between supply and institutionally organized demand for crustaceans is a commercial opportunity that structured procurement could close. Fishers landing crustaceans often sell to whoever is present at the landing site with cash, simply because no organized buyer has made it worth their while to hold and deliver through a more formal channel.</p>
+
+        <div class="callout">
+            <h3>What the Data Tells Procurement Teams</h3>
+            <p>Plan demersal purchasing year-round with confidence. Position for pelagic volume in Q3 and Q4 when prices soften during peak season. Build a crustacean supply relationship early — demand consistently exceeds organized supply, and the buyer who structures a reliable channel earns significant loyalty from fishers who currently have no alternative to spot sales.</p>
+        </div>
+
+        <h2>Four Actionable Insights for Buyers</h2>
+
+        <div class="insights-grid">
+            <div class="insight-card">
+                <strong>Plan around seasonality, not against it</strong>
+                <span>Pelagic abundance in Q3 to Q4 creates purchasing opportunities for buyers with cold storage capacity. Spot buying at peak season is the most expensive approach.</span>
+            </div>
+            <div class="insight-card">
+                <strong>Demersal species are your reliable baseline</strong>
+                <span>Reef fish supply is the most consistent category across seasons. Building core menu commitments around demersal species reduces procurement risk significantly.</span>
+            </div>
+            <div class="insight-card">
+                <strong>Crustaceans reward commitment</strong>
+                <span>Structured buyer-fisher relationships for lobster and prawns are rare. A buyer willing to pay fairly and consistently will secure supply that spot buyers cannot access.</span>
+            </div>
+            <div class="insight-card">
+                <strong>Quality grade determines actual price</strong>
+                <span>The spread between Grade A and Grade C pricing at landing is significant. Buyers who specify quality and pay the premium consistently receive better supply than those buying on price alone.</span>
+            </div>
+        </div>
+
+        <h2>Why This Data Exists and What It Means</h2>
+
+        <p>The landing data underlying this analysis was not collected for commercial purposes. It was collected by Beach Management Units fulfilling their reporting obligations to Kenya Fisheries Service — a legal requirement that generates valuable records that have, until recently, existed only in paper form at individual BMU offices.</p>
+
+        <p>MarineCatch Africa's work with BMU stakeholders in Kwale County involves digitizing these records and making the aggregated, anonymized insights available for market intelligence purposes. The raw data remains under the custodianship of the BMUs and Kenya Fisheries Service. What the platform provides is structured analysis — the kind of procurement intelligence that large seafood companies generate internally and that smaller buyers and processors have historically had no access to.</p>
+
+        <p>Making this intelligence available, in a form that protects individual fisher and BMU confidentiality while enabling better commercial decision-making, is one of the ways MarineCatch Africa creates value for the entire supply chain rather than just for the parties to any single transaction.</p>
+
+    </div>
+
+    <div class="author-box">
+        <div class="author-avatar">M</div>
+        <div class="author-info">
+            <strong>MarineCatch Africa</strong>
+            <span>Fisheries supply-chain infrastructure for the African blue economy. Data used with permission from BMU stakeholders. Raw data remains under Kenya Fisheries Service custodianship.</span>
+        </div>
+    </div>
+
+    <div class="related">
+        <h3>Continue Reading</h3>
+        <div class="related-grid">
+            <a href="/insights/supply-chain-infrastructure" class="related-card">
+                <div class="tag">Strategy</div>
+                <h4>Why African Seafood Needs Infrastructure, Not Just Apps</h4>
+            </a>
+            <a href="/insights/fisher-cluster-model" class="related-card">
+                <div class="tag">Operations</div>
+                <h4>The Fisher Cluster Model: Scaling Inclusion Without Losing Control</h4>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>© 2026 MarineCatch Africa Limited &nbsp;·&nbsp; <a href="/insights">Insights</a> &nbsp;·&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a></p>
+</footer>
+</body>
+</html>

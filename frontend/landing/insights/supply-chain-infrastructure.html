@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why African Seafood Needs Infrastructure, Not Just Apps — MarineCatch Africa Insights</title>
+    <meta name="description" content="The difference between a marketplace and supply chain infrastructure and why that distinction matters for fishers, processors and investors.">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+        nav { background:#0D2137; padding:16px 40px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+        .nav-logo { color:white; font-size:18px; font-weight:700; text-decoration:none; font-family:'Cinzel', Georgia, serif; }
+        .nav-links { display:flex; gap:24px; }
+        .nav-links a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; }
+        .nav-links a:hover { color:white; }
+        .article-hero { background:linear-gradient(135deg,#744210 0%,#C05621 100%); padding:60px 40px; color:white; }
+        .article-hero-inner { max-width:720px; margin:0 auto; }
+        .back-link { color:rgba(255,255,255,0.6); text-decoration:none; font-size:13px; display:inline-block; margin-bottom:24px; }
+        .back-link:hover { color:white; }
+        .article-tag { background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3); padding:5px 14px; border-radius:20px; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; display:inline-block; margin-bottom:16px; }
+        .article-hero h1 { font-size:36px; font-weight:800; line-height:1.25; margin-bottom:16px; font-family:'Cinzel', Georgia, serif; }
+        .article-hero .subtitle { font-size:16px; opacity:0.75; line-height:1.6; margin-bottom:24px; }
+        .article-meta { font-size:13px; opacity:0.55; display:flex; gap:16px; flex-wrap:wrap; }
+        .article-wrap { max-width:720px; margin:0 auto; padding:56px 24px 80px; }
+        .article-body { font-size:16.5px; line-height:1.9; color:#374151; }
+        .article-body h2 { font-size:23px; font-weight:800; color:#0D2137; margin:48px 0 16px; font-family:'Cinzel', Georgia, serif; }
+        .article-body p { margin-bottom:22px; }
+        .pullquote { border-left:4px solid #C05621; padding:20px 28px; margin:36px 0; background:white; border-radius:0 8px 8px 0; font-size:19px; font-style:italic; color:#0D2137; line-height:1.6; font-weight:500; }
+        .callout { background:linear-gradient(135deg,#744210,#C05621); color:white; border-radius:10px; padding:32px; margin:40px 0; }
+        .callout h3 { font-size:14px; font-weight:700; margin-bottom:14px; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:1px; }
+        .callout p { font-size:15px; opacity:0.85; line-height:1.8; margin:0; }
+        .comparison { background:#F7FAFC; border-radius:10px; padding:28px; margin:32px 0; border:1px solid #e2e8f0; }
+        .comparison h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#718096; font-weight:600; margin-bottom:20px; }
+        .comp-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:12px; }
+        .comp-row:last-child { margin-bottom:0; }
+        .comp-cell { background:white; border-radius:6px; padding:14px 16px; font-size:14px; border:1px solid #e2e8f0; }
+        .comp-cell.left { color:#718096; border-left:3px solid #e2e8f0; }
+        .comp-cell.right { color:#0D2137; font-weight:500; border-left:3px solid #1D60AE; }
+        .comp-header { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:8px; }
+        .comp-header span { font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:700; color:#718096; padding:0 4px; }
+        .comp-header span.right { color:#1D60AE; }
+        .author-box { background:white; border-radius:10px; padding:24px; border:1px solid #e2e8f0; margin-top:56px; display:flex; gap:16px; align-items:center; }
+        .author-avatar { width:52px; height:52px; background:linear-gradient(135deg,#0D2137,#1D60AE); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:20px; flex-shrink:0; }
+        .author-info strong { display:block; color:#0D2137; font-size:15px; margin-bottom:4px; }
+        .author-info span { font-size:13px; color:#718096; line-height:1.5; }
+        .related { margin-top:60px; padding-top:40px; border-top:1px solid #e2e8f0; }
+        .related h3 { font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#718096; font-weight:600; margin-bottom:20px; }
+        .related-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .related-card { background:white; border-radius:8px; padding:18px; border:1px solid #e2e8f0; text-decoration:none; color:inherit; display:block; transition:transform 0.15s; }
+        .related-card:hover { transform:translateY(-2px); }
+        .related-card .tag { font-size:11px; color:#1D60AE; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .related-card h4 { font-size:15px; font-weight:700; color:#0D2137; line-height:1.4; }
+        footer { background:#0D2137; color:rgba(255,255,255,0.55); text-align:center; padding:28px; font-size:13px; }
+        footer a { color:#00B3F0; text-decoration:none; }
+        @media(max-width:640px) { .article-hero { padding:40px 20px; } .article-hero h1 { font-size:26px; } .comp-row { grid-template-columns:1fr; } .comp-header { grid-template-columns:1fr; } .related-grid { grid-template-columns:1fr; } nav { padding:14px 20px; } .nav-links { display:none; } }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="/" class="nav-logo">MarineCatch Africa</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/insights">Insights</a>
+        <a href="/buyer">Buyers</a>
+        <a href="/fisher">Fishers</a>
+    </div>
+</nav>
+
+<div class="article-hero">
+    <div class="article-hero-inner">
+        <a href="/insights" class="back-link">&#8592; Back to Insights</a>
+        <div class="article-tag">Strategy</div>
+        <h1>Why African Seafood Needs Infrastructure, Not Just Apps</h1>
+        <p class="subtitle">The difference between a marketplace and supply chain infrastructure and why that distinction matters for fishers, processors and investors.</p>
+        <div class="article-meta">
+            <span>May 2026</span>
+            <span>6 min read</span>
+            <span>MarineCatch Africa</span>
+        </div>
+    </div>
+</div>
+
+<div class="article-wrap">
+    <div class="article-body">
+
+        <p>Every few years, a new seafood marketplace launches in Africa. The pitch is usually the same: connect fishers directly with buyers, cut out the middlemen, use technology to make the market more efficient. Some of these platforms have raised significant funding. Most have quietly disappeared.</p>
+
+        <p>The problem is not the intention. The problem is the model. A marketplace assumes that the primary barrier in African seafood trade is discovery — that buyers cannot find sellers and sellers cannot find buyers. Fix the discovery problem with an app, and the market sorts itself out.</p>
+
+        <p>This is not the actual problem.</p>
+
+        <h2>What the Real Problems Are</h2>
+
+        <p>Talk to any processor, hotel procurement manager, or seafood exporter in Kenya long enough and a different picture emerges. They know where the fish is. They know the fishers and aggregators in their supply area. What they cannot do reliably is count on consistent volume, verified quality, complete documentation, and timely payment settlement all arriving together in a single transaction.</p>
+
+        <p>The fish gets caught. Sometimes it is handled well. Sometimes it is not. Sometimes payment arrives quickly. Sometimes it takes weeks. Sometimes the documentation required for institutional buyers or export exists. Most of the time it does not.</p>
+
+        <p>These are infrastructure problems. An app that helps people find each other does not solve them.</p>
+
+        <div class="pullquote">
+            They know where the fish is. What they cannot do is count on consistent volume, verified quality, complete documentation, and timely settlement all arriving together.
+        </div>
+
+        <h2>The Distinction That Matters</h2>
+
+        <p>Infrastructure is not a more impressive word for marketplace. It describes a fundamentally different thing. A marketplace facilitates transactions between parties who have already decided to trade. Infrastructure makes trade possible in circumstances where it would otherwise be too unreliable, too costly, or too opaque to happen at all.</p>
+
+        <div class="comparison">
+            <h3>Marketplace vs Infrastructure</h3>
+            <div class="comp-header">
+                <span>Marketplace thinking</span>
+                <span class="right">Infrastructure thinking</span>
+            </div>
+            <div class="comp-row">
+                <div class="comp-cell left">Connect buyers and sellers who already exist</div>
+                <div class="comp-cell right">Create conditions where trade can happen reliably at scale</div>
+            </div>
+            <div class="comp-row">
+                <div class="comp-cell left">Earn commission on transactions</div>
+                <div class="comp-cell right">Earn multiple revenue streams across the supply chain</div>
+            </div>
+            <div class="comp-row">
+                <div class="comp-cell left">Grow by adding more users</div>
+                <div class="comp-cell right">Grow by handling more of the supply chain for each user</div>
+            </div>
+            <div class="comp-row">
+                <div class="comp-cell left">Replaceable when a competitor offers lower fees</div>
+                <div class="comp-cell right">Becomes embedded in how trade operates</div>
+            </div>
+        </div>
+
+        <h2>What Infrastructure Actually Provides</h2>
+
+        <p>For a hotel purchasing manager, infrastructure means being able to place a recurring order for 200 kilograms of Grade A tuna weekly and have it arrive on time, at the agreed quality, with the documentation their accounts department requires and the traceability record their sustainability policy demands. The discovery of where the tuna came from was never the challenge.</p>
+
+        <p>For a seafood processor sourcing 5,000 kilograms weekly from small-scale fishers, infrastructure means aggregated supply from verified clusters, consistent quality grading, cold chain records from landing site to factory gate, and a settlement system that pays fishers promptly enough to keep them supplying rather than selling to whoever is standing at the landing site with cash that day.</p>
+
+        <p>For a small-scale fisher in Kwale County, infrastructure means a guaranteed buyer, a fair price that reflects quality rather than desperation, payment that arrives reliably after delivery, and the beginning of a financial and compliance record that eventually opens access to credit, insurance, and export markets.</p>
+
+        <div class="callout">
+            <h3>The Revenue Difference</h3>
+            <p>A pure marketplace earns a single commission per transaction. Infrastructure earns across coordination, cold storage, quality assurance, logistics, settlement management, traceability documentation, and data services. The same transaction that generates one revenue line for a marketplace generates six or seven for infrastructure. This is why infrastructure businesses are valued differently and why they are harder to displace once embedded.</p>
+        </div>
+
+        <h2>Why This Matters for Investment</h2>
+
+        <p>Investors who have funded African seafood marketplaces have generally been disappointed. The unit economics of a commission-only marketplace in a fragmented, informal, low-margin commodity market are difficult to make work at scale. The winner-takes-most dynamics that make consumer marketplaces attractive rarely apply when the product is perishable, the supply is dispersed, and the buyers are sophisticated institutions with their own supplier relationships.</p>
+
+        <p>Infrastructure businesses look different on a financial model. They have multiple revenue streams that compound as the platform handles more of each customer's supply chain. They have switching costs that grow over time as buyers and suppliers build their operations around the platform's capabilities. They have data assets that appreciate independently of transaction volume.</p>
+
+        <p>These are the characteristics of a business worth building and worth funding.</p>
+
+        <h2>What MarineCatch Is Building</h2>
+
+        <p>MarineCatch Africa is not a seafood marketplace. It is the operating system for seafood supply chains — handling procurement coordination, inventory management, quality inspection, cold chain tracking, payment settlement, and traceability documentation within a single integrated platform.</p>
+
+        <p>The distinction is not semantic. It determines every architectural decision, every commercial relationship, and every conversation about what the business is worth.</p>
+
+        <p>African seafood does not need another app. It needs infrastructure that makes reliable, traceable, fairly-compensated seafood trade possible at scale. That is a harder thing to build. It is also a more durable thing to own.</p>
+
+    </div>
+
+    <div class="author-box">
+        <div class="author-avatar">M</div>
+        <div class="author-info">
+            <strong>MarineCatch Africa</strong>
+            <span>Fisheries supply-chain infrastructure for the African blue economy. Based in Kwale County, Kenya.</span>
+        </div>
+    </div>
+
+    <div class="related">
+        <h3>Continue Reading</h3>
+        <div class="related-grid">
+            <a href="/insights/ooc11-recap" class="related-card">
+                <div class="tag">Conference</div>
+                <h4>OOC11: What the Industry Told Us</h4>
+            </a>
+            <a href="/insights/fisher-cluster-model" class="related-card">
+                <div class="tag">Operations</div>
+                <h4>The Fisher Cluster Model: Scaling Inclusion Without Losing Control</h4>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>© 2026 MarineCatch Africa Limited &nbsp;·&nbsp; <a href="/insights">Insights</a> &nbsp;·&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a></p>
+</footer>
+</body>
+</html>

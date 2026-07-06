@@ -8,6 +8,7 @@ from app.models.escrow import EscrowAccount
 from app.models.fisher_advance import FisherAdvance
 from app.models.compliance_profile import ComplianceProfile
 from app.models.quality_inspection import QualityInspection
+from app.models.catch_draft import CatchDraft
 
 from alembic import context
 

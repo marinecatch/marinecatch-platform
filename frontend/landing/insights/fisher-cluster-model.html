@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Fisher Cluster Model — MarineCatch Africa Insights</title>
+    <meta name="description" content="How organizing fishers into verified clusters of 5 to 20 creates predictable supply, easier compliance, and a pathway to group financing.">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+        nav { background:#0D2137; padding:16px 40px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+        .nav-logo { color:white; font-size:18px; font-weight:700; text-decoration:none; font-family:'Cinzel', Georgia, serif; }
+        .nav-links { display:flex; gap:24px; }
+        .nav-links a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; }
+        .nav-links a:hover { color:white; }
+        .article-hero { background:linear-gradient(135deg,#553C9A 0%,#1D60AE 100%); padding:60px 40px; color:white; }
+        .article-hero-inner { max-width:720px; margin:0 auto; }
+        .back-link { color:rgba(255,255,255,0.6); text-decoration:none; font-size:13px; display:inline-block; margin-bottom:24px; }
+        .back-link:hover { color:white; }
+        .article-tag { background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3); padding:5px 14px; border-radius:20px; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; display:inline-block; margin-bottom:16px; }
+        .article-hero h1 { font-size:36px; font-weight:800; line-height:1.25; margin-bottom:16px; font-family:'Cinzel', Georgia, serif; }
+        .article-hero .subtitle { font-size:16px; opacity:0.75; line-height:1.6; margin-bottom:24px; }
+        .article-meta { font-size:13px; opacity:0.55; display:flex; gap:16px; flex-wrap:wrap; }
+        .article-wrap { max-width:720px; margin:0 auto; padding:56px 24px 80px; }
+        .article-body { font-size:16.5px; line-height:1.9; color:#374151; }
+        .article-body h2 { font-size:23px; font-weight:800; color:#0D2137; margin:48px 0 16px; font-family:'Cinzel', Georgia, serif; }
+        .article-body p { margin-bottom:22px; }
+        .pullquote { border-left:4px solid #553C9A; padding:20px 28px; margin:36px 0; background:white; border-radius:0 8px 8px 0; font-size:19px; font-style:italic; color:#0D2137; line-height:1.6; font-weight:500; }
+        .callout { background:linear-gradient(135deg,#553C9A,#1D60AE); color:white; border-radius:10px; padding:32px; margin:40px 0; }
+        .callout h3 { font-size:14px; font-weight:700; margin-bottom:14px; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:1px; }
+        .callout p { font-size:15px; opacity:0.85; line-height:1.8; margin:0; }
+        .cluster-diagram { background:white; border-radius:10px; padding:28px; margin:32px 0; border:1px solid #e2e8f0; text-align:center; }
+        .cluster-diagram h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#718096; font-weight:600; margin-bottom:24px; }
+        .cluster-levels { display:flex; flex-direction:column; gap:12px; max-width:500px; margin:0 auto; }
+        .cluster-level { background:#F7FAFC; border-radius:8px; padding:14px 20px; border-left:4px solid #1D60AE; text-align:left; }
+        .cluster-level strong { display:block; font-size:14px; color:#0D2137; margin-bottom:4px; }
+        .cluster-level span { font-size:13px; color:#718096; }
+        .benefits-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:32px 0; }
+        .benefit-card { background:white; border-radius:8px; padding:20px; border:1px solid #e2e8f0; }
+        .benefit-card strong { display:block; font-size:14px; color:#0D2137; margin-bottom:8px; }
+        .benefit-card span { font-size:13px; color:#718096; line-height:1.7; }
+        .author-box { background:white; border-radius:10px; padding:24px; border:1px solid #e2e8f0; margin-top:56px; display:flex; gap:16px; align-items:center; }
+        .author-avatar { width:52px; height:52px; background:linear-gradient(135deg,#0D2137,#1D60AE); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:20px; flex-shrink:0; }
+        .author-info strong { display:block; color:#0D2137; font-size:15px; margin-bottom:4px; }
+        .author-info span { font-size:13px; color:#718096; line-height:1.5; }
+        .related { margin-top:60px; padding-top:40px; border-top:1px solid #e2e8f0; }
+        .related h3 { font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#718096; font-weight:600; margin-bottom:20px; }
+        .related-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .related-card { background:white; border-radius:8px; padding:18px; border:1px solid #e2e8f0; text-decoration:none; color:inherit; display:block; transition:transform 0.15s; }
+        .related-card:hover { transform:translateY(-2px); }
+        .related-card .tag { font-size:11px; color:#1D60AE; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .related-card h4 { font-size:15px; font-weight:700; color:#0D2137; line-height:1.4; }
+        footer { background:#0D2137; color:rgba(255,255,255,0.55); text-align:center; padding:28px; font-size:13px; }
+        footer a { color:#00B3F0; text-decoration:none; }
+        @media(max-width:640px) { .article-hero { padding:40px 20px; } .article-hero h1 { font-size:26px; } .benefits-grid { grid-template-columns:1fr; } .related-grid { grid-template-columns:1fr; } nav { padding:14px 20px; } .nav-links { display:none; } }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="/" class="nav-logo">MarineCatch Africa</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/insights">Insights</a>
+        <a href="/buyer">Buyers</a>
+        <a href="/fisher">Fishers</a>
+    </div>
+</nav>
+
+<div class="article-hero">
+    <div class="article-hero-inner">
+        <a href="/insights" class="back-link">&#8592; Back to Insights</a>
+        <div class="article-tag">Operations</div>
+        <h1>The Fisher Cluster Model: Scaling Inclusion Without Losing Control</h1>
+        <p class="subtitle">How organizing fishers into verified clusters of 5 to 20 creates predictable supply, easier compliance, and a pathway to group financing.</p>
+        <div class="article-meta">
+            <span>June 2026</span>
+            <span>4 min read</span>
+            <span>MarineCatch Africa</span>
+        </div>
+    </div>
+</div>
+
+<div class="article-wrap">
+    <div class="article-body">
+
+        <p>One of the most common mistakes in agricultural and fisheries technology is treating smallholder inclusion as a numbers problem. Get more farmers on the app. Register more fishers on the platform. Growth is a function of user count.</p>
+
+        <p>The reality is more complicated. Scale without structure creates noise, not supply. A platform with ten thousand registered fishers who interact sporadically and unpredictably does not serve a processor who needs 5,000 kilograms of tuna every Monday. It creates the appearance of supply without delivering the substance of it.</p>
+
+        <p>The fisher cluster model is MarineCatch Africa's answer to this problem.</p>
+
+        <h2>What a Cluster Is</h2>
+
+        <p>A fisher cluster is a verified group of five to twenty fishers operating from the same landing site, sharing a primary species focus, and coordinating their supply through a single cluster leader who is registered on the platform and accountable for the group's output.</p>
+
+        <p>The cluster is not a cooperative in the legal sense. It does not require formal registration or shared ownership. It is an operational unit — a way of organizing informal supply into something that behaves predictably enough for institutional buyers to plan around.</p>
+
+        <div class="cluster-diagram">
+            <h3>The Cluster Structure</h3>
+            <div class="cluster-levels">
+                <div class="cluster-level">
+                    <strong>Beach Management Unit (BMU)</strong>
+                    <span>The regulatory body recognized by Kenya Fisheries Service. BMU membership is the entry requirement for formal trade.</span>
+                </div>
+                <div class="cluster-level">
+                    <strong>Landing Site</strong>
+                    <span>The physical location where catch is landed, weighed, inspected, and logged. Each landing site may support multiple clusters.</span>
+                </div>
+                <div class="cluster-level">
+                    <strong>Fisher Cluster (5 to 20 members)</strong>
+                    <span>Verified fishers grouped by species focus and landing site. One cluster leader coordinates supply commitments and quality standards.</span>
+                </div>
+                <div class="cluster-level">
+                    <strong>Individual Fisher</strong>
+                    <span>Registered on the platform with BMU verification, vessel record, and a growing transaction history that builds credit score over time.</span>
+                </div>
+            </div>
+        </div>
+
+        <h2>Why Clusters Work</h2>
+
+        <p>The cluster model solves several problems simultaneously that individual fisher onboarding cannot solve alone.</p>
+
+        <p>Supply predictability is the first. A single fisher landing 40 kilograms of tuna on a good day and nothing on a bad one cannot make a weekly supply commitment to a hotel or processor. A cluster of twelve fishers with a combined weekly capacity of 600 kilograms can make that commitment, because individual variability averages out across the group. Some days one fisher lands more. Some days another lands less. The cluster absorbs the variance.</p>
+
+        <p>Compliance is the second. Onboarding twelve fishers individually requires twelve separate KYC processes, twelve separate license verifications, twelve separate BMU confirmations. Onboarding a verified cluster requires one process at the cluster level, with individual verification handled through the cluster leader who already has relationships with every member.</p>
+
+        <div class="pullquote">
+            Individual variability averages out across the group. The cluster absorbs the variance that makes individual fisher supply unreliable.
+        </div>
+
+        <h2>The Path to Group Financing</h2>
+
+        <p>The cluster model's most significant long-term benefit is financial. Individual small-scale fishers are almost entirely excluded from formal credit. They have no collateral, no formal income records, and no credit history that any financial institution recognizes.</p>
+
+        <p>A cluster changes this. A group with a documented transaction history, consistent supply performance, and a credit score built from platform data is a fundamentally different credit applicant than any individual fisher within it. Group liability structures, which have worked in microfinance for decades, can be applied to purchase equipment, fund fuel costs at the start of a season, or access cold storage capacity.</p>
+
+        <div class="callout">
+            <h3>Credit Scoring Through Operations</h3>
+            <p>Every completed transaction on the MarineCatch platform contributes to a cluster's credit score. Consistent supply volume, on-time delivery rates, quality acceptance rates, and payment history all feed into a score that reflects real commercial performance rather than formal financial records that most fishers do not have. This score becomes the basis for advance payments, equipment financing, and eventually group insurance.</p>
+        </div>
+
+        <h2>What This Means in Practice</h2>
+
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <strong>For buyers and processors</strong>
+                <span>Predictable weekly volume commitments from verified sources, with quality records and traceability documentation that meets institutional requirements.</span>
+            </div>
+            <div class="benefit-card">
+                <strong>For fishers</strong>
+                <span>Guaranteed demand, fair pricing based on quality rather than who has cash at the landing site, and a financial record that builds over time.</span>
+            </div>
+            <div class="benefit-card">
+                <strong>For compliance</strong>
+                <span>Cluster-level BMU verification, species monitoring, and gear type recording feeds into sustainability reporting and eventual eco-label pathways.</span>
+            </div>
+            <div class="benefit-card">
+                <strong>For scale</strong>
+                <span>Adding one verified cluster adds predictable supply capacity. Growth is structured, not just numerical. Each cluster is an operational unit that functions independently.</span>
+            </div>
+        </div>
+
+        <h2>Starting Small, Building Right</h2>
+
+        <p>MarineCatch Africa currently works with verified clusters at Kibuyuni, Shimoni, and Mwambao landing sites in Kwale County. The focus at this stage is depth over breadth — understanding how clusters operate in practice, what support cluster leaders need, and how the platform can serve the specific dynamics of each landing site community.</p>
+
+        <p>Scale will follow from getting this right. A cluster model that works at Kibuyuni works at Shimoni, Vanga, Malindi, and eventually anywhere along Kenya's coast where BMUs operate and fishers land catch. The structure is replicable. The relationships that make it work are built one community at a time.</p>
+
+        <p>This is what inclusion at scale actually looks like. Not ten thousand individual registrations. Five clusters, functioning well, with a clear model for the next five.</p>
+
+    </div>
+
+    <div class="author-box">
+        <div class="author-avatar">M</div>
+        <div class="author-info">
+            <strong>MarineCatch Africa</strong>
+            <span>Fisheries supply-chain infrastructure for the African blue economy. Based in Kwale County, Kenya.</span>
+        </div>
+    </div>
+
+    <div class="related">
+        <h3>Continue Reading</h3>
+        <div class="related-grid">
+            <a href="/insights/financial-inclusion" class="related-card">
+                <div class="tag">Finance</div>
+                <h4>Access Is Not the Problem. Usability Is.</h4>
+            </a>
+            <a href="/insights/traceability-certification" class="related-card">
+                <div class="tag">Compliance</div>
+                <h4>From Catch to Certification: How Digital Traceability Reshapes Eco-Labelling</h4>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>© 2026 MarineCatch Africa Limited &nbsp;·&nbsp; <a href="/insights">Insights</a> &nbsp;·&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a></p>
+</footer>
+</body>
+</html>

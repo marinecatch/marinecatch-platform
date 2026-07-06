@@ -211,103 +211,124 @@ async def route_fisher_message(
         )
         return
 
-    # ── LOG CATCH ─────────────────────────────────────────────
-    if text in ["log catch", "catch", "samaki", "ingiza"] or button_id == "fisher_catch":
+    # ── LOG CATCH — Step 1: species, weight, site ─────────────────
+    if text in ["log catch", "catch", "samaki", "ingiza"] or button_id == "f_catch":
         await send_text(
             from_phone,
-            f"🐠 *Log Your Catch*\n\n"
-            f"Type your catch details in this format:\n\n"
+            f"🎣 *Log Your Catch*\n\n"
+            f"Type your catch details:\n\n"
             f"*CATCH species weight site*\n\n"
             f"Examples:\n"
             f"• CATCH tuna 45 kibuyuni\n"
             f"• CATCH octopus 20 shimoni\n"
             f"• CATCH prawns 30 kinondo\n\n"
-            f"Available species: tuna, octopus, prawns, lobster, snapper, kingfish, sardines, crab\n\n"
-            f"Available sites: kibuyuni, kinondo, shimoni, ukunda, vanga"
+            f"Available sites: kibuyuni, kinondo, shimoni, ukunda, vanga\n\n"
+            f"Type MENU to go back."
         )
         return
 
-    # ── PROCESS CATCH SUBMISSION ──────────────────────────────
+    # ── CATCH SUBMISSION — Step 1: create draft, ask for price ────
     if text.startswith("catch "):
         parts = text.split()
-        species_list = ["tuna", "octopus", "prawns", "lobster",
-                       "snapper", "kingfish", "sardines", "crab"]
-        landing_sites = ["kibuyuni", "kinondo", "shimoni", "ukunda", "vanga"]
-
         if len(parts) >= 4:
-            species      = parts[1].lower()
-            weight_str   = parts[2]
-            landing_site = parts[3].lower()
+            species_input = parts[1].lower()
+            weight_str    = parts[2]
+            site_input    = parts[3].lower()
 
-            if species not in species_list:
-                await send_text(from_phone,
-                    f"❌ Species '{species}' not recognized.\n\n"
-                    f"Valid species: {', '.join(species_list)}\n\n"
-                    f"Try again: CATCH tuna 45 kibuyuni")
+            valid_species = ["tuna", "octopus", "prawns", "lobster",
+                           "snapper", "kingfish", "sardines", "crab"]
+            valid_sites   = ["kibuyuni", "kinondo", "shimoni",
+                           "ukunda", "vanga", "mwambao", "other"]
+
+            if species_input not in valid_species:
+                await send_text(
+                    from_phone,
+                    f"❌ Unknown species: {species_input}\n\n"
+                    f"Valid: {', '.join(valid_species)}\n\n"
+                    f"Try again: *CATCH tuna 45 kibuyuni*"
+                )
                 return
 
             if not weight_str.isdigit() or int(weight_str) <= 0:
-                await send_text(from_phone,
-                    "❌ Invalid weight. Please enter a number.\n\n"
-                    "Example: CATCH tuna 45 kibuyuni")
-                return
-
-            if landing_site not in landing_sites:
-                await send_text(from_phone,
-                    f"❌ Landing site '{landing_site}' not recognized.\n\n"
-                    f"Valid sites: {', '.join(landing_sites)}\n\n"
-                    f"Try again: CATCH tuna 45 kibuyuni")
-                return
-
-            weight_kg = int(weight_str)
-
-            # Generate lot number
-            today      = datetime.now(timezone.utc).strftime("%Y%m%d")
-            count      = db.query(InventoryLot).filter(
-                InventoryLot.lot_number.like(f"MC-WA-{today}-%")
-            ).count()
-            lot_number = f"MC-WA-{today}-{str(count + 1).zfill(4)}"
-
-            try:
-                lot = InventoryLot(
-                    lot_number           = lot_number,
-                    traceability_code    = f"MC-TRACE-WA-{lot_number}",
-                    species              = species,
-                    weight_kg            = float(weight_kg),
-                    available_kg         = float(weight_kg),
-                    reserved_kg          = 0.0,
-                    landing_site         = landing_site,
-                    catch_date           = datetime.now(timezone.utc).date(),
-                    source_user_id       = fisher.id,
-                    source_name          = fisher.name,
-                    ownership_type       = OwnershipType.MARKETPLACE,
-                    lot_status           = LotStatus.AVAILABLE,
-                    selling_price_per_kg = 0.0,
-                    notes                = f"Logged via WhatsApp by {fisher.name}. Awaiting price assignment.",
-                )
-                db.add(lot)
-                db.commit()
-
                 await send_text(
                     from_phone,
-                    f"✅ *Catch Logged Successfully!*\n\n"
-                    f"• Species: {species.title()}\n"
-                    f"• Weight: {weight_kg}kg\n"
-                    f"• Site: {landing_site.title()}\n"
-                    f"• Lot: {lot_number}\n\n"
-                    f"Our team will contact you with pricing soon.\n\n"
-                    f"Asante {fisher_name}! 🐟"
+                    "❌ Invalid weight. Enter a number.\n\n"
+                    "Example: *CATCH tuna 45 kibuyuni*"
                 )
-            except Exception as e:
-                await send_text(from_phone,
-                    "❌ Error saving catch. Please try again or call +254700000000")
+                return
+
+            if site_input not in valid_sites:
+                site_input = "other"
+
+            weight_kg = float(weight_str)
+
+            # Create catch draft
+            from app.services.catch_draft_service import create_catch_draft
+            draft = create_catch_draft(
+                db=db,
+                fisher_id=fisher.id,
+                species=species_input,
+                weight_kg=weight_kg,
+                landing_site=site_input,
+                channel="whatsapp",
+            )
+
+            await send_text(
+                from_phone,
+                f"✅ *Catch Recorded*\n\n"
+                f"• Species: {species_input.title()}\n"
+                f"• Weight: {weight_kg}kg\n"
+                f"• Site: {site_input.title()}\n"
+                f"• Draft: {draft.reference_number}\n\n"
+                f"💰 *What is your asking price per kg? (KES)*\n\n"
+                f"Type just the number, e.g: *780*\n\n"
+                f"This is what you would like to receive per kg.\n"
+                f"MarineCatch sets the final market price after inspection."
+            )
             return
 
-        await send_text(from_phone,
-            "❌ Format not recognized.\n\n"
+        await send_text(
+            from_phone,
+            "❌ Invalid format.\n\n"
             "Use: *CATCH species weight site*\n"
-            "Example: CATCH tuna 45 kibuyuni")
+            "Example: *CATCH tuna 45 kibuyuni*"
+        )
         return
+
+    # ── CATCH SUBMISSION — Step 2: fisher provides asking price ───
+    if text.isdigit() or (text.replace('.','',1).isdigit() and text.count('.') <= 1):
+        from app.services.catch_draft_service import (
+            get_pending_draft_for_fisher, set_asking_price
+        )
+        pending_draft = get_pending_draft_for_fisher(db, fisher.id)
+
+        if pending_draft:
+            price = float(text)
+            if price <= 0 or price > 50000:
+                await send_text(
+                    from_phone,
+                    "❌ Invalid price. Enter a price between 1 and 50,000 KES/kg."
+                )
+                return
+
+            draft = set_asking_price(db, pending_draft.id, price)
+
+            await send_text(
+                from_phone,
+                f"🐟 *Catch Submitted Successfully!*\n\n"
+                f"• Draft: {draft.reference_number}\n"
+                f"• Species: {draft.species.title()}\n"
+                f"• Weight: {draft.weight_kg}kg\n"
+                f"• Site: {draft.landing_site.title()}\n"
+                f"• Your asking price: KES {price:,.0f}/kg\n\n"
+                f"⏳ *Status: Pending Quality Inspection*\n\n"
+                f"Our team will inspect your catch and set the\n"
+                f"final market price. You'll be notified once\n"
+                f"it's listed on the marketplace.\n\n"
+                f"Asante {fisher_name}! 🌊\n"
+                f"MarineCatch Africa"
+            )
+            return
 
     # ── MY PAYOUTS ────────────────────────────────────────────
     if text in ["payout", "payouts", "malipo", "pay"] or button_id == "fisher_payout":
