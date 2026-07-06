@@ -9,6 +9,7 @@ from app.models.fisher_advance import FisherAdvance
 from app.models.compliance_profile import ComplianceProfile
 from app.models.quality_inspection import QualityInspection
 from app.models.catch_draft import CatchDraft
+from app.models.lead_attribution import LeadAttribution
 
 from alembic import context
 

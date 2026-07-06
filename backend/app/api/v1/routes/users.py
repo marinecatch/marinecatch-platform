@@ -1,4 +1,6 @@
 # app/api/v1/routes/users.py
+from time import timezone
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ from app.services.user_service import (
 from app.core.security import verify_password, create_token, decode_token
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, timezone
 
 router   = APIRouter(prefix="/api/v1/users", tags=["Users"])
 security = HTTPBearer()
@@ -133,6 +136,15 @@ class LeadCreate(BaseModel):
     role:     str
     location: Optional[str] = None
     message:  Optional[str] = None
+    utm_source:  Optional[str] = None
+    utm_medium:  Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_term:         Optional[str] = None
+    utm_content:      Optional[str] = None
+    partner_code:     Optional[str] = None
+    referrer:         Optional[str] = None
+    landing_page:     Optional[str] = None
+    device:           Optional[str] = None
 
 @router.post("/leads", status_code=201, tags=["Leads"])
 def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
@@ -180,10 +192,32 @@ def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
     hashed_password = pwd.hash(secrets.token_hex(16)),
     role            = system_role,
     location        = payload.location or "",
-    business_name   = f"{payload.role}: {payload.message or ''}"[:200],
+    business_name = f"{payload.role} | src:{payload.utm_source or 'direct'} | med:{payload.utm_medium or 'none'} | camp:{payload.utm_campaign or 'none'} | {payload.message or ''}"[:200],
     is_active       = False,
 )
     db.add(lead)
+    # Save lead attribution
+    from app.models.lead_attribution import LeadAttribution
+    attribution = LeadAttribution(
+        lead_name           = payload.name,
+        lead_phone          = payload.phone,
+        lead_email          = payload.email,
+        lead_role           = payload.role,
+        lead_location       = payload.location,
+        lead_message        = payload.message,
+        utm_source          = payload.utm_source or "direct",
+        utm_medium          = payload.utm_medium or "none",
+        utm_campaign        = payload.utm_campaign,
+        utm_term            = payload.utm_term,
+        utm_content         = payload.utm_content,
+        partner_code        = payload.partner_code,
+        referrer            = payload.referrer,
+        landing_page        = payload.landing_page,
+        device              = payload.device,
+        registration_source = "website",
+        first_visit         = datetime.now(timezone.utc),
+    )
+    db.add(attribution)
     db.commit()
 
     return {

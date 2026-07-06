@@ -710,23 +710,30 @@ async function submitLead() {
         return;
     }
 
+    // Capture UTM parameters from URL
+    const params      = new URLSearchParams(window.location.search);
+    const utm_source  = params.get('utm_source') || 'direct';
+    const utm_medium  = params.get('utm_medium') || 'none';
+    const utm_campaign = params.get('utm_campaign') || 'none';
+
     const btn = document.querySelector('.btn-submit');
     btn.textContent = 'Submitting...';
-    btn.disabled = true;
+    btn.disabled    = true;
 
     try {
-       const res = await fetch('/api/v1/users/leads', {
+        const res = await fetch('/api/v1/users/leads', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone, email, role, location, message })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name, phone, email, role, location, message,
+                utm_source, utm_medium, utm_campaign
+            })
         });
 
-        // Show success regardless — we'll build the leads endpoint next
         document.getElementById('form-fields').style.display = 'none';
         document.getElementById('form-success').style.display = 'block';
 
     } catch (e) {
-        // Show success anyway — log manually for now
         document.getElementById('form-fields').style.display = 'none';
         document.getElementById('form-success').style.display = 'block';
     }

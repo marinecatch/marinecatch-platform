@@ -115,10 +115,12 @@
         </div>
 
         <!-- TABS -->
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('inventory')">🐟 Browse Fish</button>
-            <button class="tab" onclick="showTab('orders')">📦 My Orders</button>
-        </div>
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('inventory')">Browse Fish</button>
+        <button class="tab" onclick="showTab('orders')">My Orders</button>
+        <button class="tab" onclick="showTab('prices')">Price Intelligence</button>
+        <button class="tab" onclick="showTab('invoices')">Invoices</button>
+    </div>
 
         <!-- INVENTORY TAB -->
         <div id="tab-inventory">
@@ -154,8 +156,39 @@
                 <div id="orders-list"><div class="empty">Loading orders...</div></div>
             </div>
         </div>
+        <div id="tab-prices" style="display:none">
+            <div class="card">
+                <div class="card-title">Price Intelligence</div>
+                <div id="prices-list"><div class="empty">Loading prices...</div></div>
+            </div>
+        </div>
+        <div id="tab-invoices" style="display:none">
+            <div class="card">
+                <div class="card-title">Invoices</div>
+                <div id="invoices-list"><div class="empty">Loading invoices...</div></div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- PRICE INTELLIGENCE TAB -->
+        <div id="tab-prices" style="display:none">
+            <div class="card">
+                <div class="card-title">Market Price Intelligence</div>
+                <div style="font-size:13px; color:#718096; margin-bottom:16px;">
+                    Current market prices based on recent platform transactions and coastal fisheries data.
+                </div>
+                <div id="prices-content"><div class="empty">Loading price data...</div></div>
+            </div>
+        </div>
+
+        <!-- INVOICES TAB -->
+        <div id="tab-invoices" style="display:none">
+            <div class="card">
+                <div class="card-title">Order Invoices</div>
+                <div id="invoices-content"><div class="empty">Loading invoices...</div></div>
+            </div>
+        </div>
 
 <!-- ORDER MODAL -->
 <div id="order-modal" class="modal">
@@ -239,9 +272,12 @@ function showTab(tab) {
     event.target.classList.add('active');
     document.getElementById('tab-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
     document.getElementById('tab-orders').style.display    = tab === 'orders'    ? 'block' : 'none';
-    if (tab === 'orders') loadOrders();
+    document.getElementById('tab-prices').style.display    = tab === 'prices'    ? 'block' : 'none';
+    document.getElementById('tab-invoices').style.display  = tab === 'invoices'  ? 'block' : 'none';
+    if (tab === 'orders')   loadOrders();
+    if (tab === 'prices')   loadPrices();
+    if (tab === 'invoices') loadInvoices();
 }
-
 // ── INVENTORY ─────────────────────────────────────────────────────
 async function loadInventory() {
     const species   = document.getElementById('f-species').value;
@@ -275,7 +311,10 @@ async function loadInventory() {
                 <div class="lot-price">
                     <div class="price">KES ${lot.selling_price_per_kg?.toLocaleString()}/kg</div>
                     <div class="avail">${lot.available_kg}kg available</div>
-                    <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
+                    <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
+                        <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}', '${lot.lot_number}')">View Trace</button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -318,7 +357,12 @@ async function loadOrders() {
                         <td>${o.species?.charAt(0).toUpperCase() + o.species?.slice(1) || '—'}</td>
                         <td>${o.quantity_kg}kg</td>
                         <td>KES ${o.total_buyer_pays_kes?.toLocaleString()}</td>
-                        <td><span class="badge-status badge-${o.status}">${o.status?.replace('_', ' ')}</span></td>
+                        <td>
+                            <span class="badge-status badge-${o.status || 'pending'}">${(o.status || 'pending').replace(/_/g, ' ')}</span>
+                            <div style="font-size:11px; color:#a0aec0; margin-top:4px;">
+                                ${o.payment_status === 'paid' ? '✓ Paid' : '○ Payment pending'}
+                            </div>
+                        </td>
                         <td>${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
                     </tr>
                 `).join('')}
@@ -404,6 +448,142 @@ async function placeOrder() {
         errEl.textContent = 'Network error. Please try again.';
         errEl.style.display = 'block';
     }
+}
+
+// ── TRACEABILITY ──────────────────────────────────────────────────
+function viewTrace(code, lotNumber) {
+    if (!code || code === 'undefined') {
+        alert('Traceability record not available for this lot.');
+        return;
+    }
+    const info = `
+Traceability Record
+
+Lot: ${lotNumber}
+Code: ${code}
+
+This seafood has been tracked from catch to listing:
+- Fisher identity verified
+- Landing site recorded
+- Cold chain monitored
+- Quality inspected
+
+Full trace certificate available on request.
+Contact: info@marinecatchafrica.com
+    `;
+    alert(info);
+}
+
+// ── PRICE INTELLIGENCE ────────────────────────────────────────────
+async function loadPrices() {
+    try {
+        const res  = await fetch(`${API}/api/v1/analytics/price-intelligence`);
+        const data = await res.json();
+        const prices = data.price_intelligence || [];
+
+        if (!prices.length) {
+            document.getElementById('prices-content').innerHTML =
+                '<div class="empty">Price data not available yet.</div>';
+            return;
+        }
+
+        document.getElementById('prices-content').innerHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead>
+                    <tr style="border-bottom:2px solid #e2e8f0;">
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Species</th>
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Local Name</th>
+                        <th style="text-align:right; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Market Avg</th>
+                        <th style="text-align:right; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Platform Price</th>
+                        <th style="text-align:right; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Available (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${prices.map(p => `
+                        <tr style="border-bottom:1px solid #f7fafc;">
+                            <td style="padding:10px 12px; font-weight:600; text-transform:capitalize;">${p.species}</td>
+                            <td style="padding:10px 12px; color:#718096;">${p.local_name || '—'}</td>
+                            <td style="padding:10px 12px; text-align:right; color:#4a5568;">
+                                ${p.bmu_avg_kes ? `KES ${p.bmu_avg_kes.toLocaleString()}/kg` : '—'}
+                            </td>
+                            <td style="padding:10px 12px; text-align:right; font-weight:600; color:#276749;">
+                                ${p.platform_avg_kes ? `KES ${p.platform_avg_kes.toLocaleString()}/kg` : 'Not listed'}
+                            </td>
+                            <td style="padding:10px 12px; text-align:right; color:#4a5568;">
+                                ${p.platform_available_kg ? `${p.platform_available_kg.toLocaleString()}kg` : '0kg'}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div style="font-size:11px; color:#a0aec0; margin-top:12px; padding:0 12px;">
+                Market averages based on coastal fisheries data collected in partnership with BMU stakeholders in Kwale County, Kenya.
+            </div>
+        `;
+    } catch(e) {
+        document.getElementById('prices-content').innerHTML =
+            '<div class="empty">Unable to load price data.</div>';
+    }
+}
+
+// ── INVOICES ──────────────────────────────────────────────────────
+async function loadInvoices() {
+    if (!token) return;
+    try {
+        const res    = await fetch(`${API}/api/v1/orders/my`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data   = await res.json();
+        const orders = Array.isArray(data) ? data : (data.orders || []);
+        const paid   = orders.filter(o => o.payment_status === 'paid');
+
+        if (!paid.length) {
+            document.getElementById('invoices-content').innerHTML =
+                '<div class="empty">No invoices yet. Invoices are generated after payment is confirmed.</div>';
+            return;
+        }
+
+        document.getElementById('invoices-content').innerHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead>
+                    <tr style="border-bottom:2px solid #e2e8f0;">
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Order</th>
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Species</th>
+                        <th style="text-align:right; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Amount</th>
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Date</th>
+                        <th style="text-align:left; padding:10px 12px; color:#718096; font-size:12px; text-transform:uppercase;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${paid.map(o => `
+                        <tr style="border-bottom:1px solid #f7fafc;">
+                            <td style="padding:10px 12px; font-family:monospace; font-size:12px; color:#4a5568;">${o.order_number}</td>
+                            <td style="padding:10px 12px; font-weight:600; text-transform:capitalize;">${o.species}</td>
+                            <td style="padding:10px 12px; text-align:right; font-weight:600; color:#276749;">
+                                KES ${(o.total_buyer_pays_kes || 0).toLocaleString()}
+                            </td>
+                            <td style="padding:10px 12px; color:#718096; font-size:12px;">
+                                ${o.created_at ? new Date(o.created_at).toLocaleDateString('en-KE') : '—'}
+                            </td>
+                            <td style="padding:10px 12px;">
+                                <button onclick="requestInvoice('${o.order_number}')"
+                                    style="padding:4px 12px; background:#1D60AE; color:white; border:none; border-radius:6px; cursor:pointer; font-size:12px;">
+                                    Request Invoice
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch(e) {
+        document.getElementById('invoices-content').innerHTML =
+            '<div class="empty">Unable to load invoices.</div>';
+    }
+}
+
+function requestInvoice(orderNumber) {
+    alert(`Invoice request received for order ${orderNumber}.\n\nOur team will send the invoice to your registered email within 24 hours.\n\nFor urgent requests contact: info@marinecatchafrica.com`);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
