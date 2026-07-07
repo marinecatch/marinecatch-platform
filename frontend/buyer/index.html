@@ -479,7 +479,7 @@ async function loadPrices() {
     try {
         const res  = await fetch(`${API}/api/v1/analytics/price-intelligence`);
         const data = await res.json();
-        const prices = data.price_intelligence || [];
+        const prices = data.platform_prices || data.price_intelligence || [];
 
         if (!prices.length) {
             document.getElementById('prices-content').innerHTML =
@@ -528,10 +528,15 @@ async function loadPrices() {
 
 // ── INVOICES ──────────────────────────────────────────────────────
 async function loadInvoices() {
-    if (!token) return;
+    const currentToken = token || localStorage.getItem('mc_buyer_token');
+    if (!currentToken) {
+        document.getElementById('invoices-content').innerHTML =
+            '<div class="empty">Please log in to view invoices.</div>';
+        return;
+    }
     try {
         const res    = await fetch(`${API}/api/v1/orders/my`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${currentToken}` }
         });
         const data   = await res.json();
         const orders = Array.isArray(data) ? data : (data.orders || []);

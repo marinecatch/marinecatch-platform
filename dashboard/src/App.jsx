@@ -10,6 +10,7 @@ import Payments   from './pages/Payments';
 import Payouts    from './pages/Payouts';
 import Logistics  from './pages/Logistics';
 import Settlement from './pages/Settlement';
+import CEO from './pages/CEO';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -33,6 +34,7 @@ function App() {
           <Route path="/payouts"   element={<ProtectedRoute><Payouts /></ProtectedRoute>} />
           <Route path="/logistics" element={<ProtectedRoute><Logistics /></ProtectedRoute>} />
           <Route path="/settlement"element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
+          <Route path="/ceo"       element={<ProtectedRoute><CEO /></ProtectedRoute>} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -137,8 +137,11 @@ def price_intelligence(
     db: Session = Depends(get_db)
 ):
     """
-    Price ranges by species from BMU historical data.
-    Combined with live platform pricing.
+    Price ranges by species.
+    Two data sources:
+    1. BMU historical data (Kwale County fisheries records)
+    2. Live platform inventory prices
+    Both returned separately to avoid species name mismatch.
     """
     # Historical prices from BMU data
     historical = db.query(
@@ -154,34 +157,52 @@ def price_intelligence(
         HistoricalLanding.species_local,
     ).all()
 
-    # Live platform prices
+    # Live platform prices — independent of BMU data
     live = db.query(
         InventoryLot.species,
         func.avg(InventoryLot.selling_price_per_kg).label('platform_avg'),
         func.min(InventoryLot.selling_price_per_kg).label('platform_min'),
         func.max(InventoryLot.selling_price_per_kg).label('platform_max'),
         func.sum(InventoryLot.available_kg).label('available_kg'),
+        func.count(InventoryLot.id).label('lot_count'),
     ).filter(
         InventoryLot.lot_status == LotStatus.AVAILABLE,
-        InventoryLot.selling_price_per_kg > 0
+        InventoryLot.selling_price_per_kg > 0,
+        InventoryLot.is_active == True,
     ).group_by(InventoryLot.species).all()
 
-    live_map = {r.species: r for r in live}
-
     return {
-        "price_intelligence": [
+        "bmu_intelligence": [
             {
-                "species":          r.species_common,
-                "local_name":       r.species_local,
-                "bmu_avg_kes":      round(r.bmu_avg or 0, 0),
-                "bmu_min_kes":      round(r.bmu_min or 0, 0),
-                "bmu_max_kes":      round(r.bmu_max or 0, 0),
-                "platform_avg_kes": round(live_map[r.species_common.lower()].platform_avg, 0)
-                    if r.species_common.lower() in live_map else None,
-                "platform_available_kg": live_map[r.species_common.lower()].available_kg
-                    if r.species_common.lower() in live_map else 0,
+                "species":      r.species_common,
+                "local_name":   r.species_local,
+                "avg_kes":      round(r.bmu_avg or 0, 0),
+                "min_kes":      round(r.bmu_min or 0, 0),
+                "max_kes":      round(r.bmu_max or 0, 0),
+                "source":       "Kwale County BMU Records 2024-2025",
             }
             for r in historical
+        ],
+        "platform_prices": [
+            {
+                "species":          r.species,
+                "platform_avg_kes": round(r.platform_avg or 0, 0),
+                "platform_min_kes": round(r.platform_min or 0, 0),
+                "platform_max_kes": round(r.platform_max or 0, 0),
+                "available_kg":     round(r.available_kg or 0, 1),
+                "active_lots":      r.lot_count,
+            }
+            for r in live
+        ],
+        "price_intelligence": [
+            {
+                "species":               r.species,
+                "local_name":            None,
+                "bmu_avg_kes":           None,
+                "platform_avg_kes":      round(r.platform_avg or 0, 0),
+                "platform_available_kg": round(r.available_kg or 0, 1),
+            }
+            for r in live
         ]
     }
 
@@ -240,4 +261,37 @@ def platform_summary(db: Session = Depends(get_db)):
             "historical_value_kes": round(bmu_total_value, 0),
             "data_source":       "Kibuyuni BMU — KFS Records 2024-2025",
         }
+    }
+
+# Add platform-only species not in BMU data
+    bmu_species = {r.species_common.lower() for r in historical}
+    platform_only = [
+        {
+            "species":           r.species,
+            "local_name":        None,
+            "bmu_avg_kes":       None,
+            "bmu_min_kes":       None,
+            "bmu_max_kes":       None,
+            "platform_avg_kes":  round(r.platform_avg, 0),
+            "platform_available_kg": r.available_kg,
+        }
+        for r in live
+        if r.species.lower() not in bmu_species
+    ]
+
+    return {
+        "price_intelligence": [
+            {
+                "species":          r.species_common,
+                "local_name":       r.species_local,
+                "bmu_avg_kes":      round(r.bmu_avg or 0, 0),
+                "bmu_min_kes":      round(r.bmu_min or 0, 0),
+                "bmu_max_kes":      round(r.bmu_max or 0, 0),
+                "platform_avg_kes": round(live_map[r.species_common.lower()].platform_avg, 0)
+                    if r.species_common.lower() in live_map else None,
+                "platform_available_kg": live_map[r.species_common.lower()].available_kg
+                    if r.species_common.lower() in live_map else 0,
+            }
+            for r in historical
+        ] + platform_only
     }

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Package, Fish, CreditCard,
-  Wallet, Users, Truck, BarChart2, LogOut, Waves, ArrowLeftRight
+  Wallet, Users, Truck, BarChart2, LogOut, Waves, ArrowLeftRight,TrendingUp
 } from 'lucide-react';
 
 // Brand colors from MarineCatch Africa brand book
@@ -40,7 +40,8 @@ const navSections = [
   {
     label: 'Intelligence',
     items: [
-      { path: '/analytics', label: 'Analytics',     icon: BarChart2 },
+      { path: '/analytics', label: 'Analytics',  icon: BarChart2 },
+      { path: '/ceo',       label: 'Executive',  icon: TrendingUp },
     ]
   },
   {
