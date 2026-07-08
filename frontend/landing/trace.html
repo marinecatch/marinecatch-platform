@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineCatch Africa — Traceability</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
+        .header { background:#1a365d; color:white; padding:20px 24px; text-align:center; }
+        .header-logo { font-size:22px; font-weight:700; }
+        .header-sub { font-size:13px; opacity:0.75; margin-top:4px; }
+        .container { max-width:640px; margin:0 auto; padding:24px; }
+        .card { background:white; border-radius:10px; border:1px solid #e2e8f0; padding:24px; margin-bottom:20px; }
+        .status-banner { display:flex; align-items:center; gap:10px; background:#c6f6d5; color:#276749; padding:14px 18px; border-radius:8px; font-weight:600; font-size:15px; margin-bottom:20px; }
+        .status-banner.risk { background:#fed7d7; color:#822727; }
+        .section-title { font-size:13px; font-weight:700; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
+        .row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #f7fafc; font-size:14px; }
+        .row span:first-child { color:#718096; }
+        .row span:last-child { font-weight:600; text-align:right; }
+        .chain { display:flex; flex-direction:column; }
+        .chain-step { display:flex; gap:14px; padding-bottom:20px; position:relative; }
+        .chain-step:not(:last-child)::before { content:''; position:absolute; left:13px; top:30px; bottom:-4px; width:2px; background:#e2e8f0; }
+        .chain-dot { width:28px; height:28px; border-radius:50%; background:#2b6cb0; color:white; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; z-index:1; }
+        .chain-dot.pending { background:#e2e8f0; color:#a0aec0; }
+        .chain-body h4 { font-size:14px; font-weight:600; margin-bottom:2px; }
+        .chain-body p { font-size:13px; color:#718096; }
+        .qr-wrap { text-align:center; padding:20px; }
+        #qrcode { display:inline-block; margin-bottom:12px; }
+        .qr-code-text { font-family:monospace; font-size:13px; color:#4a5568; background:#f7fafc; padding:6px 14px; border-radius:6px; display:inline-block; }
+        .empty { text-align:center; padding:60px 24px; color:#718096; }
+        .footer { text-align:center; padding:24px; font-size:12px; color:#a0aec0; }
+        .badge-iuu { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; background:#c6f6d5; color:#276749; text-transform:uppercase; margin-top:6px; }
+        .badge-iuu.flagged { background:#fed7d7; color:#822727; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-logo">🌊 MarineCatch Africa</div>
+        <div class="header-sub">Seafood Traceability Verification</div>
+    </div>
+
+    <div class="container" id="content">
+        <div class="empty">Loading traceability record...</div>
+    </div>
+
+    <div class="footer">
+        Traceability data verified against MarineCatch Africa's operational records.<br>
+        Kwale County, Kenya · marinecatchafrica.com
+    </div>
+
+<script>
+function getCode() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('code');
+}
+
+function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-KE', { year:'numeric', month:'long', day:'numeric' });
+}
+
+function cap(s) {
+    if (!s) return '—';
+    return s.toString().charAt(0).toUpperCase() + s.toString().slice(1).replace(/_/g, ' ');
+}
+
+async function loadTrace() {
+    const code = getCode();
+    const container = document.getElementById('content');
+
+    if (!code) {
+        container.innerHTML = '<div class="card"><div class="empty">No traceability code provided.<br>Scan a valid MarineCatch QR code to view a product\'s chain of custody.</div></div>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/v1/inventory/trace/${encodeURIComponent(code)}`);
+        if (!res.ok) {
+            container.innerHTML = `<div class="card"><div class="empty">⚠️ No traceability record found for code<br><strong>${code}</strong></div></div>`;
+            return;
+        }
+        const lot = await res.json();
+        render(lot, code);
+    } catch (e) {
+        container.innerHTML = '<div class="card"><div class="empty">Unable to load traceability record. Please try again shortly.</div></div>';
+    }
+}
+
+function render(lot, code) {
+    const container = document.getElementById('content');
+    const flagged = lot.iuu_risk_flag;
+
+    const chainSteps = [
+        {
+            label: 'Catch',
+            detail: `${cap(lot.species)} caught by ${lot.vessel_name || lot.source_name || 'registered vessel'}${lot.vessel_reg ? ' (' + lot.vessel_reg + ')' : ''} using ${lot.gear_type || 'approved gear'}`,
+            date: fmtDate(lot.catch_date),
+            done: true
+        },
+        {
+            label: 'Landing',
+            detail: `Landed at ${cap(lot.landing_site)}${lot.bmu_reference ? ' — BMU ref: ' + lot.bmu_reference : ''}`,
+            date: fmtDate(lot.landing_date),
+            done: true
+        },
+        {
+            label: 'Quality Inspection',
+            detail: lot.inspection
+                ? `${cap(lot.inspection.status)} — Grade ${lot.inspection.grade || '—'}${lot.inspection.temperature_c ? ', ' + lot.inspection.temperature_c + '°C' : ''}${lot.inspection.inspector_name ? ' — Inspector: ' + lot.inspection.inspector_name : ''}`
+                : 'Awaiting inspection',
+            date: lot.inspection ? fmtDate(lot.inspection.inspected_at) : '—',
+            done: !!lot.inspection
+        },
+        {
+            label: 'Platform Listing',
+            detail: `Lot ${lot.lot_number} — ${cap(lot.lot_status)}`,
+            date: fmtDate(lot.created_at),
+            done: true
+        }
+    ];
+
+    container.innerHTML = `
+        <div class="status-banner ${flagged ? 'risk' : ''}">
+            ${flagged ? '⚠️ This lot has been flagged for review' : '✅ Verified — Full chain of custody on record'}
+        </div>
+
+        <div class="card">
+            <div class="section-title">Product</div>
+            <div class="row"><span>Species</span><span>${cap(lot.species)}</span></div>
+            <div class="row"><span>Product Form</span><span>${cap(lot.product_form)}</span></div>
+            <div class="row"><span>Weight</span><span>${lot.weight_kg ? lot.weight_kg + ' kg' : '—'}</span></div>
+            <div class="row"><span>Grade</span><span>${cap(lot.grade)}</span></div>
+            <div class="row"><span>Condition</span><span>${cap(lot.condition)}</span></div>
+            ${lot.ownership_type ? `<div class="row"><span>Ownership</span><span>${cap(lot.ownership_type)}</span></div>` : ''}
+            <div style="text-align:center; margin-top:14px;">
+                <span class="badge-iuu ${flagged ? 'flagged' : ''}">${flagged ? 'IUU Risk Flagged' : 'No IUU Risk Flagged'}</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Chain of Custody</div>
+            <div class="chain">
+                ${chainSteps.map(s => `
+                    <div class="chain-step">
+                        <div class="chain-dot ${s.done ? '' : 'pending'}">${s.done ? '✓' : '○'}</div>
+                        <div class="chain-body">
+                            <h4>${s.label}</h4>
+                            <p>${s.detail}</p>
+                            <p style="margin-top:2px; color:#a0aec0; font-size:12px;">${s.date}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        ${lot.sustainability_notes ? `
+        <div class="card">
+            <div class="section-title">Sustainability Notes</div>
+            <p style="font-size:14px; color:#4a5568;">${lot.sustainability_notes}</p>
+        </div>` : ''}
+
+        <div class="card">
+            <div class="section-title">Verification Code</div>
+            <div class="qr-wrap">
+                <div id="qrcode"></div>
+                <div class="qr-code-text">${lot.traceability_code}</div>
+            </div>
+        </div>
+    `;
+
+    new QRCode(document.getElementById('qrcode'), {
+        text: window.location.href,
+        width: 160,
+        height: 160,
+        colorDark: '#1a365d',
+        colorLight: '#ffffff'
+    });
+}
+
+loadTrace();
+</script>
+</body>
+</html>

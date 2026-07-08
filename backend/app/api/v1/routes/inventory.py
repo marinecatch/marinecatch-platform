@@ -30,6 +30,8 @@ from app.services.inventory_service import (
 )
 from app.api.v1.routes.users import get_current_user
 from app.services.fee_service import calculate_full_fee_breakdown
+from app.models.inventory_lot import InventoryLot
+from app.models.quality_inspection import QualityInspection
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -98,6 +100,56 @@ def browse_inventory(
             }
             for lot in lots
         ]
+    }
+
+# ── PUBLIC — traceability lookup by code (for QR codes / trace page) ────
+@router.get("/trace/{traceability_code}")
+def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):
+    """
+    Public traceability lookup — no login required.
+    Powers the QR-code trace page so buyers, partners, or auditors
+    can verify a lot's full chain from catch to listing.
+    """
+    lot = db.query(InventoryLot).filter(
+        InventoryLot.traceability_code == traceability_code
+    ).first()
+
+    if not lot:
+        raise HTTPException(status_code=404, detail="Traceability record not found")
+
+    inspection = db.query(QualityInspection).filter(
+        QualityInspection.lot_id == lot.id
+    ).first()
+
+    return {
+        "lot_number":            lot.lot_number,
+        "traceability_code":     lot.traceability_code,
+        "species":                lot.species,
+        "product_form":           lot.product_form,
+        "grade":                  lot.grade,
+        "condition":              lot.condition,
+        "weight_kg":              lot.weight_kg,
+        "source_name":            lot.source_name,
+        "landing_site":           lot.landing_site,
+        "catch_date":             lot.catch_date,
+        "landing_date":           lot.landing_date,
+        "vessel_name":            lot.vessel_name,
+        "vessel_reg":             lot.vessel_reg,
+        "bmu_reference":          lot.bmu_reference,
+        "gear_type":              lot.gear_type,
+        "ownership_type":         lot.ownership_type,
+        "lot_status":             lot.lot_status,
+        "iuu_risk_flag":          lot.iuu_risk_flag,
+        "sustainability_notes":   lot.sustainability_notes,
+        "created_at":             lot.created_at,
+        "inspection": {
+            "status":         inspection.status,
+            "grade":          inspection.grade,
+            "inspector_name": inspection.inspector_name,
+            "temperature_c":  inspection.temperature_c,
+            "inspected_at":   inspection.inspected_at,
+            "disposition":    inspection.disposition,
+        } if inspection else None,
     }
 
 # ── PUBLIC — single lot detail ────────────────────────────────────

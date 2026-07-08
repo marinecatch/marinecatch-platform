@@ -262,36 +262,3 @@ def platform_summary(db: Session = Depends(get_db)):
             "data_source":       "Kibuyuni BMU — KFS Records 2024-2025",
         }
     }
-
-# Add platform-only species not in BMU data
-    bmu_species = {r.species_common.lower() for r in historical}
-    platform_only = [
-        {
-            "species":           r.species,
-            "local_name":        None,
-            "bmu_avg_kes":       None,
-            "bmu_min_kes":       None,
-            "bmu_max_kes":       None,
-            "platform_avg_kes":  round(r.platform_avg, 0),
-            "platform_available_kg": r.available_kg,
-        }
-        for r in live
-        if r.species.lower() not in bmu_species
-    ]
-
-    return {
-        "price_intelligence": [
-            {
-                "species":          r.species_common,
-                "local_name":       r.species_local,
-                "bmu_avg_kes":      round(r.bmu_avg or 0, 0),
-                "bmu_min_kes":      round(r.bmu_min or 0, 0),
-                "bmu_max_kes":      round(r.bmu_max or 0, 0),
-                "platform_avg_kes": round(live_map[r.species_common.lower()].platform_avg, 0)
-                    if r.species_common.lower() in live_map else None,
-                "platform_available_kg": live_map[r.species_common.lower()].available_kg
-                    if r.species_common.lower() in live_map else 0,
-            }
-            for r in historical
-        ] + platform_only
-    }

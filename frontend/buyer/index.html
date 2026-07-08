@@ -16,6 +16,7 @@
         .btn-primary { background:#2b6cb0; color:white; }
         .btn-outline { background:transparent; border:1px solid #e2e8f0; color:#4a5568; }
         .btn-success { background:#276749; color:white; }
+        .btn-danger { background:#c53030; color:white; }
         .btn-sm { padding:6px 12px; font-size:13px; }
         .container { max-width:1100px; margin:0 auto; padding:24px; }
         .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; }
@@ -31,16 +32,23 @@
         th { text-align:left; padding:10px 12px; font-size:12px; color:#718096; text-transform:uppercase; border-bottom:2px solid #e2e8f0; }
         td { padding:12px; border-bottom:1px solid #f7fafc; font-size:14px; }
         tr:hover td { background:#f7fafc; }
+        tr.clickable { cursor:pointer; }
         .badge-status { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; text-transform:uppercase; }
-        .badge-available { background:#c6f6d5; color:#276749; }
-        .badge-pending { background:#fefcbf; color:#744210; }
+        .badge-pending_payment { background:#fefcbf; color:#744210; }
+        .badge-paid { background:#bee3f8; color:#2c5282; }
         .badge-confirmed { background:#bee3f8; color:#2c5282; }
+        .badge-preparing { background:#feebc8; color:#7b341e; }
+        .badge-dispatched { background:#e9d8fd; color:#553c9a; }
         .badge-delivered { background:#c6f6d5; color:#276749; }
+        .badge-completed { background:#c6f6d5; color:#276749; }
+        .badge-cancelled { background:#fed7d7; color:#822727; }
+        .badge-payment_failed { background:#fed7d7; color:#822727; }
+        .badge-refunded { background:#e2e8f0; color:#4a5568; }
         .form-group { margin-bottom:16px; }
         .form-label { display:block; font-size:13px; font-weight:500; color:#4a5568; margin-bottom:6px; }
         .form-control { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; }
         .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
-        .modal-box { background:white; border-radius:8px; padding:24px; width:440px; max-width:95%; }
+        .modal-box { background:white; border-radius:8px; padding:24px; width:440px; max-width:95%; max-height:85vh; overflow-y:auto; }
         .empty { text-align:center; padding:40px; color:#718096; }
         .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f7fafc; }
         .login-box { background:white; border-radius:12px; padding:40px; width:400px; max-width:95%; border:1px solid #e2e8f0; }
@@ -54,6 +62,18 @@
         .lot-price { text-align:right; }
         .lot-price .price { font-size:20px; font-weight:700; color:#2b6cb0; }
         .lot-price .avail { font-size:12px; color:#718096; }
+        .timeline { display:flex; flex-direction:column; gap:0; margin:16px 0; }
+        .timeline-step { display:flex; align-items:flex-start; gap:12px; padding-bottom:16px; position:relative; }
+        .timeline-step:not(:last-child)::before { content:''; position:absolute; left:9px; top:22px; bottom:-4px; width:2px; background:#e2e8f0; }
+        .timeline-dot { width:20px; height:20px; border-radius:50%; background:#e2e8f0; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:white; z-index:1; }
+        .timeline-step.done .timeline-dot { background:#276749; }
+        .timeline-step.current .timeline-dot { background:#2b6cb0; }
+        .timeline-step.stopped .timeline-dot { background:#c53030; }
+        .timeline-label { font-size:13px; font-weight:500; color:#4a5568; padding-top:1px; }
+        .timeline-step.done .timeline-label, .timeline-step.current .timeline-label { color:#2d3748; font-weight:600; }
+        .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f7fafc; font-size:14px; }
+        .detail-row span:first-child { color:#718096; }
+        .detail-row span:last-child { font-weight:500; text-align:right; }
     </style>
 </head>
 <body>
@@ -115,12 +135,12 @@
         </div>
 
         <!-- TABS -->
-    <div class="tabs">
-        <button class="tab active" onclick="showTab('inventory')">Browse Fish</button>
-        <button class="tab" onclick="showTab('orders')">My Orders</button>
-        <button class="tab" onclick="showTab('prices')">Price Intelligence</button>
-        <button class="tab" onclick="showTab('invoices')">Invoices</button>
-    </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('inventory')">Browse Fish</button>
+            <button class="tab" onclick="showTab('orders')">My Orders</button>
+            <button class="tab" onclick="showTab('prices')">Price Intelligence</button>
+            <button class="tab" onclick="showTab('invoices')">Invoices</button>
+        </div>
 
         <!-- INVENTORY TAB -->
         <div id="tab-inventory">
@@ -156,22 +176,8 @@
                 <div id="orders-list"><div class="empty">Loading orders...</div></div>
             </div>
         </div>
-        <div id="tab-prices" style="display:none">
-            <div class="card">
-                <div class="card-title">Price Intelligence</div>
-                <div id="prices-list"><div class="empty">Loading prices...</div></div>
-            </div>
-        </div>
-        <div id="tab-invoices" style="display:none">
-            <div class="card">
-                <div class="card-title">Invoices</div>
-                <div id="invoices-list"><div class="empty">Loading invoices...</div></div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- PRICE INTELLIGENCE TAB -->
+        <!-- PRICE INTELLIGENCE TAB -->
         <div id="tab-prices" style="display:none">
             <div class="card">
                 <div class="card-title">Market Price Intelligence</div>
@@ -189,6 +195,8 @@
                 <div id="invoices-content"><div class="empty">Loading invoices...</div></div>
             </div>
         </div>
+    </div>
+</div>
 
 <!-- ORDER MODAL -->
 <div id="order-modal" class="modal">
@@ -217,11 +225,24 @@
     </div>
 </div>
 
+<!-- ORDER DETAIL MODAL -->
+<div id="detail-modal" class="modal">
+    <div class="modal-box" style="width:480px;">
+        <h3 style="margin-bottom:16px;">Order Details</h3>
+        <div id="detail-content"><div class="empty">Loading...</div></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+            <button class="btn btn-outline" onclick="closeDetailModal()">Close</button>
+            <button id="detail-cancel-btn" class="btn btn-danger" style="display:none" onclick="cancelCurrentOrder()">Cancel Order</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const API = '';
 let token = localStorage.getItem('mc_buyer_token');
 let currentUser = null;
 let currentLot = null;
+let currentDetailOrderId = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function doLogin() {
@@ -263,7 +284,6 @@ function showApp() {
     document.getElementById('buyer-name').textContent = currentUser?.name || 'Buyer';
     loadInventory();
     loadOrders();
-    loadStats();
 }
 
 // ── TABS ──────────────────────────────────────────────────────────
@@ -278,6 +298,7 @@ function showTab(tab) {
     if (tab === 'prices')   loadPrices();
     if (tab === 'invoices') loadInvoices();
 }
+
 // ── INVENTORY ─────────────────────────────────────────────────────
 async function loadInventory() {
     const species   = document.getElementById('f-species').value;
@@ -313,7 +334,7 @@ async function loadInventory() {
                     <div class="avail">${lot.available_kg}kg available</div>
                     <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
                         <button class="btn btn-primary btn-sm" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
-                        <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}', '${lot.lot_number}')">View Trace</button>
+                        <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}')">View Trace</button>
                     </div>
                 </div>
             </div>
@@ -324,20 +345,23 @@ async function loadInventory() {
 }
 
 // ── ORDERS ────────────────────────────────────────────────────────
+// Statuses that count as "not yet paid / no money moved"
+const UNPAID_STATUSES = ['pending_payment', 'cancelled', 'payment_failed'];
+
 async function loadOrders() {
     if (!token) return;
     try {
-        const res  = await fetch(`${API}/api/v1/orders/my`, {
+        const res  = await fetch(`${API}/api/v1/orders/me`, {
             headers: {'Authorization': `Bearer ${token}`}
         });
         const data = await res.json();
-        const orders = Array.isArray(data) ? data : (data.orders || []);
+        const orders = data.orders || [];
 
         document.getElementById('s-orders').textContent  = orders.length;
         document.getElementById('s-pending').textContent = orders.filter(o => o.status === 'pending_payment').length;
         document.getElementById('s-spent').textContent   = 'KES ' + orders
-            .filter(o => o.payment_status === 'paid')
-            .reduce((sum, o) => sum + (o.total_buyer_pays_kes || 0), 0)
+            .filter(o => !UNPAID_STATUSES.includes(o.status))
+            .reduce((sum, o) => sum + (o.total_kes || 0), 0)
             .toLocaleString();
 
         if (!orders.length) {
@@ -352,17 +376,12 @@ async function loadOrders() {
                 </tr></thead>
                 <tbody>
                 ${orders.map(o => `
-                    <tr>
-                        <td><strong>${o.order_number}</strong></td>
-                        <td>${o.species?.charAt(0).toUpperCase() + o.species?.slice(1) || '—'}</td>
+                    <tr class="clickable" onclick="openOrderDetail(${o.order_id})">
+                        <td><strong>#${o.order_id}</strong></td>
+                        <td>${o.species ? o.species.charAt(0).toUpperCase() + o.species.slice(1) : '—'}</td>
                         <td>${o.quantity_kg}kg</td>
-                        <td>KES ${o.total_buyer_pays_kes?.toLocaleString()}</td>
-                        <td>
-                            <span class="badge-status badge-${o.status || 'pending'}">${(o.status || 'pending').replace(/_/g, ' ')}</span>
-                            <div style="font-size:11px; color:#a0aec0; margin-top:4px;">
-                                ${o.payment_status === 'paid' ? '✓ Paid' : '○ Payment pending'}
-                            </div>
-                        </td>
+                        <td>KES ${(o.total_kes || 0).toLocaleString()}</td>
+                        <td><span class="badge-status badge-${o.status || 'pending_payment'}">${(o.status || 'pending payment').replace(/_/g, ' ')}</span></td>
                         <td>${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
                     </tr>
                 `).join('')}
@@ -373,11 +392,7 @@ async function loadOrders() {
     }
 }
 
-async function loadStats() {
-    // Stats loaded inside loadOrders and loadInventory
-}
-
-// ── ORDER MODAL ───────────────────────────────────────────────────
+// ── ORDER MODAL (place order) ────────────────────────────────────
 function openOrder(lot) {
     currentLot = lot;
     document.getElementById('order-lot-info').innerHTML = `
@@ -437,7 +452,7 @@ async function placeOrder() {
         const data = await res.json();
         if (res.ok) {
             closeOrderModal();
-            alert(`✅ Order placed!\nOrder: ${data.order_number}\nTotal: KES ${data.total_buyer_pays_kes?.toLocaleString()}`);
+            alert(`✅ Order placed!\nOrder: #${data.order_id}\nTotal: KES ${data.total_kes?.toLocaleString()}`);
             loadOrders();
             loadInventory();
         } else {
@@ -450,28 +465,107 @@ async function placeOrder() {
     }
 }
 
+// ── ORDER DETAIL MODAL ───────────────────────────────────────────
+const STATUS_FLOW = ['pending_payment', 'paid', 'confirmed', 'preparing', 'dispatched', 'delivered', 'completed'];
+const STOPPED_STATUSES = ['cancelled', 'payment_failed', 'refunded'];
+
+function renderStatusTimeline(status) {
+    if (STOPPED_STATUSES.includes(status)) {
+        return `
+            <div class="timeline">
+                <div class="timeline-step stopped">
+                    <div class="timeline-dot">✕</div>
+                    <div class="timeline-label">${status.replace(/_/g, ' ').toUpperCase()}</div>
+                </div>
+            </div>`;
+    }
+    const currentIdx = STATUS_FLOW.indexOf(status);
+    return `
+        <div class="timeline">
+            ${STATUS_FLOW.map((step, i) => {
+                let cls = '';
+                if (i < currentIdx) cls = 'done';
+                else if (i === currentIdx) cls = 'current';
+                return `
+                    <div class="timeline-step ${cls}">
+                        <div class="timeline-dot">${i < currentIdx ? '✓' : ''}</div>
+                        <div class="timeline-label">${step.replace(/_/g, ' ')}</div>
+                    </div>`;
+            }).join('')}
+        </div>`;
+}
+
+async function openOrderDetail(orderId) {
+    currentDetailOrderId = orderId;
+    document.getElementById('detail-modal').style.display = 'flex';
+    document.getElementById('detail-content').innerHTML = '<div class="empty">Loading...</div>';
+    document.getElementById('detail-cancel-btn').style.display = 'none';
+
+    try {
+        const res  = await fetch(`${API}/api/v1/orders/${orderId}`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const o = await res.json();
+        if (!res.ok) {
+            document.getElementById('detail-content').innerHTML = `<div class="empty">${o.detail || 'Failed to load order.'}</div>`;
+            return;
+        }
+
+        document.getElementById('detail-content').innerHTML = `
+            ${renderStatusTimeline(o.status)}
+            <div class="detail-row"><span>Order</span><span>#${o.order_id}</span></div>
+            <div class="detail-row"><span>Species</span><span>${o.species || '—'}</span></div>
+            <div class="detail-row"><span>Quantity</span><span>${o.quantity_kg}kg</span></div>
+            <div class="detail-row"><span>Price / kg</span><span>KES ${(o.price_per_kg || 0).toLocaleString()}</span></div>
+            <div class="detail-row"><span>Total</span><span>KES ${(o.total_kes || 0).toLocaleString()}</span></div>
+            <div class="detail-row"><span>Landing Site</span><span>${o.landing_site || '—'}</span></div>
+            <div class="detail-row"><span>Delivery Address</span><span>${o.delivery_address || '—'}</span></div>
+            <div class="detail-row"><span>Notes</span><span>${o.notes || '—'}</span></div>
+            <div class="detail-row"><span>Placed</span><span>${o.created_at ? new Date(o.created_at).toLocaleString() : '—'}</span></div>
+        `;
+
+        const cancelBtn = document.getElementById('detail-cancel-btn');
+        if (!['delivered', 'completed', 'cancelled', 'refunded', 'payment_failed'].includes(o.status)) {
+            cancelBtn.style.display = 'inline-block';
+        }
+    } catch(e) {
+        document.getElementById('detail-content').innerHTML = '<div class="empty">Failed to load order.</div>';
+    }
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').style.display = 'none';
+    currentDetailOrderId = null;
+}
+
+async function cancelCurrentOrder() {
+    if (!currentDetailOrderId) return;
+    if (!confirm('Cancel this order? This cannot be undone.')) return;
+    try {
+        const res = await fetch(`${API}/api/v1/orders/${currentDetailOrderId}/cancel`, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeDetailModal();
+            loadOrders();
+            loadInventory();
+        } else {
+            alert(data.detail || 'Could not cancel order.');
+        }
+    } catch(e) {
+        alert('Network error. Please try again.');
+    }
+}
+
 // ── TRACEABILITY ──────────────────────────────────────────────────
-function viewTrace(code, lotNumber) {
+function viewTrace(code) {
     if (!code || code === 'undefined') {
         alert('Traceability record not available for this lot.');
         return;
     }
-    const info = `
-Traceability Record
-
-Lot: ${lotNumber}
-Code: ${code}
-
-This seafood has been tracked from catch to listing:
-- Fisher identity verified
-- Landing site recorded
-- Cold chain monitored
-- Quality inspected
-
-Full trace certificate available on request.
-Contact: info@marinecatchafrica.com
-    `;
-    alert(info);
+    window.open(`/landing/trace.html?code=${encodeURIComponent(code)}`, '_blank');
 }
 
 // ── PRICE INTELLIGENCE ────────────────────────────────────────────
@@ -535,12 +629,12 @@ async function loadInvoices() {
         return;
     }
     try {
-        const res    = await fetch(`${API}/api/v1/orders/my`, {
+        const res    = await fetch(`${API}/api/v1/orders/me`, {
             headers: { 'Authorization': `Bearer ${currentToken}` }
         });
         const data   = await res.json();
-        const orders = Array.isArray(data) ? data : (data.orders || []);
-        const paid   = orders.filter(o => o.payment_status === 'paid');
+        const orders = data.orders || [];
+        const paid   = orders.filter(o => !UNPAID_STATUSES.includes(o.status));
 
         if (!paid.length) {
             document.getElementById('invoices-content').innerHTML =
@@ -562,16 +656,16 @@ async function loadInvoices() {
                 <tbody>
                     ${paid.map(o => `
                         <tr style="border-bottom:1px solid #f7fafc;">
-                            <td style="padding:10px 12px; font-family:monospace; font-size:12px; color:#4a5568;">${o.order_number}</td>
+                            <td style="padding:10px 12px; font-family:monospace; font-size:12px; color:#4a5568;">#${o.order_id}</td>
                             <td style="padding:10px 12px; font-weight:600; text-transform:capitalize;">${o.species}</td>
                             <td style="padding:10px 12px; text-align:right; font-weight:600; color:#276749;">
-                                KES ${(o.total_buyer_pays_kes || 0).toLocaleString()}
+                                KES ${(o.total_kes || 0).toLocaleString()}
                             </td>
                             <td style="padding:10px 12px; color:#718096; font-size:12px;">
                                 ${o.created_at ? new Date(o.created_at).toLocaleDateString('en-KE') : '—'}
                             </td>
                             <td style="padding:10px 12px;">
-                                <button onclick="requestInvoice('${o.order_number}')"
+                                <button onclick="requestInvoice(${o.order_id})"
                                     style="padding:4px 12px; background:#1D60AE; color:white; border:none; border-radius:6px; cursor:pointer; font-size:12px;">
                                     Request Invoice
                                 </button>
@@ -587,15 +681,14 @@ async function loadInvoices() {
     }
 }
 
-function requestInvoice(orderNumber) {
-    alert(`Invoice request received for order ${orderNumber}.\n\nOur team will send the invoice to your registered email within 24 hours.\n\nFor urgent requests contact: info@marinecatchafrica.com`);
+function requestInvoice(orderId) {
+    alert(`Invoice request received for order #${orderId}.\n\nOur team will send the invoice to your registered email within 24 hours.\n\nFor urgent requests contact: info@marinecatchafrica.com`);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
 window.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') doLogin(); });
 
 if (token) {
-    // Try to restore session
     fetch(`${API}/api/v1/users/me`, {headers: {'Authorization': `Bearer ${token}`}})
         .then(r => r.json())
         .then(data => {
@@ -607,7 +700,7 @@ if (token) {
             }
         })
         .catch(() => localStorage.removeItem('mc_buyer_token'));
-} 
+}
 </script>
 </body>
 </html>
