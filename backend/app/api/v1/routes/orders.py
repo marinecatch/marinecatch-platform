@@ -256,7 +256,7 @@ def api_confirm_order(
 # ── UPDATE STATUS (admin) ─────────────────────────────────────────
 
 @router.patch("/{order_id}/status")
-def api_update_status(
+async def api_update_status(
     order_id:    int,
     payload:     StatusUpdate,
     current_user = Depends(get_current_user),
@@ -289,13 +289,65 @@ def api_update_status(
         updated_by= payload.updated_by or current_user.name,
     )
 
+    # Send WhatsApp notification to buyer
+    try:
+        from app.services.whatsapp_service import send_text
+        from app.models.user import User as UserModel
+
+        buyer = db.query(UserModel).filter(UserModel.id == order.buyer_id).first()
+        if buyer and buyer.phone:
+            status_messages = {
+                "confirmed": (
+                    f"✅ *Order Confirmed*\n\n"
+                    f"Your order #{order.id} for {order.quantity_kg}kg "
+                    f"{order.species} has been confirmed.\n\n"
+                    f"We'll notify you when it's dispatched.\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+                "preparing": (
+                    f"🔧 *Order Being Prepared*\n\n"
+                    f"Order #{order.id} — {order.quantity_kg}kg {order.species}\n"
+                    f"is being prepared for dispatch.\n\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+                "dispatched": (
+                    f"🚚 *Order Dispatched*\n\n"
+                    f"Order #{order.id} — {order.quantity_kg}kg {order.species}\n"
+                    f"is on its way to you.\n\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+                "delivered": (
+                    f"📦 *Order Delivered*\n\n"
+                    f"Order #{order.id} — {order.quantity_kg}kg {order.species}\n"
+                    f"has been delivered. Thank you for choosing MarineCatch!\n\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+                "completed": (
+                    f"✅ *Order Completed*\n\n"
+                    f"Order #{order.id} is now complete.\n"
+                    f"Thank you for your business!\n\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+                "cancelled": (
+                    f"❌ *Order Cancelled*\n\n"
+                    f"Order #{order.id} has been cancelled.\n"
+                    f"Contact us if you have questions.\n\n"
+                    f"MarineCatch Africa 🐟"
+                ),
+            }
+            message = status_messages.get(order.status.value)
+            if message:
+                await send_text(buyer.phone, message)
+    except Exception as e:
+        # Don't fail the status update if WhatsApp notification fails
+        print(f"WhatsApp notification failed: {e}")
+
     return {
         "success":  True,
         "order_id": order.id,
         "status":   order.status,
         "message":  f"Order {order.id} updated to {order.status.value}"
     }
-
 
 # ── ORDERS BY LOT (admin/fisher) ──────────────────────────────────
 
