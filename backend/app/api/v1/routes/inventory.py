@@ -287,6 +287,7 @@ def get_my_lots(
             {
                 "id":               l.id,
                 "lot_number":       l.lot_number,
+                "traceability_code": l.traceability_code,
                 "species":          l.species,
                 "weight_kg":        l.weight_kg,
                 "available_kg":     l.available_kg,

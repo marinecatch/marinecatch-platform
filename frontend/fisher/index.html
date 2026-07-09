@@ -45,6 +45,12 @@
         .badge-available { background:#c6f6d5; color:#276749; }
         .badge-sold { background:#fed7d7; color:#742a2a; }
         .badge-reserved { background:#fefcbf; color:#744210; }
+        .badge-pending { background:#fefcbf; color:#744210; }
+        .badge-processing { background:#bee3f8; color:#2c5282; }
+        .badge-paid { background:#c6f6d5; color:#276749; }
+        .badge-failed { background:#fed7d7; color:#822727; }
+        .badge-on_hold { background:#e2e8f0; color:#4a5568; }
+        .badge-not_applicable { background:#e2e8f0; color:#4a5568; }
     </style>
 </head>
 <body>
@@ -102,9 +108,9 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('lots')">🐟 My Catch</button>
-            <button class="tab" onclick="showTab('log')">➕ Log Catch</button>
-            <button class="tab" onclick="showTab('payouts')">💰 Payments</button>
+            <button class="tab active" onclick="showTab('lots', event)">🐟 My Catch</button>
+            <button class="tab" onclick="showTab('log', event)">➕ Log Catch</button>
+            <button class="tab" onclick="showTab('payouts', event)">💰 Payments</button>
         </div>
 
         <!-- MY LOTS -->
@@ -224,11 +230,12 @@ function showApp() {
     document.getElementById('app').style.display = 'block';
     document.getElementById('fisher-name').textContent = currentUser?.name || 'Fisher';
     loadMyLots();
+    loadEarningsSummary();
 }
 
-function showTab(tab) {
+function showTab(tab, evt) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
+    evt.target.classList.add('active');
     ['lots','log','payouts'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
     });
@@ -246,7 +253,6 @@ async function loadMyLots() {
         document.getElementById('s-lots').textContent  = data.total_lots || 0;
         document.getElementById('s-kg').textContent    = (data.total_available_kg || 0) + 'kg';
         document.getElementById('s-value').textContent = 'KES ' + (data.total_value_kes || 0).toLocaleString();
-        document.getElementById('s-earned').textContent = '—';
 
         if (!lots.length) {
             document.getElementById('lots-list').innerHTML = '<div style="text-align:center;padding:20px;color:#718096">No lots yet. Use Log Catch to add your first catch.</div>';
@@ -264,10 +270,32 @@ async function loadMyLots() {
                     </div>
                     <span class="badge-status badge-${lot.lot_status}">${lot.lot_status?.replace('_',' ')}</span>
                 </div>
+                ${lot.traceability_code ? `
+                <div style="display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #f7fafc;">
+                    <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}')">🔍 View Traceability</button>
+                    <button class="btn btn-outline btn-sm" onclick="shareTrace('${lot.traceability_code}')">🔗 Share</button>
+                </div>` : ''}
             </div>
         `).join('');
     } catch(e) {
         document.getElementById('lots-list').innerHTML = '<div style="color:red;padding:12px">Failed to load lots.</div>';
+    }
+}
+
+function viewTrace(code) {
+    window.open(`/landing/trace.html?code=${encodeURIComponent(code)}`, '_blank');
+}
+
+function shareTrace(code) {
+    const url = `${window.location.origin}/landing/trace.html?code=${encodeURIComponent(code)}`;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('✅ Traceability link copied!\n\nShare it with buyers so they can verify your catch:\n' + url);
+        }).catch(() => {
+            prompt('Copy this traceability link to share with buyers:', url);
+        });
+    } else {
+        prompt('Copy this traceability link to share with buyers:', url);
     }
 }
 
@@ -311,8 +339,103 @@ async function logCatch() {
     }
 }
 
+// ── PAYOUTS ───────────────────────────────────────────────────────
+async function loadEarningsSummary() {
+    // Lightweight call on page load, just to populate the "Earned" stat card
+    if (!currentUser?.id) return;
+    try {
+        const res  = await fetch(`${API}/api/v1/payouts/fisher/${currentUser.id}`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        if (res.ok && data.summary) {
+            document.getElementById('s-earned').textContent = 'KES ' + (data.summary.total_earned_kes || 0).toLocaleString();
+        }
+    } catch(e) {
+        // stat card just stays at "—" if this fails silently — not critical path
+    }
+}
+
 async function loadPayouts() {
-    document.getElementById('payouts-list').innerHTML = '<div style="text-align:center;padding:20px;color:#718096">Payment history coming soon. Contact support: +254700000000</div>';
+    const el = document.getElementById('payouts-list');
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#718096">Loading...</div>';
+
+    if (!currentUser?.id) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#718096">Unable to identify account. Please log out and back in.</div>';
+        return;
+    }
+
+    try {
+        const res  = await fetch(`${API}/api/v1/payouts/fisher/${currentUser.id}`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            el.innerHTML = `<div style="text-align:center;padding:20px;color:#718096">${data.detail || 'Unable to load payment history.'}</div>`;
+            return;
+        }
+
+        renderPayouts(data);
+    } catch(e) {
+        el.innerHTML = '<div style="color:red;padding:12px">Failed to load payments.</div>';
+    }
+}
+
+function renderPayouts(data) {
+    const s = data.summary || {};
+    const history = data.payout_history || [];
+    const lastPaid = history.find(h => h.payout_status === 'paid');
+
+    document.getElementById('s-earned').textContent = 'KES ' + (s.total_earned_kes || 0).toLocaleString();
+
+    let html = `
+        <div class="stats" style="margin-bottom:20px;">
+            <div class="stat">
+                <div class="stat-val">KES ${(s.total_earned_kes || 0).toLocaleString()}</div>
+                <div class="stat-lbl">Total Earned</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val">KES ${(s.total_pending_kes || 0).toLocaleString()}</div>
+                <div class="stat-lbl">Pending Payout</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val">${s.consistency_score != null ? s.consistency_score + '%' : '—'}</div>
+                <div class="stat-lbl">Consistency Score</div>
+            </div>
+            <div class="stat">
+                <div class="stat-val" style="font-size:16px;">${lastPaid ? new Date(lastPaid.payout_date).toLocaleDateString('en-KE') : '—'}</div>
+                <div class="stat-lbl">Last Payout</div>
+            </div>
+        </div>
+    `;
+
+    if (!history.length) {
+        html += '<div style="text-align:center;padding:20px;color:#718096">No payments yet. Payments appear here once a buyer completes an order for your catch.</div>';
+        document.getElementById('payouts-list').innerHTML = html;
+        return;
+    }
+
+    html += `
+        <table>
+            <thead>
+                <tr><th>Species</th><th>Qty</th><th>Amount</th><th>Status</th><th>Date</th><th>Reference</th></tr>
+            </thead>
+            <tbody>
+                ${history.map(h => `
+                    <tr>
+                        <td>${h.species ? h.species.charAt(0).toUpperCase() + h.species.slice(1) : '—'}</td>
+                        <td>${h.quantity_kg ? h.quantity_kg + 'kg' : '—'}</td>
+                        <td>KES ${(h.payout_amount_kes || 0).toLocaleString()}</td>
+                        <td><span class="badge-status badge-${h.payout_status}">${(h.payout_status || '').replace(/_/g, ' ')}</span></td>
+                        <td>${h.payout_date ? new Date(h.payout_date).toLocaleDateString('en-KE') : (h.created_at ? new Date(h.created_at).toLocaleDateString('en-KE') + ' (pending)' : '—')}</td>
+                        <td style="font-family:monospace; font-size:12px;">${h.payout_reference || '—'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    document.getElementById('payouts-list').innerHTML = html;
 }
 
 window.addEventListener('keydown', e => {
