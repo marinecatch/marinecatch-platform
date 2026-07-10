@@ -562,18 +562,58 @@ async def route_buyer_message(
                     f"Type: *ORDER {species} {int(lot.available_kg)}*")
                 return
 
-            await send_text(from_phone,
-                f"📋 *Order Request Received*\n\n"
-                f"• Species: {species.title()}\n"
-                f"• Quantity: {quantity}kg\n"
-                f"• Price: KES {lot.selling_price_per_kg}/kg\n"
-                f"• Total: KES {total_kes:,.0f}\n"
-                f"• Location: {lot.landing_site.title()}\n\n"
-                f"Our team will contact you within 30 minutes.\n\n"
-                f"Call: +254700000000\n"
-                f"Ref: {lot.lot_number}\n"
-                f"MarineCatch Africa 🐟"
-            )
+            # Look up buyer's user account
+            from app.models.user import User as UserModel
+            clean_phone = from_phone.replace("+", "").replace(" ", "")
+            buyer = db.query(UserModel).filter(
+                UserModel.phone.contains(clean_phone[-9:])
+            ).first()
+
+            if not buyer:
+                await send_text(from_phone,
+                    "📋 *Order Request Received*\n\n"
+                    f"• Species: {species.title()}\n"
+                    f"• Quantity: {quantity}kg\n"
+                    f"• Total: KES {total_kes:,.0f}\n\n"
+                    "You're not yet a registered MarineCatch buyer.\n"
+                    "Our team will contact you within 30 minutes to\n"
+                    "complete your order and registration.\n\n"
+                    "Call: +254707939810\n"
+                    f"Ref: {lot.lot_number}\n"
+                    "MarineCatch Africa 🐟")
+                return
+
+            # Place the real order — reserves stock
+            try:
+                from app.services.order_service import place_order
+                order = place_order(
+                    db=               db,
+                    buyer_id=         buyer.id,
+                    lot_id=           lot.id,
+                    quantity_kg=      float(quantity),
+                    delivery_address= buyer.location or "To be confirmed",
+                    notes=            "Order placed via WhatsApp",
+                )
+
+                await send_text(from_phone,
+                    f"✅ *Order Confirmed!*\n\n"
+                    f"• Order #{order.id}\n"
+                    f"• Species: {species.title()}\n"
+                    f"• Quantity: {quantity}kg\n"
+                    f"• Price: KES {lot.selling_price_per_kg}/kg\n"
+                    f"• Total: KES {order.total_kes:,.0f}\n"
+                    f"• Location: {lot.landing_site.title()}\n\n"
+                    f"Status: Pending Payment\n"
+                    f"Our team will contact you to arrange payment\n"
+                    f"and delivery.\n\n"
+                    f"Ref: {lot.lot_number}\n"
+                    f"MarineCatch Africa 🐟")
+            except Exception as e:
+                await send_text(from_phone,
+                    "Sorry, we couldn't complete your order right now.\n"
+                    "Our team will contact you shortly.\n\n"
+                    f"Ref: {lot.lot_number}\n"
+                    "Call: +254707939810")
             return
 
         await send_text(from_phone,

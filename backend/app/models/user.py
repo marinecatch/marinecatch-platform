@@ -12,7 +12,7 @@
 # Eldoret Partner — partner    — Eldoret
 # BMU Coordinator — coordinator— Shimoni
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Enum as SAEnum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.connection import Base
@@ -116,3 +116,13 @@ class User(Base):
     outstanding_balance_kes = Column(Float, default=0.0)
     on_time_payment_rate    = Column(Float, default=0.0)
     total_orders_count      = Column(Integer, default=0)
+
+    # Lead pipeline tracking (for inactive/lead users)
+    lead_status   = Column(String, default="new")
+    # new, contacted, qualified, converted, not_interested
+    lead_source   = Column(String, nullable=True)
+    # website, ussd, whatsapp, referral, conference, cold_call
+    assigned_to   = Column(String, nullable=True)
+    # Staff member name (e.g. "Muna Jamal")
+    lead_notes    = Column(Text, nullable=True)
+    last_contacted_at = Column(DateTime(timezone=True), nullable=True)
