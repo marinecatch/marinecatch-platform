@@ -139,6 +139,10 @@ def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):
         "gear_type":              lot.gear_type,
         "ownership_type":         lot.ownership_type,
         "lot_status":             lot.lot_status,
+        "processed_form":         lot.processed_form,
+        "processed_weight_kg":    lot.processed_weight_kg,
+        "processed_at":           lot.processed_at,
+        "processing_notes":       lot.processing_notes,
         "iuu_risk_flag":          lot.iuu_risk_flag,
         "sustainability_notes":   lot.sustainability_notes,
         "created_at":             lot.created_at,
@@ -150,6 +154,49 @@ def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):
             "inspected_at":   inspection.inspected_at,
             "disposition":    inspection.disposition,
         } if inspection else None,
+    }
+
+class ProcessingUpdate(BaseModel):
+    processed_form: str
+    processed_weight_kg: float
+    processing_notes: str | None = None
+
+
+@router.patch("/{lot_id}/processing")
+def record_processing(
+    lot_id: int,
+    payload: ProcessingUpdate,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Records post-landing processing (gutting/cleaning) done by MarineCatch
+    before cold storage. Admin only — this is an operational action, not
+    something the fisher or buyer does.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    lot = db.query(InventoryLot).filter(InventoryLot.id == lot_id).first()
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    from datetime import datetime, timezone
+    lot.processed_form       = payload.processed_form
+    lot.processed_weight_kg  = payload.processed_weight_kg
+    lot.processing_notes     = payload.processing_notes
+    lot.processed_at         = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(lot)
+
+    return {
+        "lot_id":              lot.id,
+        "lot_number":          lot.lot_number,
+        "processed_form":      lot.processed_form,
+        "processed_weight_kg": lot.processed_weight_kg,
+        "processed_at":        lot.processed_at,
+        "processing_notes":    lot.processing_notes,
     }
 
 # ── PUBLIC — single lot detail ────────────────────────────────────

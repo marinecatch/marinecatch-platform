@@ -396,3 +396,42 @@ def pending_inspections(
         })
 
     return {"total": len(result), "pending": result}
+
+@router.get("/inspections/mine")
+def my_inspections(
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Fisher or supplier sees quality inspection results for their own lots only.
+    """
+    lots = db.query(InventoryLot).filter(
+        InventoryLot.source_user_id == current_user.id
+    ).all()
+    lot_ids = [l.id for l in lots]
+    lot_map = {l.id: l for l in lots}
+
+    if not lot_ids:
+        return {"total": 0, "inspections": []}
+
+    inspections = db.query(QualityInspection).filter(
+        QualityInspection.lot_id.in_(lot_ids)
+    ).order_by(QualityInspection.inspected_at.desc()).all()
+
+    result = []
+    for i in inspections:
+        lot = lot_map.get(i.lot_id)
+        result.append({
+            "lot_number":       lot.lot_number if lot else "—",
+            "species":          lot.species if lot else "—",
+            "weight_kg":        lot.weight_kg if lot else 0,
+            "grade":            i.grade,
+            "status":           i.status,
+            "disposition":      i.disposition,
+            "temperature_c":    i.temperature_c,
+            "rejection_reason": i.rejection_reason,
+            "inspector_name":   i.inspector_name,
+            "inspected_at":     i.inspected_at,
+        })
+
+    return {"total": len(result), "inspections": result}

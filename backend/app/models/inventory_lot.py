@@ -146,6 +146,23 @@ class InventoryLot(Base):
     weight_kg       = Column(Float, nullable=False)
     # Original weight at landing — never changes
 
+    # ── POST-PROCESSING (gutting/cleaning before cold storage) ────
+    # Nullable — only set once MarineCatch has actually processed the lot.
+    # Landing state above (product_form/weight_kg) never changes;
+    # these capture what the buyer actually receives.
+    processed_form = Column(
+        SAEnum(
+            ProductForm,
+            name="productform",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x]
+        ),
+        nullable=True
+    )
+    processed_weight_kg = Column(Float, nullable=True)
+    processed_at         = Column(DateTime(timezone=True), nullable=True)
+    processing_notes     = Column(Text, nullable=True)
+
     available_kg    = Column(Float, nullable=False)
     # Decreases as orders are placed
     # available_kg = weight_kg - reserved_kg - sold_kg

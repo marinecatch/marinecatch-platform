@@ -114,6 +114,14 @@ function render(lot, code) {
             done: !!lot.inspection
         },
         {
+            label: 'Processing',
+            detail: lot.processed_form
+                ? `Processed to ${cap(lot.processed_form)}${lot.processed_weight_kg ? ' — ' + lot.processed_weight_kg + 'kg after cleaning' : ''}${lot.processing_notes ? ' (' + lot.processing_notes + ')' : ''}`
+                : 'Not yet processed — currently as landed',
+            date: lot.processed_at ? fmtDate(lot.processed_at) : '—',
+            done: !!lot.processed_form
+        },
+        {
             label: 'Platform Listing',
             detail: `Lot ${lot.lot_number} — ${cap(lot.lot_status)}`,
             date: fmtDate(lot.created_at),
@@ -130,7 +138,8 @@ function render(lot, code) {
             <div class="section-title">Product</div>
             <div class="row"><span>Species</span><span>${cap(lot.species)}</span></div>
             <div class="row"><span>Product Form</span><span>${cap(lot.product_form)}</span></div>
-            <div class="row"><span>Weight</span><span>${lot.weight_kg ? lot.weight_kg + ' kg' : '—'}</span></div>
+            <div class="row"><span>Weight (as landed)</span><span>${lot.weight_kg ? lot.weight_kg + ' kg' : '—'}</span></div>
+            ${lot.processed_weight_kg ? `<div class="row"><span>Weight (processed)</span><span>${lot.processed_weight_kg} kg</span></div>` : ''}
             <div class="row"><span>Grade</span><span>${cap(lot.grade)}</span></div>
             <div class="row"><span>Condition</span><span>${cap(lot.condition)}</span></div>
             ${lot.ownership_type ? `<div class="row"><span>Ownership</span><span>${cap(lot.ownership_type)}</span></div>` : ''}
