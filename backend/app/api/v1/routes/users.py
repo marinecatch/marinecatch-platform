@@ -224,3 +224,39 @@ def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
         "success": True,
         "message": "Registration received. Our team will contact you within 24 hours on WhatsApp."
     }
+
+# ── LEAD PIPELINE MANAGEMENT ──────────────────────────────────────
+
+class LeadUpdate(BaseModel):
+    lead_status: Optional[str] = None
+    assigned_to: Optional[str] = None
+    lead_notes:  Optional[str] = None
+
+@router.post("/leads/{user_id}/update")
+def update_lead(
+    user_id:     int,
+    payload:     LeadUpdate,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """Update lead pipeline status, assignment, and notes."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from app.models.user import User
+    from datetime import datetime, timezone
+
+    lead = db.query(User).filter(User.id == user_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    if payload.lead_status is not None:
+        lead.lead_status = payload.lead_status
+        lead.last_contacted_at = datetime.now(timezone.utc)
+    if payload.assigned_to is not None:
+        lead.assigned_to = payload.assigned_to
+    if payload.lead_notes is not None:
+        lead.lead_notes = payload.lead_notes
+
+    db.commit()
+    return {"success": True, "lead_status": lead.lead_status}

@@ -90,6 +90,34 @@
             <div class="card-title">All Users</div>
             <div id="users-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
         </div>
+        <!-- LEAD MANAGEMENT MODAL -->
+<div id="lead-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:8px; padding:24px; width:420px; max-width:90%;">
+        <h3 style="margin-bottom:16px;">Manage Lead — <span id="lead-modal-name"></span></h3>
+        <div class="form-group">
+            <label class="form-label">Pipeline Status</label>
+            <select id="lead-modal-status" class="form-control">
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="converted">Converted</option>
+                <option value="not_interested">Not Interested</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Assigned To</label>
+            <input type="text" id="lead-modal-assigned" class="form-control" placeholder="e.g. Muna Jamal">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea id="lead-modal-notes" class="form-control" rows="3" placeholder="Add a follow-up note..."></textarea>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeLeadModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveLeadUpdate()">Save</button>
+        </div>
+    </div>
+</div>
     </main>
 </div>
 
@@ -133,9 +161,9 @@ document.getElementById('stat-leads').textContent   = leads.length;
         <div class="table-wrap"><table>
             <thead><tr>
                 <th>ID</th><th>Name</th><th>Email</th><th>Phone</th>
-                <th>Role</th><th>Location</th>
-                ${isLeadView ? '<th>Interest</th>' : '<th>Business</th>'}
-                <th>Status</th><th>Date</th>
+                <th>Role</th><th>Location</th><th>Business</th>
+                ${isLeadView ? '<th>Pipeline Status</th><th>Assigned To</th>' : '<th>Status</th>'}
+                <th>Date</th>
                 ${isLeadView ? '<th>Action</th>' : ''}
             </tr></thead>
             <tbody>
@@ -148,12 +176,20 @@ document.getElementById('stat-leads').textContent   = leads.length;
                     <td>${statusBadge(u.role)}</td>
                     <td>${u.location || '—'}</td>
                     <td style="font-size:12px">${u.business_name || '—'}</td>
+                    ${isLeadView ? `
+                    <td>${leadStatusBadge(u.lead_status || 'new')}</td>
+                    <td>${u.assigned_to || '<span style=\"color:var(--text-light)\">Unassigned</span>'}</td>
+                    ` : `
                     <td>${u.is_active
                         ? '<span class="badge badge-success">Active</span>'
                         : '<span class="badge badge-warning">Lead</span>'}</td>
+                    `}
                     <td>${formatDate(u.created_at)}</td>
                     ${isLeadView ? `<td>
-                        <a href="https://wa.me/${u.phone?.replace(/\D/g,'')}" target="_blank" class="btn btn-primary btn-sm">WhatsApp</a>
+                        <div style="display:flex; gap:4px;">
+                            <a href="https://wa.me/${u.phone?.replace(/\D/g,'')}" target="_blank" class="btn btn-primary btn-sm">💬</a>
+                            <button class="btn btn-outline btn-sm" onclick="openLeadModal(${u.id}, '${u.name}', '${u.lead_status || 'new'}', '${u.assigned_to || ''}')">Manage</button>
+                        </div>
                     </td>` : ''}
                 </tr>`).join('')}
             </tbody>
@@ -180,6 +216,52 @@ function exportLeads() {
 }
 
 loadUsers();
+function leadStatusBadge(status) {
+    const map = {
+        'new':             ['warning', 'New'],
+        'contacted':       ['info',    'Contacted'],
+        'qualified':       ['info',    'Qualified'],
+        'converted':       ['success', 'Converted'],
+        'not_interested':  ['danger',  'Not Interested'],
+    };
+    const [type, label] = map[status] || ['neutral', status];
+    return `<span class="badge badge-${type}">${label}</span>`;
+}
+
+let currentLeadId = null;
+
+function openLeadModal(userId, name, status, assignedTo) {
+    currentLeadId = userId;
+    document.getElementById('lead-modal-name').textContent = name;
+    document.getElementById('lead-modal-status').value = status;
+    document.getElementById('lead-modal-assigned').value = assignedTo || '';
+    document.getElementById('lead-modal-notes').value = '';
+    document.getElementById('lead-modal').style.display = 'flex';
+}
+
+function closeLeadModal() {
+    document.getElementById('lead-modal').style.display = 'none';
+    currentLeadId = null;
+}
+
+async function saveLeadUpdate() {
+    const status     = document.getElementById('lead-modal-status').value;
+    const assigned_to = document.getElementById('lead-modal-assigned').value;
+    const notes       = document.getElementById('lead-modal-notes').value;
+
+    const result = await apiPost(`/api/v1/users/leads/${currentLeadId}/update`, {
+        lead_status: status,
+        assigned_to: assigned_to || null,
+        lead_notes:  notes || null,
+    });
+
+    if (result && result.success) {
+        closeLeadModal();
+        loadUsers();
+    } else {
+        alert('Failed to update lead: ' + (result?.detail || 'Unknown error'));
+    }
+}
 </script>
 </body>
 </html>
