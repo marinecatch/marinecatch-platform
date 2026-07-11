@@ -666,15 +666,21 @@ async def route_buyer_message(
             "Type MENU to return.")
         return
 
-    # ── DEFAULT ───────────────────────────────────────────────
-    await send_text(from_phone,
-        "Sorry, I didn't understand that. 🤔\n\n"
-        "Type *MENU* for options\n"
-        "Type *FISH* to see available seafood\n"
-        "Type *PRICE tuna* for price inquiry\n"
-        "Type *ORDER tuna 20* to place an order\n\n"
-        "MarineCatch Africa 🐟"
-    )
+    # ── DEFAULT — AI FALLBACK ─────────────────────────────────
+    try:
+        from app.services.whatsapp_ai_service import get_ai_response
+        ai_reply = await get_ai_response(db, text)
+        await send_text(from_phone, ai_reply)
+    except Exception as e:
+        print(f"AI fallback failed: {e}")
+        await send_text(from_phone,
+            "Sorry, I didn't understand that. 🤔\n\n"
+            "Type *MENU* for options\n"
+            "Type *FISH* to see available seafood\n"
+            "Type *PRICE tuna* for price inquiry\n"
+            "Type *ORDER tuna 20* to place an order\n\n"
+            "MarineCatch Africa 🐟"
+        )
 # ── OUTBOUND NOTIFICATIONS ────────────────────────────────────────
 
 @router.post("/notify/order-confirmed")

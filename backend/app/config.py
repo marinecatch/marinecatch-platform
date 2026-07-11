@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_NUMBER_ID:  str = ""
     WHATSAPP_VERIFY_TOKEN:     str = "marinecatch_verify_2026"
     WHATSAPP_API_VERSION:      str = "v19.0"
+    # Anthropic AI
+    ANTHROPIC_API_KEY: str = ""
     # Africa's Talking
     AT_API_KEY:        str = ""
     AT_USERNAME:       str = "sandbox"
