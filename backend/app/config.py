@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     MPESA_B2C_SHORTCODE: str = "174379"
     MPESA_INITIATOR_NAME: str = "testapi"
     MPESA_SECURITY_CREDENTIAL: str = ""
+    # KCB Buni API — bank transfer for large B2B payments
+    # Architecture ready; credentials pending KCB partnership agreement
+    KCB_ENVIRONMENT: str = "sandbox"
+    KCB_CONSUMER_KEY: str = ""
+    KCB_CONSUMER_SECRET: str = ""
+    KCB_ACCOUNT_NUMBER: str = ""
+    KCB_PAYBILL_NUMBER: str = ""
+    KCB_CALLBACK_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/callback"
+    KCB_VALIDATION_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/validate"
+    KCB_CONFIRMATION_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/confirm"
     # WhatsApp
     WHATSAPP_TOKEN:            str = ""
     WHATSAPP_PHONE_NUMBER_ID:  str = ""

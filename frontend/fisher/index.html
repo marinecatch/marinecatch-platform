@@ -701,8 +701,50 @@ async function loadCompliance() {
                 Not verified yet? Contact MarineCatch support or your local BMU office to complete verification and unlock a higher compliance level.
             </div>
         `;
+
+        loadClusterInfo();
     } catch(e) {
         el.innerHTML = '<div style="color:red;padding:12px">Failed to load compliance profile.</div>';
+    }
+}
+
+async function loadClusterInfo() {
+    try {
+        const res  = await fetch(`${API}/api/v1/compliance/cluster/mine`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+
+        const el = document.getElementById('compliance-content');
+        const wrap = document.createElement('div');
+        wrap.style.marginTop = '20px';
+        wrap.style.paddingTop = '20px';
+        wrap.style.borderTop = '1px solid #f7fafc';
+
+        if (!res.ok || !data.in_cluster) {
+            wrap.innerHTML = `
+                <div style="font-size:13px; font-weight:700; color:#a0aec0; text-transform:uppercase; margin-bottom:8px;">Cluster Membership</div>
+                <div style="color:#718096; font-size:14px;">Not currently a member of a fisher cluster. Ask your local BMU office about joining one — clusters unlock group credit scoring and better procurement planning.</div>
+            `;
+            el.appendChild(wrap);
+            return;
+        }
+
+        wrap.innerHTML = `
+            <div style="font-size:13px; font-weight:700; color:#a0aec0; text-transform:uppercase; margin-bottom:8px;">Cluster Membership</div>
+            <div class="verify-row"><span>Cluster</span><span style="font-weight:600">${data.name}${data.bmu_name ? ' — ' + data.bmu_name : ''}</span></div>
+            <div class="verify-row"><span>Cluster Rank</span><span style="font-weight:600">${data.rank} of ${data.total_active_clusters}</span></div>
+            <div class="verify-row"><span>Members</span><span style="font-weight:600">${data.members_count ?? '—'}</span></div>
+            <div class="verify-row"><span>Cluster Credit Score</span><span style="font-weight:600">${data.credit_score != null ? data.credit_score : '—'}</span></div>
+            <div class="verify-row"><span>Cluster Total Earnings</span><span style="font-weight:600">KES ${(data.total_earnings_kes || 0).toLocaleString()}</span></div>
+            ${data.monthly_capacity_kg ? `<div class="verify-row"><span>Monthly Capacity</span><span style="font-weight:600">${data.monthly_capacity_kg.toLocaleString()}kg</span></div>` : ''}
+            ${data.species_specialization ? `<div class="verify-row"><span>Specialization</span><span style="font-weight:600; text-transform:capitalize;">${data.species_specialization.replace(/,/g,', ')}</span></div>` : ''}
+            <div class="verify-row"><span>Verification</span><span class="${data.is_verified ? 'verify-yes' : 'verify-no'}">${data.is_verified ? '✓ MarineCatch Verified' : '○ Pending Verification'}</span></div>
+            ${data.cluster_leader_name ? `<div class="verify-row"><span>Cluster Leader</span><span style="font-weight:600">${data.cluster_leader_name}</span></div>` : ''}
+        `;
+        el.appendChild(wrap);
+    } catch(e) {
+        // Silently skip — cluster info is supplementary, not critical path
     }
 }
 

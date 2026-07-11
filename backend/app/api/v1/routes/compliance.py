@@ -15,6 +15,7 @@ from app.models.compliance_profile import ComplianceProfile
 from app.models.quality_inspection import QualityInspection
 from app.models.inventory_lot import InventoryLot, LotStatus
 from app.models.user import User
+from app.models.fisher_cluster import FisherCluster
 from app.services.member_id_service import (
     create_compliance_profile,
     upgrade_compliance_level,
@@ -435,3 +436,59 @@ def my_inspections(
         })
 
     return {"total": len(result), "inspections": result}
+
+@router.get("/cluster/mine")
+def my_cluster(
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Returns the fisher's cluster details, including a real rank
+    among all active clusters by total platform earnings.
+    """
+    profile = db.query(ComplianceProfile).filter(
+        ComplianceProfile.user_id == current_user.id
+    ).first()
+
+    if not profile or not profile.fisher_cluster_id:
+        return {"in_cluster": False}
+
+    cluster = db.query(FisherCluster).filter(
+        FisherCluster.id == profile.fisher_cluster_id
+    ).first()
+
+    if not cluster:
+        return {"in_cluster": False}
+
+    from sqlalchemy import func
+    total_active_clusters = db.query(func.count(FisherCluster.id)).filter(
+        FisherCluster.cluster_status.in_(["active", "verified"])
+    ).scalar() or 1
+
+    rank = db.query(func.count(FisherCluster.id)).filter(
+        FisherCluster.cluster_status.in_(["active", "verified"]),
+        FisherCluster.total_earnings_kes > (cluster.total_earnings_kes or 0)
+    ).scalar() or 0
+    rank += 1  # 1-indexed
+
+    return {
+        "in_cluster":            True,
+        "cluster_code":          cluster.cluster_code,
+        "name":                  cluster.name,
+        "cluster_type":          cluster.cluster_type,
+        "cluster_status":        cluster.cluster_status,
+        "landing_site":          cluster.landing_site,
+        "bmu_name":              cluster.bmu_name,
+        "members_count":         cluster.members_count,
+        "species_specialization": cluster.species_specialization,
+        "gear_types":            cluster.gear_types,
+        "weekly_capacity_kg":    cluster.weekly_capacity_kg,
+        "monthly_capacity_kg":   cluster.monthly_capacity_kg,
+        "avg_catch_per_trip_kg": cluster.avg_catch_per_trip_kg,
+        "credit_score":          cluster.credit_score,
+        "total_earnings_kes":    cluster.total_earnings_kes,
+        "is_verified":           cluster.is_verified,
+        "cluster_leader_name":   cluster.cluster_leader_name,
+        "rank":                  rank,
+        "total_active_clusters": total_active_clusters,
+    }
