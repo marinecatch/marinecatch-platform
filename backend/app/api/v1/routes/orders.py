@@ -414,3 +414,49 @@ def api_list_all_orders(
         })
 
     return {"total": len(result), "orders": result}
+
+@router.get("/admin/summary")
+def orders_summary(
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db),
+):
+    """
+    Real aggregate order stats for the admin dashboard.
+    Not paginated — actual totals, not a page count.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from app.models.order import Order, OrderStatus
+    from sqlalchemy import func
+    from datetime import datetime, timezone
+
+    UNPAID = [OrderStatus.PENDING_PAYMENT, OrderStatus.CANCELLED, OrderStatus.PAYMENT_FAILED]
+
+    total_orders = db.query(func.count(Order.id)).scalar() or 0
+
+    total_revenue = db.query(func.sum(Order.total_kes)).filter(
+        ~Order.status.in_(UNPAID)
+    ).scalar() or 0
+
+    pending_count = db.query(func.count(Order.id)).filter(
+        Order.status == OrderStatus.PENDING_PAYMENT
+    ).scalar() or 0
+
+    today = datetime.now(timezone.utc).date()
+    today_orders = db.query(func.count(Order.id)).filter(
+        func.date(Order.created_at) == today
+    ).scalar() or 0
+
+    today_revenue = db.query(func.sum(Order.total_kes)).filter(
+        func.date(Order.created_at) == today,
+        ~Order.status.in_(UNPAID)
+    ).scalar() or 0
+
+    return {
+        "total_orders":          total_orders,
+        "total_revenue_kes":     round(total_revenue, 0),
+        "pending_payment_count": pending_count,
+        "today_orders":          today_orders,
+        "today_revenue_kes":     round(today_revenue, 0),
+    }

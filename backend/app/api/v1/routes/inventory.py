@@ -30,7 +30,7 @@ from app.services.inventory_service import (
 )
 from app.api.v1.routes.users import get_current_user
 from app.services.fee_service import calculate_full_fee_breakdown
-from app.models.inventory_lot import InventoryLot
+from app.models.inventory_lot import InventoryLot, LotStatus
 from app.models.quality_inspection import QualityInspection
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -197,6 +197,82 @@ def record_processing(
         "processed_weight_kg": lot.processed_weight_kg,
         "processed_at":        lot.processed_at,
         "processing_notes":    lot.processing_notes,
+    }
+
+class LotActionRequest(BaseModel):
+    action: str  # update_price | mark_reserved | withdraw | relist | report_spoilage | report_partial_sale
+    selling_price_per_kg: Optional[float] = None
+    sold_kg:               Optional[float] = None
+    notes:                  Optional[str]  = None
+
+
+@router.post("/{lot_id}/action")
+def lot_action(
+    lot_id:  int,
+    payload: LotActionRequest,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Fisher-facing lot management. Scoped to lots the fisher owns.
+    Admins can also call this on any lot.
+    """
+    lot = get_lot_by_id(db, lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    is_owner = lot.source_user_id == current_user.id
+    is_admin = str(current_user.role).lower() in ["admin", "userrole.admin"]
+    if not (is_owner or is_admin):
+        raise HTTPException(status_code=403, detail="You can only manage your own lots")
+
+    action = payload.action
+
+    if action == "update_price":
+        if not payload.selling_price_per_kg or payload.selling_price_per_kg <= 0:
+            raise HTTPException(status_code=400, detail="Valid selling_price_per_kg required")
+        lot.selling_price_per_kg = payload.selling_price_per_kg
+
+    elif action == "mark_reserved":
+        lot.lot_status = LotStatus.RESERVED
+
+    elif action == "withdraw":
+        lot.visibility = "private"
+
+    elif action == "relist":
+        lot.visibility = "public"
+        if lot.lot_status == LotStatus.RESERVED:
+            lot.lot_status = LotStatus.AVAILABLE
+
+    elif action == "report_spoilage":
+        lot.lot_status = LotStatus.SPOILED
+        lot.available_kg = 0
+        if payload.notes:
+            lot.notes = payload.notes
+
+    elif action == "report_partial_sale":
+        if not payload.sold_kg or payload.sold_kg <= 0:
+            raise HTTPException(status_code=400, detail="Valid sold_kg required")
+        if payload.sold_kg > lot.available_kg:
+            raise HTTPException(status_code=400, detail=f"Cannot report {payload.sold_kg}kg sold — only {lot.available_kg}kg available")
+        lot.available_kg -= payload.sold_kg
+        lot.lot_status = LotStatus.SOLD if lot.available_kg <= 0 else LotStatus.PARTIALLY_SOLD
+        if payload.notes:
+            lot.notes = payload.notes
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+
+    db.commit()
+    db.refresh(lot)
+
+    return {
+        "success":              True,
+        "lot_number":           lot.lot_number,
+        "lot_status":           lot.lot_status,
+        "visibility":           lot.visibility,
+        "available_kg":         lot.available_kg,
+        "selling_price_per_kg": lot.selling_price_per_kg,
     }
 
 # ── PUBLIC — single lot detail ────────────────────────────────────

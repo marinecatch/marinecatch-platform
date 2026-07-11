@@ -8,7 +8,7 @@
 </head>
 <body>
 <div class="layout">
-
+ 
     <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-header">
@@ -48,7 +48,7 @@
             </a>
         </nav>
     </aside>
-
+ 
     <!-- MAIN -->
     <main class="main">
         <div class="topbar">
@@ -60,13 +60,13 @@
                 <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
             </div>
         </div>
-
+ 
         <!-- STATS -->
         <div class="stats-grid" id="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Total Orders</div>
                 <div class="stat-value" id="stat-orders">—</div>
-                <div class="stat-sub">All time</div>
+                <div class="stat-sub" id="stat-orders-sub">All time</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Active Inventory</div>
@@ -84,9 +84,9 @@
                 <div class="stat-sub">Active zones</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Catch Events</div>
-                <div class="stat-value" id="stat-catches">—</div>
-                <div class="stat-sub">Logged landings</div>
+                <div class="stat-label">Today's Catch</div>
+                <div class="stat-value" id="stat-todays-catch">—</div>
+                <div class="stat-sub">kg landed today</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Traceability Chains</div>
@@ -94,7 +94,72 @@
                 <div class="stat-sub">Export ready records</div>
             </div>
         </div>
-
+ 
+        <!-- FINANCIAL SNAPSHOT -->
+        <div class="card">
+            <div class="card-title">
+                💰 Financial Snapshot
+                <a href="/admin/pages/settlement.html" class="btn btn-outline btn-sm">View Settlement</a>
+            </div>
+            <div class="stats-grid" id="financial-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value" id="stat-revenue">—</div>
+                    <div class="stat-sub" id="stat-revenue-sub">All time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Today's Revenue</div>
+                    <div class="stat-value" id="stat-today-revenue">—</div>
+                    <div class="stat-sub" id="stat-today-orders-sub">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Fisher Payouts</div>
+                    <div class="stat-value" id="stat-pending-payouts">—</div>
+                    <div class="stat-sub" id="stat-pending-payouts-sub">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Outstanding Receivables</div>
+                    <div class="stat-value" id="stat-receivables">—</div>
+                    <div class="stat-sub" id="stat-overdue-sub">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Outstanding Payables</div>
+                    <div class="stat-value" id="stat-payables">—</div>
+                    <div class="stat-sub">Owed to suppliers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Working Capital Gap</div>
+                    <div class="stat-value" id="stat-wc-gap">—</div>
+                    <div class="stat-sub">Positive = cash needed</div>
+                </div>
+            </div>
+        </div>
+ 
+        <!-- COMPLIANCE & QUALITY -->
+        <div class="card">
+            <div class="card-title">
+                ✅ Compliance & Quality
+                <a href="/admin/pages/compliance.html" class="btn btn-outline btn-sm">View Compliance</a>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Pending Inspections</div>
+                    <div class="stat-value" id="stat-pending-inspections">—</div>
+                    <div class="stat-sub">Awaiting quality check</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Quality Failures</div>
+                    <div class="stat-value" id="stat-quality-failures">—</div>
+                    <div class="stat-sub">Rejected lots, all time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Payout Count</div>
+                    <div class="stat-value" id="stat-pending-payout-count">—</div>
+                    <div class="stat-sub">Transactions awaiting payout</div>
+                </div>
+            </div>
+        </div>
+ 
         <!-- RECENT ORDERS -->
         <div class="card">
             <div class="card-title">
@@ -103,7 +168,7 @@
             </div>
             <div id="recent-orders"><div class="loading"><div class="spinner"></div>Loading...</div></div>
         </div>
-
+ 
         <!-- INVENTORY ALERTS -->
         <div class="card">
             <div class="card-title">
@@ -112,23 +177,34 @@
             </div>
             <div id="inventory-summary"><div class="loading"><div class="spinner"></div>Loading...</div></div>
         </div>
-
+ 
     </main>
 </div>
-
+ 
 <script src="/admin/static/js/admin.js"></script>
 <script>
 if (!requireAuth()) throw new Error('Not authenticated');
 showUser();
 setActiveNav();
-
+ 
 async function loadDashboard() {
-    // Load orders
+    // Load order summary (real totals, not paginated)
+    const summary = await apiGet('/api/v1/orders/admin/summary');
+    if (summary) {
+        document.getElementById('stat-orders').textContent = summary.total_orders || 0;
+        document.getElementById('stat-orders-sub').textContent =
+            `${summary.pending_payment_count || 0} pending payment`;
+        document.getElementById('stat-revenue').textContent = formatKES(summary.total_revenue_kes);
+        document.getElementById('stat-revenue-sub').textContent = 'All time, paid orders';
+        document.getElementById('stat-today-revenue').textContent = formatKES(summary.today_revenue_kes);
+        document.getElementById('stat-today-orders-sub').textContent =
+            `${summary.today_orders || 0} orders today`;
+    }
+ 
+    // Load recent orders (page view — separate from the summary totals above)
     const ordersData = await apiGet('/api/v1/orders/admin/all');
-if (ordersData) {
-    const orders = ordersData.orders || [];
-    document.getElementById('stat-orders').textContent = ordersData.total || 0;
-
+    if (ordersData) {
+        const orders = ordersData.orders || [];
         const recentHtml = orders.length === 0
             ? '<p style="color:#718096;padding:20px">No orders yet.</p>'
             : `<div class="table-wrap"><table>
@@ -149,14 +225,22 @@ if (ordersData) {
                 </tbody></table></div>`;
         document.getElementById('recent-orders').innerHTML = recentHtml;
     }
-
-    // Load inventory
+ 
+    // Load inventory — also used to compute today's catch
     const inventory = await apiGet('/api/v1/inventory/?page_size=100');
     if (inventory) {
         const lots = inventory.lots || inventory;
         document.getElementById('stat-inventory').textContent =
             Array.isArray(lots) ? lots.length : '—';
-
+ 
+        if (Array.isArray(lots)) {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const todaysCatchKg = lots
+                .filter(l => l.catch_date && String(l.catch_date).slice(0, 10) === todayStr)
+                .reduce((sum, l) => sum + (l.weight_kg || 0), 0);
+            document.getElementById('stat-todays-catch').textContent = `${todaysCatchKg.toLocaleString()}kg`;
+        }
+ 
         const invHtml = !Array.isArray(lots) || lots.length === 0
             ? '<p style="color:#718096;padding:20px">No inventory available.</p>'
             : `<div class="table-wrap"><table>
@@ -177,31 +261,64 @@ if (ordersData) {
                 </tbody></table></div>`;
         document.getElementById('inventory-summary').innerHTML = invHtml;
     }
-
+ 
     // Load users
     const users = await apiGet('/api/v1/users/');
     if (users) {
         document.getElementById('stat-users').textContent =
             Array.isArray(users) ? users.length : (users.total || '—');
     }
-
+ 
     // Load zones
     const zones = await apiGet('/api/v1/logistics/zones?active_only=true');
     if (zones) {
         document.getElementById('stat-zones').textContent =
             Array.isArray(zones) ? zones.length : '—';
     }
-
+ 
     // Load ESG dashboard
     const esg = await apiGet('/api/v1/esg/dashboard');
     if (esg) {
-        document.getElementById('stat-catches').textContent =
-            esg.catch_data?.total_catch_events || 0;
         document.getElementById('stat-traces').textContent =
             esg.traceability?.export_ready || 0;
     }
+ 
+    // Load working capital position (receivables / payables / gap)
+    const wc = await apiGet('/api/v1/settlement/working-capital');
+    if (wc) {
+        document.getElementById('stat-receivables').textContent =
+            formatKES(wc.receivables?.outstanding_kes);
+        document.getElementById('stat-overdue-sub').textContent =
+            `${formatKES(wc.receivables?.overdue_kes)} overdue`;
+        document.getElementById('stat-payables').textContent =
+            formatKES(wc.payables?.outstanding_kes);
+        const gap = wc.working_capital?.gap_kes || 0;
+        document.getElementById('stat-wc-gap').textContent = formatKES(Math.abs(gap));
+    }
+ 
+    // Load pending fisher payouts (list — sum + count client-side)
+    const pending = await apiGet('/api/v1/payouts/pending');
+    if (Array.isArray(pending)) {
+        const totalPending = pending.reduce((sum, p) => sum + (p.payout_amount_kes || 0), 0);
+        document.getElementById('stat-pending-payouts').textContent = formatKES(totalPending);
+        document.getElementById('stat-pending-payouts-sub').textContent = `${pending.length} transactions`;
+        document.getElementById('stat-pending-payout-count').textContent = pending.length;
+    }
+ 
+    // Load pending inspections
+    const pendingInsp = await apiGet('/api/v1/compliance/inspections/pending');
+    if (pendingInsp) {
+        const count = Array.isArray(pendingInsp) ? pendingInsp.length : (pendingInsp.total || 0);
+        document.getElementById('stat-pending-inspections').textContent = count;
+    }
+ 
+    // Load quality failures (rejected inspections, all time)
+    const rejected = await apiGet('/api/v1/compliance/inspections?status=rejected');
+    if (rejected) {
+        document.getElementById('stat-quality-failures').textContent = rejected.total || 0;
+    }
 }
-
+ 
 loadDashboard();
 </script>
 </body>
