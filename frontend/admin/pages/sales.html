@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales & CRM — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Growth</div>
+            <a href="/admin/pages/sales.html" class="nav-item active"><span class="icon">📈</span> Sales & CRM</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Sales & CRM</div>
+                <div class="page-subtitle">Lead pipeline, source attribution, and conversion tracking</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- OVERVIEW STATS -->
+        <div class="stats-grid" id="overview-stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Leads</div>
+                <div class="stat-value" id="stat-total-leads">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Converted</div>
+                <div class="stat-value" id="stat-converted" style="color:var(--success)">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Buyers</div>
+                <div class="stat-value" id="stat-buyers">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="stat-orders">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">New This Week</div>
+                <div class="stat-value" id="stat-week" style="color:var(--accent-blue)">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unassigned</div>
+                <div class="stat-value" id="stat-unassigned" style="color:var(--warning)">—</div>
+                <div class="stat-sub">Need attention</div>
+            </div>
+        </div>
+
+        <!-- PIPELINE FUNNEL -->
+        <div class="card">
+            <div class="card-title">Lead Pipeline Funnel</div>
+            <div id="funnel-view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <!-- LEAD SOURCES -->
+            <div class="card">
+                <div class="card-title">Lead Sources</div>
+                <div id="sources-view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+
+            <!-- LEADS BY ROLE -->
+            <div class="card">
+                <div class="card-title">Leads by Interest</div>
+                <div id="role-view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- RECENT LEADS -->
+        <div class="card">
+            <div class="card-title">
+                Recent Leads
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <select id="filter-status" class="form-control" style="width:160px" onchange="loadRecentLeads()">
+                        <option value="">All Status</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="converted">Converted</option>
+                        <option value="not_interested">Not Interested</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="loadRecentLeads()">🔄 Refresh</button>
+                </div>
+            </div>
+            <div id="recent-leads-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadOverview() {
+    const data = await apiGet('/api/v1/sales/overview');
+    if (!data) return;
+
+    document.getElementById('stat-total-leads').textContent = data.total_leads;
+    document.getElementById('stat-converted').textContent   = data.total_converted;
+    document.getElementById('stat-buyers').textContent      = data.total_active_buyers;
+    document.getElementById('stat-orders').textContent      = data.total_orders;
+    document.getElementById('stat-week').textContent        = data.leads_this_week;
+    document.getElementById('stat-unassigned').textContent  = data.unassigned_leads;
+}
+
+async function loadFunnel() {
+    const data = await apiGet('/api/v1/sales/pipeline-summary');
+    if (!data) return;
+
+    const stages = [
+        {key: 'new', label: 'New', color: '#f0a500'},
+        {key: 'contacted', label: 'Contacted', color: '#00B3F0'},
+        {key: 'qualified', label: 'Qualified', color: '#1D60AE'},
+        {key: 'converted', label: 'Converted', color: '#28a745'},
+        {key: 'not_interested', label: 'Not Interested', color: '#dc3545'},
+    ];
+
+    const maxCount = Math.max(...stages.map(s => data.funnel[s.key] || 0), 1);
+
+    document.getElementById('funnel-view').innerHTML = `
+        <div style="display:flex; align-items:flex-end; gap:16px; height:160px; padding:16px 0;">
+            ${stages.map(s => {
+                const count = data.funnel[s.key] || 0;
+                const height = Math.max((count / maxCount) * 120, 4);
+                return `
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <div style="font-weight:700; font-size:18px;">${count}</div>
+                    <div style="width:100%; background:${s.color}; height:${height}px; border-radius:4px 4px 0 0;"></div>
+                    <div style="font-size:12px; color:var(--text-light); text-align:center;">${s.label}</div>
+                </div>`;
+            }).join('')}
+        </div>
+        <div style="text-align:center; padding-top:8px; border-top:1px solid var(--border); margin-top:8px;">
+            <span style="font-size:13px; color:var(--text-light);">Conversion Rate: </span>
+            <strong style="color:var(--success)">${data.conversion_rate}%</strong>
+        </div>`;
+}
+
+async function loadSources() {
+    const data = await apiGet('/api/v1/sales/lead-sources');
+    if (!data) return;
+
+    const sources = data.sources_total || {};
+    const converted = data.sources_converted || {};
+    const entries = Object.entries(sources).sort((a,b) => b[1]-a[1]);
+
+    if (!entries.length) {
+        document.getElementById('sources-view').innerHTML =
+            '<p style="color:var(--text-light);padding:16px">No source data yet.</p>';
+        return;
+    }
+
+    const maxCount = Math.max(...entries.map(e => e[1]), 1);
+
+    document.getElementById('sources-view').innerHTML = entries.map(([source, count]) => `
+        <div style="margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+                <span style="text-transform:capitalize;">${source}</span>
+                <span><strong>${count}</strong> ${converted[source] ? `(${converted[source]} converted)` : ''}</span>
+            </div>
+            <div style="background:var(--bg); border-radius:4px; height:8px;">
+                <div style="background:var(--primary); width:${(count/maxCount)*100}%; height:8px; border-radius:4px;"></div>
+            </div>
+        </div>`).join('');
+}
+
+async function loadByRole() {
+    const data = await apiGet('/api/v1/sales/leads-by-role');
+    if (!data) return;
+
+    const breakdown = data.breakdown || {};
+    const entries = Object.entries(breakdown).sort((a,b) => b[1]-a[1]);
+
+    if (!entries.length) {
+        document.getElementById('role-view').innerHTML =
+            '<p style="color:var(--text-light);padding:16px">No leads yet.</p>';
+        return;
+    }
+
+    document.getElementById('role-view').innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${entries.map(([role, count]) => `
+                <div style="background:var(--bg); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:100px;">
+                    <div style="font-size:20px; font-weight:700; color:var(--primary);">${count}</div>
+                    <div style="font-size:12px; color:var(--text-light); text-transform:capitalize;">${role.replace('_',' ')}</div>
+                </div>`).join('')}
+        </div>`;
+}
+
+async function loadRecentLeads() {
+    const status = document.getElementById('filter-status').value;
+    const url = '/api/v1/sales/recent-leads' + (status ? `?status=${status}` : '');
+    const data = await apiGet(url);
+    if (!data) return;
+
+    const leads = data.leads || [];
+    if (!leads.length) {
+        document.getElementById('recent-leads-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No leads found.</p>';
+        return;
+    }
+
+    document.getElementById('recent-leads-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Name</th><th>Phone</th><th>Interest</th>
+                <th>Source</th><th>Status</th><th>Assigned</th>
+                <th>Date</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${leads.map(l => `
+                <tr>
+                    <td><strong>${l.name}</strong></td>
+                    <td>${l.phone || '—'}</td>
+                    <td style="font-size:12px">${l.interest || '—'}</td>
+                    <td>${l.utm_source
+                        ? `<span class="badge badge-info">${l.utm_source}</span>`
+                        : '<span class="badge badge-neutral">direct</span>'}</td>
+                    <td>${leadStatusBadge(l.lead_status)}</td>
+                    <td>${l.assigned_to || '<span style="color:var(--text-light)">—</span>'}</td>
+                    <td>${formatDate(l.created_at)}</td>
+                    <td>
+                        <a href="https://wa.me/${l.phone?.replace(/\D/g,'')}" target="_blank" class="btn btn-primary btn-sm">💬</a>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function leadStatusBadge(status) {
+    const map = {
+        'new':             ['warning', 'New'],
+        'contacted':       ['info',    'Contacted'],
+        'qualified':       ['info',    'Qualified'],
+        'converted':       ['success', 'Converted'],
+        'not_interested':  ['danger',  'Not Interested'],
+    };
+    const [type, label] = map[status] || ['neutral', status];
+    return `<span class="badge badge-${type}">${label}</span>`;
+}
+
+loadOverview();
+loadFunnel();
+loadSources();
+loadByRole();
+loadRecentLeads();
+</script>
+</body>
+</html>
