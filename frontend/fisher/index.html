@@ -14,7 +14,10 @@
         .btn { padding:8px 16px; border-radius:6px; border:none; cursor:pointer; font-size:14px; font-weight:500; }
         .btn-primary { background:#276749; color:white; }
         .btn-outline { background:transparent; border:1px solid #e2e8f0; color:#4a5568; }
+        .btn-danger { background:#c53030; color:white; }
         .btn-sm { padding:6px 12px; font-size:13px; }
+        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+        .modal-box { background:white; border-radius:8px; padding:24px; width:420px; max-width:95%; max-height:85vh; overflow-y:auto; }
         .container { max-width:960px; margin:0 auto; padding:24px; }
         .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; flex-wrap:wrap; }
         .tab { padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; color:#718096; border:none; background:none; white-space:nowrap; }
@@ -234,11 +237,45 @@
     </div>
 </div>
 
+<!-- LOT MANAGE MODAL -->
+<div id="lot-manage-modal" class="modal">
+    <div class="modal-box">
+        <h3 style="margin-bottom:16px;">Manage Lot</h3>
+        <div id="manage-lot-info" style="background:#f0fff4; padding:12px; border-radius:6px; margin-bottom:16px; font-size:14px;"></div>
+
+        <div class="form-group">
+            <label class="form-label">Update Price (KES/kg)</label>
+            <div style="display:flex; gap:8px;">
+                <input type="number" id="manage-price" class="form-control" placeholder="New price">
+                <button class="btn btn-primary btn-sm" onclick="submitPriceUpdate()">Update</button>
+            </div>
+        </div>
+
+        <div id="manage-actions" style="display:flex; flex-direction:column; gap:8px; margin-top:16px;"></div>
+
+        <div id="manage-partial-sale" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #f7fafc;">
+            <label class="form-label">Kg sold outside the platform</label>
+            <div style="display:flex; gap:8px;">
+                <input type="number" id="manage-sold-kg" class="form-control" placeholder="e.g. 10">
+                <button class="btn btn-danger btn-sm" onclick="submitPartialSale()">Confirm</button>
+            </div>
+        </div>
+
+        <div id="manage-error" class="error"></div>
+        <div id="manage-success" class="success"></div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+            <button class="btn btn-outline" onclick="closeLotManage()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const API = '';
 let token = localStorage.getItem('mc_fisher_token');
 let currentUser = null;
 let inspectionMap = {};
+let currentManageLot = null;
 
 async function doLogin() {
     const email = document.getElementById('login-email').value;
@@ -348,11 +385,15 @@ async function loadMyLots() {
                 <div style="margin-top:10px; padding-top:10px; border-top:1px solid #f7fafc; font-size:13px; color:#a0aec0;">
                     ⏳ Awaiting quality inspection
                 </div>`}
-                ${lot.traceability_code ? `
-                <div style="display:flex; gap:8px; margin-top:10px;">
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                    ${lot.traceability_code ? `
                     <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}')">🔍 View Traceability</button>
                     <button class="btn btn-outline btn-sm" onclick="shareTrace('${lot.traceability_code}')">🔗 Share</button>
-                </div>` : ''}
+                    ` : ''}
+                    ${!['sold','delivered','completed','spoiled'].includes(lot.lot_status) ? `
+                    <button class="btn btn-outline btn-sm" onclick='openLotManage(${JSON.stringify(lot).replace(/'/g, "&#39;")})'>⚙️ Manage</button>
+                    ` : ''}
+                </div>
             </div>
         `}).join('');
     } catch(e) {
@@ -662,6 +703,99 @@ async function loadCompliance() {
         `;
     } catch(e) {
         el.innerHTML = '<div style="color:red;padding:12px">Failed to load compliance profile.</div>';
+    }
+}
+
+// ── LOT MANAGEMENT ────────────────────────────────────────────────
+function openLotManage(lot) {
+    currentManageLot = lot;
+    document.getElementById('manage-error').style.display = 'none';
+    document.getElementById('manage-success').style.display = 'none';
+    document.getElementById('manage-price').value = lot.selling_price_per_kg || '';
+    document.getElementById('manage-partial-sale').style.display = 'none';
+    document.getElementById('manage-sold-kg').value = '';
+
+    document.getElementById('manage-lot-info').innerHTML = `
+        <strong>${lot.lot_number}</strong><br>
+        ${lot.species ? lot.species.charAt(0).toUpperCase() + lot.species.slice(1) : '—'} — ${lot.available_kg}kg available<br>
+        Status: ${(lot.lot_status || '').replace('_',' ')}${lot.visibility === 'private' ? ' (withdrawn from marketplace)' : ''}
+    `;
+
+    const buttons = [];
+    if (lot.visibility === 'private') {
+        buttons.push(`<button class="btn btn-primary btn-sm" onclick="doLotAction('relist')">↩️ Relist on Marketplace</button>`);
+    } else {
+        buttons.push(`<button class="btn btn-outline btn-sm" onclick="doLotAction('withdraw')">🚫 Withdraw from Marketplace</button>`);
+    }
+    if (lot.lot_status !== 'reserved') {
+        buttons.push(`<button class="btn btn-outline btn-sm" onclick="doLotAction('mark_reserved')">🔒 Mark Reserved</button>`);
+    }
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="togglePartialSale()">📉 Report Partial Sale (sold outside platform)</button>`);
+    buttons.push(`<button class="btn btn-danger btn-sm" onclick="confirmSpoilage()">⚠️ Report Spoilage</button>`);
+
+    document.getElementById('manage-actions').innerHTML = buttons.join('');
+    document.getElementById('lot-manage-modal').style.display = 'flex';
+}
+
+function closeLotManage() {
+    document.getElementById('lot-manage-modal').style.display = 'none';
+    currentManageLot = null;
+}
+
+function togglePartialSale() {
+    const el = document.getElementById('manage-partial-sale');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function showManageError(msg) {
+    const errEl = document.getElementById('manage-error');
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+}
+
+async function submitPriceUpdate() {
+    const price = parseFloat(document.getElementById('manage-price').value);
+    if (!price || price <= 0) { showManageError('Enter a valid price'); return; }
+    await doLotAction('update_price', { selling_price_per_kg: price });
+}
+
+async function submitPartialSale() {
+    const kg = parseFloat(document.getElementById('manage-sold-kg').value);
+    if (!kg || kg <= 0) { showManageError('Enter a valid quantity'); return; }
+    await doLotAction('report_partial_sale', { sold_kg: kg });
+}
+
+function confirmSpoilage() {
+    if (!confirm('Report this lot as spoiled? This sets available stock to 0kg and cannot be undone.')) return;
+    doLotAction('report_spoilage');
+}
+
+async function doLotAction(action, extra = {}) {
+    if (!currentManageLot) return;
+    const errEl = document.getElementById('manage-error');
+    const sucEl = document.getElementById('manage-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    try {
+        const res = await fetch(`${API}/api/v1/inventory/${currentManageLot.id}/action`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({ action, ...extra })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            sucEl.textContent = '✅ Updated successfully';
+            sucEl.style.display = 'block';
+            loadMyLots();
+            setTimeout(closeLotManage, 900);
+        } else {
+            errEl.textContent = data.detail || 'Action failed';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
     }
 }
 

@@ -123,6 +123,11 @@ def list_users(
             "business_name": u.business_name,
             "is_active":     u.is_active,
             "created_at":    u.created_at,
+            "lead_status":       u.lead_status,
+            "lead_source":       u.lead_source,
+            "assigned_to":       u.assigned_to,
+            "lead_notes":        u.lead_notes,
+            "last_contacted_at": u.last_contacted_at,
         }
         for u in users
     ]
