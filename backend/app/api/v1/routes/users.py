@@ -89,6 +89,7 @@ def get_me(
         "location":      user.location,
         "business_name": user.business_name,
         "is_active":     user.is_active,
+        "is_ceo":        user.is_ceo,
         "created_at":    user.created_at,
     }
 
