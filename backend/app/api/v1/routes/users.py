@@ -122,6 +122,7 @@ def list_users(
             "location":      u.location,
             "business_name": u.business_name,
             "is_active":     u.is_active,
+            "is_ceo":        u.is_ceo,
             "created_at":    u.created_at,
             "lead_status":       u.lead_status,
             "lead_source":       u.lead_source,

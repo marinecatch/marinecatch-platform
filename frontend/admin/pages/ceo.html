@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEO Dashboard — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+    <style>
+        .ceo-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        @media (max-width: 900px) { .ceo-grid { grid-template-columns:1fr; } }
+        .leader-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f7fafc; font-size:14px; }
+        .leader-rank { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#edf2f7; color:#4a5568; font-size:12px; font-weight:700; margin-right:10px; }
+        .note-box { background:#fffaf0; border:1px solid #feebc8; border-radius:8px; padding:14px; font-size:13px; color:#7b341e; margin-bottom:20px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/ceo.html" class="nav-item active"><span class="icon">👔</span> CEO View</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">CEO Dashboard</div>
+                <div class="page-subtitle">Executive overview — MarineCatch Africa</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <div class="note-box">
+            📌 Pre-launch note: figures below are real, computed directly from live orders and settlement data — not placeholders. Values will legitimately read KES 0 until transactions start flowing. Burn rate, runway, and revenue forecasting are intentionally not shown here — this platform doesn't yet track company operating expenses, so those numbers would have to be fabricated. They can be added once real expense tracking exists.
+        </div>
+
+        <!-- TOP LINE -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">GMV (all orders)</div>
+                <div class="stat-value" id="stat-gmv">—</div>
+                <div class="stat-sub">Gross transaction value, all statuses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Revenue Collected</div>
+                <div class="stat-value" id="stat-revenue">—</div>
+                <div class="stat-sub">Paid orders only</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Platform Commission</div>
+                <div class="stat-value" id="stat-commission">—</div>
+                <div class="stat-sub">MarineCatch's margin</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Fisher Payouts Owed</div>
+                <div class="stat-value" id="stat-payouts-owed">—</div>
+                <div class="stat-sub">Net to fishers, paid orders</div>
+            </div>
+        </div>
+
+        <!-- MARKETPLACE HEALTH -->
+        <div class="card">
+            <div class="card-title">📈 Marketplace Health</div>
+            <div id="liquidity-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- CASH POSITION -->
+        <div class="card">
+            <div class="card-title">
+                💵 Cash Position
+                <a href="/admin/pages/settlement.html" class="btn btn-outline btn-sm">View Settlement</a>
+            </div>
+            <div class="stats-grid" style="margin-bottom:0;">
+                <div class="stat-card">
+                    <div class="stat-label">Outstanding Receivables</div>
+                    <div class="stat-value" id="stat-receivables">—</div>
+                    <div class="stat-sub" id="stat-overdue-sub">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Outstanding Payables</div>
+                    <div class="stat-value" id="stat-payables">—</div>
+                    <div class="stat-sub">Owed to suppliers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Net Working Capital</div>
+                    <div class="stat-value" id="stat-net-position">—</div>
+                    <div class="stat-sub">Receivables minus payables</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Supplier Payments</div>
+                    <div class="stat-value" id="stat-supplier-pending">—</div>
+                    <div class="stat-sub" id="stat-supplier-count-sub">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- USERS -->
+        <div class="card">
+            <div class="card-title">👥 Network</div>
+            <div class="stats-grid" style="margin-bottom:0;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="stat-total-users">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Fishers</div>
+                    <div class="stat-value" id="stat-total-fishers">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Buyers</div>
+                    <div class="stat-value" id="stat-total-buyers">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ceo-grid">
+            <!-- TOP BUYERS -->
+            <div class="card">
+                <div class="card-title">🏆 Top Buyers</div>
+                <div id="top-buyers"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+
+            <!-- TOP FISHERS -->
+            <div class="card">
+                <div class="card-title">🎣 Top Fishers</div>
+                <div id="top-fishers"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+
+            <!-- SPECIES MIX -->
+            <div class="card">
+                <div class="card-title">🐟 Revenue by Species</div>
+                <div id="species-mix"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+
+            <!-- REGIONAL PERFORMANCE -->
+            <div class="card">
+                <div class="card-title">📍 Revenue by Landing Site</div>
+                <div id="regional-mix"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- CLUSTER PERFORMANCE -->
+        <div class="card">
+            <div class="card-title">
+                🌊 Cluster Performance
+                <a href="/admin/pages/compliance.html" class="btn btn-outline btn-sm">View Compliance</a>
+            </div>
+            <div id="cluster-leaderboard"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+setActiveNav();
+
+// CEO-only gate — admin staff get redirected, not just hidden buttons
+fetch('/api/v1/users/me', { headers: { 'Authorization': `Bearer ${getToken()}` } })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.is_ceo) {
+            document.querySelector('.main').innerHTML =
+                '<div style="padding:60px; text-align:center; color:#718096;">🔒 This dashboard is restricted to CEO access.<br><a href="/admin/pages/dashboard.html">Return to Dashboard</a></div>';
+        }
+    })
+    .catch(() => {});
+
+function fmtKES(v) { return formatKES(v || 0); }
+
+async function loadCEO() {
+    // Executive summary — GMV, revenue, top buyers/fishers, species/regional mix
+    const summary = await apiGet('/api/v1/analytics/executive-summary');
+    if (summary) {
+        document.getElementById('stat-gmv').textContent        = fmtKES(summary.gmv_kes);
+        document.getElementById('stat-revenue').textContent    = fmtKES(summary.revenue_kes);
+        document.getElementById('stat-commission').textContent = fmtKES(summary.platform_commission_kes);
+        document.getElementById('stat-payouts-owed').textContent = fmtKES(summary.fisher_payouts_owed_kes);
+
+        document.getElementById('stat-total-users').textContent   = summary.total_users || 0;
+        document.getElementById('stat-total-fishers').textContent = summary.total_fishers || 0;
+        document.getElementById('stat-total-buyers').textContent  = summary.total_buyers || 0;
+
+        // Top buyers
+        const buyers = summary.top_buyers || [];
+        document.getElementById('top-buyers').innerHTML = buyers.length === 0
+            ? '<p style="color:#718096;padding:12px 0">No buyer activity yet.</p>'
+            : buyers.map((b, i) => `
+                <div class="leader-row">
+                    <span><span class="leader-rank">${i + 1}</span>${b.name} <span style="color:#a0aec0">(${b.order_count} orders)</span></span>
+                    <strong>${fmtKES(b.total_spent_kes)}</strong>
+                </div>`).join('');
+
+        // Top fishers
+        const fishers = summary.top_fishers || [];
+        document.getElementById('top-fishers').innerHTML = fishers.length === 0
+            ? '<p style="color:#718096;padding:12px 0">No fisher earnings yet.</p>'
+            : fishers.map((f, i) => `
+                <div class="leader-row">
+                    <span><span class="leader-rank">${i + 1}</span>${f.name} <span style="color:#a0aec0">(${f.order_count} orders)</span></span>
+                    <strong>${fmtKES(f.total_earned_kes)}</strong>
+                </div>`).join('');
+
+        // Species mix
+        const species = summary.species_mix || [];
+        document.getElementById('species-mix').innerHTML = species.length === 0
+            ? '<p style="color:#718096;padding:12px 0">No sales data yet.</p>'
+            : species.map(s => `
+                <div class="leader-row">
+                    <span style="text-transform:capitalize">${s.species} <span style="color:#a0aec0">(${s.kg}kg)</span></span>
+                    <strong>${fmtKES(s.revenue_kes)}</strong>
+                </div>`).join('');
+
+        // Regional mix
+        const regions = summary.regional_mix || [];
+        document.getElementById('regional-mix').innerHTML = regions.length === 0
+            ? '<p style="color:#718096;padding:12px 0">No regional data yet.</p>'
+            : regions.map(r => `
+                <div class="leader-row">
+                    <span style="text-transform:capitalize">${r.landing_site} <span style="color:#a0aec0">(${r.order_count} orders)</span></span>
+                    <strong>${fmtKES(r.revenue_kes)}</strong>
+                </div>`).join('');
+    }
+
+    // Cash position
+    const wc = await apiGet('/api/v1/settlement/working-capital');
+    if (wc) {
+        document.getElementById('stat-receivables').textContent = fmtKES(wc.receivables?.outstanding_kes);
+        document.getElementById('stat-overdue-sub').textContent = `${fmtKES(wc.receivables?.overdue_kes)} overdue`;
+        document.getElementById('stat-payables').textContent    = fmtKES(wc.payables?.outstanding_kes);
+        document.getElementById('stat-net-position').textContent = fmtKES(wc.working_capital?.net_position_kes);
+    }
+
+    // Pending supplier payments
+    const pendingSupplier = await apiGet('/api/v1/settlement/supplier-payments/pending');
+    if (pendingSupplier) {
+        const list = pendingSupplier.pending || [];
+        const total = list.reduce((sum, p) => sum + (p.outstanding_kes || 0), 0);
+        document.getElementById('stat-supplier-pending').textContent = fmtKES(total);
+        document.getElementById('stat-supplier-count-sub').textContent = `${list.length} pending`;
+    }
+
+    // Cluster leaderboard
+    const clusters = await apiGet('/api/v1/compliance/clusters/leaderboard');
+    if (clusters) {
+        const list = clusters.clusters || [];
+        document.getElementById('cluster-leaderboard').innerHTML = list.length === 0
+            ? '<p style="color:#718096;padding:12px 0">No active clusters yet.</p>'
+            : `<div class="table-wrap"><table>
+                <thead><tr><th>Cluster</th><th>Members</th><th>Credit Score</th><th>Monthly Capacity</th><th>Total Earnings</th></tr></thead>
+                <tbody>
+                ${list.map((c, i) => `
+                    <tr>
+                        <td><span class="leader-rank">${i + 1}</span><strong>${c.name}</strong>${c.bmu_name ? ' — ' + c.bmu_name : ''}</td>
+                        <td>${c.members_count ?? '—'}</td>
+                        <td>${c.credit_score ?? '—'}</td>
+                        <td>${c.monthly_capacity_kg ? c.monthly_capacity_kg.toLocaleString() + 'kg' : '—'}</td>
+                        <td>${fmtKES(c.total_earnings_kes)}</td>
+                    </tr>`).join('')}
+                </tbody></table></div>`;
+    }
+    // Marketplace liquidity
+    const liquidity = await apiGet('/api/v1/analytics/liquidity?days=30');
+    if (liquidity) {
+        const idx = liquidity.liquidity_index;
+        const idxColor = idx == null ? '#a0aec0' : idx >= 70 ? '#276749' : idx >= 40 ? '#c05621' : '#c53030';
+        document.getElementById('liquidity-content').innerHTML = `
+            <div class="stats-grid" style="margin-bottom:0;">
+                <div class="stat-card">
+                    <div class="stat-label">Liquidity Index</div>
+                    <div class="stat-value" style="color:${idxColor}">${idx != null ? idx : '—'}</div>
+                    <div class="stat-sub">${idx == null ? 'Not enough data yet' : idx >= 70 ? 'Healthy' : idx >= 40 ? 'Developing' : 'Needs attention'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Inventory Sell-through</div>
+                    <div class="stat-value">${liquidity.sell_through_rate_pct != null ? liquidity.sell_through_rate_pct + '%' : '—'}</div>
+                    <div class="stat-sub">Last ${liquidity.period_days} days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Time to Sale</div>
+                    <div class="stat-value">${liquidity.avg_time_to_sale_hours != null ? liquidity.avg_time_to_sale_hours + 'h' : '—'}</div>
+                    <div class="stat-sub">Listing to first order</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Order Completion</div>
+                    <div class="stat-value">${liquidity.order_completion_rate_pct != null ? liquidity.order_completion_rate_pct + '%' : '—'}</div>
+                    <div class="stat-sub">Delivered / placed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Repeat Buyer Rate</div>
+                    <div class="stat-value">${liquidity.repeat_buyer_rate_pct != null ? liquidity.repeat_buyer_rate_pct + '%' : '—'}</div>
+                    <div class="stat-sub">Buyers with 2+ orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Fishers / Buyers</div>
+                    <div class="stat-value" style="font-size:20px;">${liquidity.active_fishers} / ${liquidity.active_buyers}</div>
+                    <div class="stat-sub">Transacted in last ${liquidity.period_days} days</div>
+                </div>
+            </div>
+            <div style="font-size:11px; color:#a0aec0; margin-top:16px;">${liquidity.liquidity_index_note || ''}</div>
+        `;
+    }
+}
+
+loadCEO();
+</script>
+</body>
+</html>

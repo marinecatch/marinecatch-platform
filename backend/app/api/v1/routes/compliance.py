@@ -492,3 +492,30 @@ def my_cluster(
         "rank":                  rank,
         "total_active_clusters": total_active_clusters,
     }
+
+@router.get("/clusters/leaderboard")
+def clusters_leaderboard(
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Top clusters by earnings — CEO visibility only."""
+    if not current_user.is_ceo:
+        raise HTTPException(status_code=403, detail="CEO access only")
+
+    clusters = db.query(FisherCluster).filter(
+        FisherCluster.cluster_status.in_(["active", "verified"])
+    ).order_by(FisherCluster.total_earnings_kes.desc()).limit(10).all()
+
+    return {
+        "clusters": [
+            {
+                "name":                 c.name,
+                "bmu_name":             c.bmu_name,
+                "members_count":        c.members_count,
+                "total_earnings_kes":   c.total_earnings_kes,
+                "credit_score":         c.credit_score,
+                "monthly_capacity_kg":  c.monthly_capacity_kg,
+            }
+            for c in clusters
+        ]
+    }

@@ -98,6 +98,10 @@ class User(Base):
     # Replaces multiple user roles with cleaner buyer_type field
     # ── STATUS + TIMESTAMPS ───────────────────────────────────
     is_active  = Column(Boolean, default=True, nullable=False)
+    # CEO-only dashboard access — distinct from role=admin.
+    # Admin staff can see the operations dashboard; only accounts
+    # with is_ceo=True can see the CEO/executive dashboard.
+    is_ceo     = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
