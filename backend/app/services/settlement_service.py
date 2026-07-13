@@ -232,7 +232,7 @@ def create_supplier_payment(
     return payment
 
 
-def record_supplier_payout(
+async def record_supplier_payout(
     db:               Session,
     payment_id:       int,
     amount_paid:      float,
@@ -276,6 +276,34 @@ def record_supplier_payout(
             profile.total_volume_kg    = (profile.total_volume_kg or 0.0) + (payment.quantity_kg or 0.0)
             profile.total_value_kes    = (profile.total_value_kes or 0.0) + payment.purchase_amount_kes
             db.commit()
+
+            # KRA compliance prompt — unlock institutional buyers at KES 500K
+            KRA_PROMPT_THRESHOLD = 500000.0
+            if (profile.total_value_kes >= KRA_PROMPT_THRESHOLD
+                    and not profile.kra_verified):
+                try:
+                    from app.services.whatsapp_service import send_text
+                    from app.models.user import User as UserModel
+                    supplier = db.query(UserModel).filter(
+                        UserModel.id == payment.supplier_id
+                    ).first()
+                    if supplier and supplier.phone:
+                        await send_text(
+                            supplier.phone,
+                            f"🎉 *Congratulations {supplier.name}!*\n\n"
+                            f"You've sold over KES {int(profile.total_value_kes):,} "
+                            f"through MarineCatch Africa.\n\n"
+                            f"💼 *Unlock Bigger Buyers*\n"
+                            f"Add your KRA PIN to qualify for hotels, "
+                            f"processors, and export buyers who need "
+                            f"tax-compliant suppliers.\n\n"
+                            f"Reply with:\n"
+                            f"*KRA A123456789B*\n"
+                            f"(replace with your actual KRA PIN)\n\n"
+                            f"MarineCatch Africa 🐟"
+                        )
+                except Exception as notify_err:
+                    print(f"KRA prompt notification failed: {notify_err}")
 
         from app.services.member_id_service import update_trust_score
         update_trust_score(db, payment.supplier_id)

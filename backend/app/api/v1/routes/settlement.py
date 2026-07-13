@@ -300,7 +300,7 @@ def list_supplier_payments(
 
 
 @router.post("/supplier-payments/{payment_id}/payout")
-def record_payout(
+async def record_payout(
     payment_id:  int,
     payload:     SupplierPayoutRecord,
     current_user = Depends(get_current_user),
@@ -310,7 +310,7 @@ def record_payout(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    payment = record_supplier_payout(
+    payment = await record_supplier_payout(
         db               = db,
         payment_id       = payment_id,
         amount_paid      = payload.amount_paid,

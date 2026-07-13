@@ -196,6 +196,42 @@ async def route_fisher_message(
 
     fisher_name = fisher.name.split()[0] if fisher else "Fisher"
 
+    # ── KRA PIN SELF-SUBMISSION ────────────────────────────────
+    if text.upper().startswith("KRA "):
+        kra_pin = text[4:].strip().upper()
+        # Basic KRA PIN format validation: Letter + 9 digits + Letter
+        if len(kra_pin) == 11 and kra_pin[0].isalpha() and kra_pin[-1].isalpha() \
+                and kra_pin[1:10].isdigit():
+            try:
+                from app.services.member_id_service import verify_kra
+                profile = verify_kra(db, fisher.id, kra_pin, "Self-submitted via WhatsApp")
+                await send_text(
+                    from_phone,
+                    f"✅ *KRA PIN Recorded!*\n\n"
+                    f"PIN: {kra_pin}\n"
+                    f"Member ID: {profile.member_id}\n\n"
+                    f"Our team will verify this and unlock access to "
+                    f"hotels, processors, and export buyers within "
+                    f"24 hours.\n\n"
+                    f"Asante {fisher_name}! 🐟\n"
+                    f"MarineCatch Africa"
+                )
+            except Exception as e:
+                await send_text(
+                    from_phone,
+                    "Sorry, we couldn't save your KRA PIN. Please try again "
+                    "or contact support: +254707939810"
+                )
+        else:
+            await send_text(
+                from_phone,
+                f"❌ Invalid KRA PIN format.\n\n"
+                f"A KRA PIN looks like: A123456789B\n"
+                f"(1 letter, 9 digits, 1 letter)\n\n"
+                f"Try again: *KRA A123456789B*"
+            )
+        return
+
     # ── FISHER MAIN MENU ──────────────────────────────────────
     if text in ["hi", "hello", "habari", "menu", "start", "help"]:
         await send_menu(
