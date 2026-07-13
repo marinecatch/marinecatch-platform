@@ -148,6 +148,13 @@ def record_payment(
     # Update buyer credit score
     _update_buyer_credit_score(db, receivable.buyer_id)
 
+    # Update compliance profile trust score
+    try:
+        from app.services.member_id_service import update_trust_score
+        update_trust_score(db, receivable.buyer_id)
+    except Exception as e:
+        print(f"Trust score update failed: {e}")
+
     return receivable
 
 
@@ -257,6 +264,24 @@ def record_supplier_payout(
 
     db.commit()
     db.refresh(payment)
+
+    # Update supplier's compliance profile stats and trust score
+    try:
+        from app.models.compliance_profile import ComplianceProfile
+        profile = db.query(ComplianceProfile).filter(
+            ComplianceProfile.user_id == payment.supplier_id
+        ).first()
+        if profile and payment.status == SupplierPaymentStatus.PAID:
+            profile.total_transactions = (profile.total_transactions or 0) + 1
+            profile.total_volume_kg    = (profile.total_volume_kg or 0.0) + (payment.quantity_kg or 0.0)
+            profile.total_value_kes    = (profile.total_value_kes or 0.0) + payment.purchase_amount_kes
+            db.commit()
+
+        from app.services.member_id_service import update_trust_score
+        update_trust_score(db, payment.supplier_id)
+    except Exception as e:
+        print(f"Trust score update failed: {e}")
+
     return payment
 
 

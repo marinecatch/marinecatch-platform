@@ -312,6 +312,33 @@ def create_inspection(
     db.commit()
     db.refresh(inspection)
 
+    # Update fisher's quality/rejection rate and trust score
+    try:
+        from app.models.compliance_profile import ComplianceProfile
+        profile = db.query(ComplianceProfile).filter(
+            ComplianceProfile.user_id == lot.source_user_id
+        ).first()
+        if profile:
+            total_inspections = db.query(QualityInspection).join(
+                InventoryLot, QualityInspection.lot_id == InventoryLot.id
+            ).filter(
+                InventoryLot.source_user_id == lot.source_user_id
+            ).count()
+            rejected_inspections = db.query(QualityInspection).join(
+                InventoryLot, QualityInspection.lot_id == InventoryLot.id
+            ).filter(
+                InventoryLot.source_user_id == lot.source_user_id,
+                QualityInspection.status == "failed"
+            ).count()
+            profile.rejection_rate = round(
+                rejected_inspections / total_inspections, 3
+            ) if total_inspections > 0 else 0.0
+
+        from app.services.member_id_service import update_trust_score
+        update_trust_score(db, lot.source_user_id)
+    except Exception as e:
+        print(f"Trust score update after inspection failed: {e}")
+
     return {
         "success":      True,
         "lot_number":   lot.lot_number,
