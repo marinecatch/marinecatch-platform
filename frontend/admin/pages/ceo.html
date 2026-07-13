@@ -180,16 +180,22 @@ if (!requireAuth()) throw new Error('Not authenticated');
 showUser();
 setActiveNav();
 
-// CEO-only gate — admin staff get redirected, not just hidden buttons
+// CEO-only gate — dashboard data only loads AFTER this confirms access,
+// instead of racing in parallel (which caused failed-fetch noise for non-CEO users).
 fetch('/api/v1/users/me', { headers: { 'Authorization': `Bearer ${getToken()}` } })
     .then(r => r.json())
     .then(data => {
         if (!data.is_ceo) {
             document.querySelector('.main').innerHTML =
                 '<div style="padding:60px; text-align:center; color:#718096;">🔒 This dashboard is restricted to CEO access.<br><a href="/admin/pages/dashboard.html">Return to Dashboard</a></div>';
+        } else {
+            loadCEO();
         }
     })
-    .catch(() => {});
+    .catch(() => {
+        document.querySelector('.main').innerHTML =
+            '<div style="padding:60px; text-align:center; color:#718096;">Unable to verify access. Please try logging in again.</div>';
+    });
 
 function fmtKES(v) { return formatKES(v || 0); }
 
