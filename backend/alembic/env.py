@@ -10,6 +10,12 @@ from app.models.compliance_profile import ComplianceProfile
 from app.models.quality_inspection import QualityInspection
 from app.models.catch_draft import CatchDraft
 from app.models.lead_attribution import LeadAttribution
+from app.models.logistics_partner import LogisticsPartner
+from app.models.storage_node import StorageNode
+from app.models.cooler_asset import CoolerAsset
+from app.models.transport_job import TransportJob
+from app.models.custody_event import CustodyEvent
+from app.models.logistics_exception import LogisticsException
 
 from alembic import context
 
