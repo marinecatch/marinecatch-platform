@@ -24,7 +24,8 @@ from app.api.v1.routes import (
     analytics,
     settlement,
     compliance,
-    sales
+    sales,
+    logistics_orchestration
 )
 
 @asynccontextmanager
@@ -109,6 +110,7 @@ app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(settlement.router, prefix="/api/v1")
 app.include_router(compliance.router, prefix="/api/v1")
 app.include_router(sales.router, prefix="/api/v1")
+app.include_router(logistics_orchestration.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     landing_path = os.path.join(
