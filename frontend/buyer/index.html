@@ -6,6 +6,12 @@
     <title>MarineCatch — Buyer Portal</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
+        @media print {
+            body * { visibility: hidden; }
+            #invoice-content, #invoice-content * { visibility: visible; }
+            #invoice-content { position: absolute; top: 0; left: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f7fafc; color:#2d3748; }
         .header { background:#1a365d; color:white; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
         .header-logo { font-size:20px; font-weight:700; }
@@ -221,6 +227,17 @@
             <button class="btn btn-outline" onclick="closeOrderModal()">Cancel</button>
             <button class="btn btn-outline btn-sm" onclick="getQuote()">Get Quote</button>
             <button class="btn btn-success" onclick="placeOrder()">Place Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div id="invoice-modal" class="modal">
+    <div class="modal-box" style="width:600px; max-width:95%;">
+        <div id="invoice-content"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:20px;" class="no-print">
+            <button class="btn btn-outline" onclick="closeInvoiceModal()">Close</button>
+            <button class="btn btn-primary" onclick="printInvoice()">🖨️ Print / Save as PDF</button>
         </div>
     </div>
 </div>
@@ -681,8 +698,108 @@ async function loadInvoices() {
     }
 }
 
-function requestInvoice(orderId) {
-    alert(`Invoice request received for order #${orderId}.\n\nOur team will send the invoice to your registered email within 24 hours.\n\nFor urgent requests contact: info@marinecatchafrica.com`);
+async function requestInvoice(orderId) {
+    const modal = document.getElementById('invoice-modal');
+    const content = document.getElementById('invoice-content');
+    content.innerHTML = '<div class="empty">Loading invoice...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`${API}/api/v1/documents/invoice/${orderId}`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const inv = await res.json();
+
+        if (!res.ok) {
+            content.innerHTML = `<div class="empty">${inv.detail || 'Unable to generate invoice.'}</div>`;
+            return;
+        }
+
+        content.innerHTML = `
+            <div id="invoice-printable">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px;">
+                    <div>
+                        <div style="font-size:20px; font-weight:700; color:#1a365d;">MarineCatch Africa</div>
+                        <div style="font-size:13px; color:#718096;">${inv.seller.location}</div>
+                        <div style="font-size:13px; color:#718096;">${inv.seller.email}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:16px; font-weight:700;">INVOICE</div>
+                        <div style="font-size:13px; color:#718096; font-family:monospace;">${inv.document_reference}</div>
+                        <div style="font-size:12px; color:#a0aec0;">${new Date(inv.generated_at).toLocaleDateString('en-KE')}</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; padding:14px; background:#f7fafc; border-radius:6px;">
+                    <div>
+                        <div style="font-size:11px; color:#a0aec0; text-transform:uppercase; margin-bottom:4px;">Billed To</div>
+                        <div style="font-weight:600;">${inv.buyer.business_name || inv.buyer.name}</div>
+                        <div style="font-size:13px; color:#718096;">${inv.buyer.email || ''}</div>
+                        <div style="font-size:13px; color:#718096;">${inv.buyer.location || ''}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#a0aec0; text-transform:uppercase; margin-bottom:4px;">Order</div>
+                        <div style="font-weight:600;">#${inv.order.order_id}</div>
+                        ${inv.order.lpo_reference ? `<div style="font-size:13px; color:#718096;">LPO: ${inv.order.lpo_reference}</div>` : ''}
+                    </div>
+                </div>
+
+                <table style="width:100%; border-collapse:collapse; margin-bottom:16px;">
+                    <thead>
+                        <tr style="border-bottom:2px solid #e2e8f0;">
+                            <th style="text-align:left; padding:8px 4px; font-size:12px; color:#718096;">Description</th>
+                            <th style="text-align:right; padding:8px 4px; font-size:12px; color:#718096;">Qty</th>
+                            <th style="text-align:right; padding:8px 4px; font-size:12px; color:#718096;">Price/kg</th>
+                            <th style="text-align:right; padding:8px 4px; font-size:12px; color:#718096;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${inv.line_items.map(li => `
+                            <tr style="border-bottom:1px solid #f7fafc;">
+                                <td style="padding:8px 4px; font-size:14px;">
+                                    ${li.description}
+                                    ${li.traceability ? `<div style="font-size:11px; color:#a0aec0;">Trace: ${li.traceability}</div>` : ''}
+                                </td>
+                                <td style="text-align:right; padding:8px 4px; font-size:14px;">${li.quantity_kg}kg</td>
+                                <td style="text-align:right; padding:8px 4px; font-size:14px;">KES ${li.price_per_kg.toLocaleString()}</td>
+                                <td style="text-align:right; padding:8px 4px; font-size:14px;">KES ${li.subtotal_kes.toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div style="margin-left:auto; width:260px;">
+                    <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:13px;">
+                        <span style="color:#718096;">Subtotal</span><span>KES ${inv.totals.subtotal_kes.toLocaleString()}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:13px;">
+                        <span style="color:#718096;">Fees & Commission</span><span>KES ${inv.totals.total_fees_kes.toLocaleString()}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-top:2px solid #e2e8f0; margin-top:6px; font-weight:700; font-size:16px;">
+                        <span>Total</span><span>KES ${inv.totals.total_amount_kes.toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; padding-top:16px; border-top:1px solid #f7fafc; font-size:13px;">
+                    <strong>Payment Status:</strong> <span style="text-transform:capitalize;">${inv.payment.status}</span>
+                    ${inv.payment.due_date ? `<br><strong>Due:</strong> ${new Date(inv.payment.due_date).toLocaleDateString('en-KE')}` : ''}
+                    ${inv.payment.mpesa_receipt ? `<br><strong>M-Pesa Receipt:</strong> ${inv.payment.mpesa_receipt}` : ''}
+                </div>
+
+                <div style="margin-top:20px; font-size:11px; color:#a0aec0;">${inv.footer}</div>
+            </div>
+        `;
+    } catch(e) {
+        content.innerHTML = '<div class="empty">Failed to load invoice. Please try again.</div>';
+    }
+}
+
+function closeInvoiceModal() {
+    document.getElementById('invoice-modal').style.display = 'none';
+}
+
+function printInvoice() {
+    window.print();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
