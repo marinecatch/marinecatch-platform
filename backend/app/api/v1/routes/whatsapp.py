@@ -248,7 +248,7 @@ async def route_fisher_message(
         return
 
     # ── LOG CATCH — Step 1: species, weight, site ─────────────────
-    if text in ["log catch", "catch", "samaki", "ingiza"] or button_id == "f_catch":
+    if text in ["log catch", "catch", "samaki", "ingiza"] or button_id == "fisher_catch":
         await send_text(
             from_phone,
             f"🎣 *Log Your Catch*\n\n"
