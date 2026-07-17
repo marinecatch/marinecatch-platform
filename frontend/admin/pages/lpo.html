@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPO Orders — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/ceo.html" class="nav-item"><span class="icon">👔</span> CEO View</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/lpo.html" class="nav-item"><span class="icon">📋</span> LPO Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/sales.html" class="nav-item"><span class="icon">📈</span> Sales & CRM</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">LPO Orders</div>
+                <div class="page-subtitle">Institutional purchase orders — hotels, processors, exporters</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total LPO Orders</div>
+                <div class="stat-value" id="stat-lpo-count">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total LPO Value</div>
+                <div class="stat-value" id="stat-lpo-value">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Fulfillment</div>
+                <div class="stat-value" id="stat-lpo-pending">—</div>
+            </div>
+        </div>
+
+        <!-- LOG NEW LPO -->
+        <div class="card">
+            <div class="card-title">
+                📋 Log New LPO
+                <button class="btn btn-outline btn-sm" onclick="toggleLpoForm()" id="lpo-form-toggle">+ New LPO</button>
+            </div>
+            <div id="lpo-form-wrap" style="display:none;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Buyer *</label>
+                        <select id="lpo-buyer" class="form-control"><option value="">Loading buyers...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lot *</label>
+                        <select id="lpo-lot" class="form-control"><option value="">Loading lots...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantity (kg) *</label>
+                        <input type="number" id="lpo-quantity" class="form-control" placeholder="e.g. 50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">LPO Reference Number *</label>
+                        <input type="text" id="lpo-reference" class="form-control" placeholder="e.g. LPO-2026-0142">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Procurement Officer</label>
+                        <input type="text" id="lpo-officer" class="form-control" placeholder="Contact name at buyer">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Fulfillment Date</label>
+                        <input type="date" id="lpo-fulfillment-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payment Terms (days)</label>
+                        <input type="number" id="lpo-payment-terms" class="form-control" value="7">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Delivery Distance (km)</label>
+                        <input type="number" id="lpo-distance" class="form-control" placeholder="e.g. 12">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label class="form-label">Delivery Address</label>
+                        <input type="text" id="lpo-address" class="form-control" placeholder="Full delivery address">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label class="form-label">Notes</label>
+                        <input type="text" id="lpo-notes" class="form-control" placeholder="Any additional notes">
+                    </div>
+                </div>
+                <div id="lpo-error" class="error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
+                <div id="lpo-success" class="success" style="display:none; color:#276749; font-size:13px; margin-bottom:12px;"></div>
+                <button class="btn btn-primary" onclick="submitLpo()">Log LPO & Confirm Order</button>
+            </div>
+        </div>
+
+        <!-- LPO LIST -->
+        <div class="card">
+            <div class="card-title">All LPO Orders</div>
+            <div id="lpo-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+setActiveNav();
+
+let availableBuyers = [];
+let availableLots = [];
+
+function toggleLpoForm() {
+    const el = document.getElementById('lpo-form-wrap');
+    const isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'block' : 'none';
+    document.getElementById('lpo-form-toggle').textContent = isHidden ? '− Cancel' : '+ New LPO';
+}
+
+async function loadBuyersAndLots() {
+    const users = await apiGet('/api/v1/users/');
+    if (Array.isArray(users)) {
+        availableBuyers = users.filter(u => u.role === 'buyer');
+        document.getElementById('lpo-buyer').innerHTML =
+            '<option value="">Select buyer</option>' +
+            availableBuyers.map(b => `<option value="${b.id}">${b.business_name || b.name} (${b.email || b.phone})</option>`).join('');
+    }
+
+    const inv = await apiGet('/api/v1/inventory/?page_size=100');
+    if (inv) {
+        availableLots = inv.lots || [];
+        document.getElementById('lpo-lot').innerHTML =
+            '<option value="">Select lot</option>' +
+            availableLots.map(l => `<option value="${l.id}">${l.lot_number} — ${l.species} — ${l.available_kg}kg @ KES ${l.selling_price_per_kg}/kg</option>`).join('');
+    }
+}
+
+async function submitLpo() {
+    const errEl = document.getElementById('lpo-error');
+    const sucEl = document.getElementById('lpo-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    const buyerId   = document.getElementById('lpo-buyer').value;
+    const lotId     = document.getElementById('lpo-lot').value;
+    const quantity  = parseFloat(document.getElementById('lpo-quantity').value);
+    const reference = document.getElementById('lpo-reference').value.trim();
+
+    if (!buyerId)   { errEl.textContent = 'Please select a buyer'; errEl.style.display = 'block'; return; }
+    if (!lotId)     { errEl.textContent = 'Please select a lot'; errEl.style.display = 'block'; return; }
+    if (!quantity || quantity <= 0) { errEl.textContent = 'Please enter a valid quantity'; errEl.style.display = 'block'; return; }
+    if (!reference) { errEl.textContent = 'Please enter the LPO reference number'; errEl.style.display = 'block'; return; }
+
+    const payload = {
+        buyer_id: parseInt(buyerId),
+        lot_id: parseInt(lotId),
+        quantity_kg: quantity,
+        lpo_reference: reference,
+        procurement_officer: document.getElementById('lpo-officer').value || null,
+        expected_fulfillment_date: document.getElementById('lpo-fulfillment-date').value || null,
+        payment_terms_days: parseInt(document.getElementById('lpo-payment-terms').value) || 7,
+        delivery_address: document.getElementById('lpo-address').value || null,
+        delivery_distance_km: document.getElementById('lpo-distance').value ? parseFloat(document.getElementById('lpo-distance').value) : null,
+        notes: document.getElementById('lpo-notes').value || null,
+    };
+
+    try {
+        const res = await fetch('/api/v1/lpo/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}`},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            sucEl.textContent = data.message || 'LPO logged successfully';
+            sucEl.style.display = 'block';
+            document.getElementById('lpo-quantity').value = '';
+            document.getElementById('lpo-reference').value = '';
+            document.getElementById('lpo-officer').value = '';
+            document.getElementById('lpo-address').value = '';
+            document.getElementById('lpo-notes').value = '';
+            loadLpoList();
+            loadBuyersAndLots();
+        } else {
+            errEl.textContent = data.detail || 'Failed to log LPO';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function loadLpoList() {
+    const orders = await apiGet('/api/v1/lpo/');
+    if (!Array.isArray(orders)) return;
+
+    document.getElementById('stat-lpo-count').textContent = orders.length;
+    document.getElementById('stat-lpo-value').textContent =
+        formatKES(orders.reduce((sum, o) => sum + (o.total_kes || 0), 0));
+    document.getElementById('stat-lpo-pending').textContent =
+        orders.filter(o => !['delivered', 'completed', 'cancelled'].includes(o.status)).length;
+
+    if (!orders.length) {
+        document.getElementById('lpo-list').innerHTML = '<p style="color:#718096;padding:20px">No LPO orders logged yet.</p>';
+        return;
+    }
+
+    document.getElementById('lpo-list').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>LPO Reference</th><th>Buyer</th><th>Species</th><th>Qty</th>
+                <th>Total</th><th>Terms</th><th>Status</th><th>Date</th>
+            </tr></thead>
+            <tbody>
+            ${orders.map(o => `
+                <tr>
+                    <td style="font-family:monospace; font-size:12px;">${o.lpo_reference}</td>
+                    <td>${o.buyer_name || '—'}</td>
+                    <td style="text-transform:capitalize;">${o.species || '—'}</td>
+                    <td>${o.quantity_kg}kg</td>
+                    <td>${formatKES(o.total_kes)}</td>
+                    <td>Net ${o.payment_terms_days}</td>
+                    <td>${statusBadge(o.status)}</td>
+                    <td>${formatDate(o.created_at)}</td>
+                </tr>`).join('')}
+            </tbody></table></div>`;
+}
+
+loadBuyersAndLots();
+loadLpoList();
+</script>
+</body>
+</html>
