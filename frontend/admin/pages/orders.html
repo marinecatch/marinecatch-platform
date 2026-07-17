@@ -107,6 +107,23 @@
             </div>
             <div id="orders-table"><div class="loading"><div class="spinner"></div>Loading orders...</div></div>
         </div>
+
+        <!-- SHIP ORDER MODAL -->
+<div id="ship-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; overflow-y:auto;">
+    <div style="background:white; border-radius:8px; padding:24px; width:600px; max-width:95%; max-height:90vh; overflow-y:auto;">
+        <h3 style="margin-bottom:8px;">🚚 Ship Order #<span id="ship-order-id"></span></h3>
+        <p style="font-size:13px; color:var(--text-light); margin-bottom:16px;">
+            Add each leg of the journey — pickup rider, long-haul bus/courier, last-mile delivery.
+        </p>
+        <div id="ship-jobs-list"></div>
+        <button class="btn btn-outline btn-sm" onclick="addShipJobRow()" style="margin-bottom:16px;">➕ Add Leg</button>
+        <div id="ship-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeShipModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitShipOrder()">Create Shipment</button>
+        </div>
+    </div>
+</div>
     </main>
 </div>
 
@@ -176,7 +193,7 @@ function renderOrders(orders) {
                     <td>${o.lpo_reference || '—'}</td>
                     <td>${statusBadge(o.status)}</td>
                     <td>${formatDate(o.created_at)}</td>
-                    <td>
+                   <td>
                         <button class="btn btn-outline btn-sm"
                             onclick="openModal(${o.order_id}, '${o.status}')">
                             Update
@@ -184,6 +201,10 @@ function renderOrders(orders) {
                         <button class="btn btn-outline btn-sm"
                             onclick="viewReconciliation(${o.order_id})">
                             Reconcile
+                        </button>
+                        <button class="btn btn-primary btn-sm"
+                            onclick="openShipModal(${o.order_id})">
+                            🚚 Ship
                         </button>
                     </td>
                 </tr>`).join('')}
@@ -229,6 +250,119 @@ async function viewReconciliation(orderId) {
 }
 
 loadOrders();
+
+let shipOrderId = null;
+let shipJobCount = 0;
+let partnersCache = [];
+let coolersCache = [];
+
+async function openShipModal(orderId) {
+    shipOrderId = orderId;
+    shipJobCount = 0;
+    document.getElementById('ship-order-id').textContent = orderId;
+    document.getElementById('ship-jobs-list').innerHTML = '';
+    document.getElementById('ship-error').style.display = 'none';
+
+    // Load partners and coolers for dropdowns
+    const partnersData = await apiGet('/api/v1/logistics-network/partners');
+    partnersCache = partnersData?.partners || [];
+    const coolersData = await apiGet('/api/v1/logistics-network/coolers?status=available');
+    coolersCache = coolersData?.coolers || [];
+
+    addShipJobRow();
+    document.getElementById('ship-modal').style.display = 'flex';
+}
+
+function closeShipModal() {
+    document.getElementById('ship-modal').style.display = 'none';
+    shipOrderId = null;
+}
+
+function addShipJobRow() {
+    shipJobCount++;
+    const id = shipJobCount;
+    const partnerOptions = partnersCache.map(p =>
+        `<option value="${p.id}">${p.name} (${p.partner_type})</option>`).join('');
+    const coolerOptions = coolersCache.map(c =>
+        `<option value="${c.id}">${c.asset_code} (${c.capacity_kg}L)</option>`).join('');
+
+    const row = document.createElement('div');
+    row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:12px;';
+    row.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:13px;">Leg ${id}</strong>
+            <button class="btn btn-outline btn-sm" onclick="this.closest('div[data-job]').remove()" style="padding:2px 8px;">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+            <input type="text" class="form-control ship-pickup" placeholder="Pickup location">
+            <input type="text" class="form-control ship-destination" placeholder="Destination">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <select class="form-control ship-jobtype">
+                <option value="first_mile">First Mile</option>
+                <option value="long_haul">Long Haul</option>
+                <option value="last_mile">Last Mile</option>
+                <option value="return">Return</option>
+            </select>
+            <select class="form-control ship-partner">
+                <option value="">No partner</option>
+                ${partnerOptions}
+            </select>
+            <input type="number" class="form-control ship-cost" placeholder="Cost KES">
+        </div>
+        <select class="form-control ship-cooler" style="margin-top:8px;">
+            <option value="">No cooler assigned</option>
+            ${coolerOptions}
+        </select>
+    `;
+    row.setAttribute('data-job', id);
+    document.getElementById('ship-jobs-list').appendChild(row);
+}
+
+async function submitShipOrder() {
+    const rows = document.querySelectorAll('#ship-jobs-list > div[data-job]');
+    const jobs = [];
+
+    rows.forEach(row => {
+        const pickup = row.querySelector('.ship-pickup').value;
+        const destination = row.querySelector('.ship-destination').value;
+        const jobType = row.querySelector('.ship-jobtype').value;
+        const partnerId = row.querySelector('.ship-partner').value;
+        const coolerId = row.querySelector('.ship-cooler').value;
+        const cost = row.querySelector('.ship-cost').value;
+
+        if (pickup && destination) {
+            jobs.push({
+                pickup_location: pickup,
+                destination_location: destination,
+                job_type: jobType,
+                partner_id: partnerId ? parseInt(partnerId) : null,
+                cooler_asset_id: coolerId ? parseInt(coolerId) : null,
+                cost_kes: cost ? parseFloat(cost) : null,
+            });
+        }
+    });
+
+    if (jobs.length === 0) {
+        document.getElementById('ship-error').textContent = 'Add at least one leg with pickup and destination.';
+        document.getElementById('ship-error').style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/logistics-network/ship-order', {
+        order_id: shipOrderId,
+        jobs: jobs,
+    });
+
+    if (result && result.success) {
+        closeShipModal();
+        loadOrders();
+        alert(`✅ Shipment created — ${result.jobs_created} leg(s). Order marked as dispatched.`);
+    } else {
+        document.getElementById('ship-error').textContent = result?.detail || 'Failed to create shipment.';
+        document.getElementById('ship-error').style.display = 'block';
+    }
+}
 </script>
 </body>
 </html>

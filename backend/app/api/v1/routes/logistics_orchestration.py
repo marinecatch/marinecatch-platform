@@ -128,6 +128,13 @@ class ExceptionResolve(BaseModel):
     resolution_notes: str
 
 
+class ShipOrderRequest(BaseModel):
+    order_id: int
+    jobs: list[dict]
+    # Each job: {pickup_location, destination_location, job_type,
+    #            partner_id, cooler_asset_id, cost_kes, tracking_reference}    
+
+
 # ── NETWORK SUMMARY ────────────────────────────────────────────────
 
 @router.get("/summary")
@@ -422,3 +429,85 @@ def api_resolve_exception(
         raise HTTPException(status_code=403, detail="Admin only")
     exception = resolve_exception(db, exception_id, payload.resolution_notes)
     return {"success": True, "status": exception.resolution_status}
+
+
+@router.post("/ship-order", status_code=201)
+def ship_order(
+    payload: ShipOrderRequest,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Create a complete shipment for an order in one action.
+    Creates a Shipment record, then one TransportJob per leg,
+    and records the initial custody event.
+
+    Example jobs payload for Kibuyuni -> Nairobi hotel:
+    [
+      {"pickup_location": "Kibuyuni", "destination_location": "Ukunda",
+       "job_type": "first_mile", "partner_id": 4, "cost_kes": 300},
+      {"pickup_location": "Ukunda", "destination_location": "Nairobi",
+       "job_type": "long_haul", "partner_id": 5, "cost_kes": 1200},
+      {"pickup_location": "Nairobi Bus Office", "destination_location": "Buyer",
+       "job_type": "last_mile", "partner_id": 1, "cost_kes": 1000}
+    ]
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from app.models.order import Order
+    from app.models.logistics import Shipment
+
+    order = db.query(Order).filter(Order.id == payload.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Create parent shipment record
+    shipment = Shipment(
+        order_id=order.id,
+        status="in_transit",
+    )
+    db.add(shipment)
+    db.flush()
+
+    created_jobs = []
+    for idx, job_data in enumerate(payload.jobs, start=1):
+        job = create_transport_job(
+            db=db,
+            pickup_location=job_data.get("pickup_location"),
+            destination_location=job_data.get("destination_location"),
+            job_type=job_data.get("job_type"),
+            partner_id=job_data.get("partner_id"),
+            cooler_asset_id=job_data.get("cooler_asset_id"),
+            order_id=order.id,
+            lot_id=order.lot_id,
+            shipment_id=shipment.id,
+            sequence_number=idx,
+            cost_kes=job_data.get("cost_kes"),
+            tracking_reference=job_data.get("tracking_reference"),
+        )
+        created_jobs.append(job)
+
+    # Record initial custody event
+    record_custody_event(
+        db=db,
+        event_type="collected",
+        from_party=order.landing_site if hasattr(order, 'landing_site') else "Fisher",
+        to_party="MarineCatch",
+        location=payload.jobs[0].get("pickup_location") if payload.jobs else None,
+        lot_id=order.lot_id,
+        transport_job_id=created_jobs[0].id if created_jobs else None,
+        recorded_by=current_user.name,
+    )
+
+    # Update order status to dispatched
+    order.status = "dispatched"
+    db.commit()
+
+    return {
+        "success": True,
+        "shipment_id": shipment.id,
+        "order_id": order.id,
+        "jobs_created": len(created_jobs),
+        "job_ids": [j.id for j in created_jobs],
+    }    

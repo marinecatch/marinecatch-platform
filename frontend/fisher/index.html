@@ -192,6 +192,61 @@
                     <label class="form-label">Notes (optional)</label>
                     <input type="text" id="lc-notes" class="form-control" placeholder="Any notes about this catch">
                 </div>
+
+                <div style="margin-bottom:16px;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="toggleCatchDetails()" id="lc-details-toggle">
+                        ➕ Add catch details (gear, vessel, crew) — optional, helps traceability
+                    </button>
+                </div>
+
+                <div id="lc-extra-details" style="display:none; background:#f7fafc; padding:16px; border-radius:6px; margin-bottom:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Gear Type</label>
+                        <select id="lc-gear" class="form-control">
+                            <option value="">Not specified</option>
+                            <option value="hand_line">Hand Line</option>
+                            <option value="longline">Longline</option>
+                            <option value="gillnet">Gillnet</option>
+                            <option value="spear_gun">Spear Gun</option>
+                            <option value="trap">Trap</option>
+                            <option value="beach_seine">Beach Seine</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Vessel Name</label>
+                        <input type="text" id="lc-vessel-name" class="form-control" placeholder="e.g. Bahari Salama">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Vessel Registration</label>
+                        <input type="text" id="lc-vessel-reg" class="form-control" placeholder="e.g. KDH-1234">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">BMU Reference</label>
+                        <input type="text" id="lc-bmu-ref" class="form-control" placeholder="Your BMU membership/reference number">
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Crew Size</label>
+                            <input type="number" id="lc-crew-size" class="form-control" placeholder="e.g. 3" min="0">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Female Crew Members</label>
+                            <input type="number" id="lc-female-crew" class="form-control" placeholder="e.g. 1" min="0">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Temperature at Landing (°C)</label>
+                            <input type="number" id="lc-temp" class="form-control" placeholder="e.g. 4" step="0.1">
+                        </div>
+                        <div class="form-group" style="flex:1; display:flex; align-items:center; gap:8px; padding-top:22px;">
+                            <input type="checkbox" id="lc-ice-used">
+                            <label for="lc-ice-used" class="form-label" style="margin:0;">Ice was used</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="lc-error" class="error"></div>
                 <div id="lc-success" class="success"></div>
                 <button class="btn btn-primary" style="background:#276749; width:100%" onclick="logCatch()">
@@ -418,6 +473,15 @@ function shareTrace(code) {
     }
 }
 
+function toggleCatchDetails() {
+    const el = document.getElementById('lc-extra-details');
+    const isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'block' : 'none';
+    document.getElementById('lc-details-toggle').textContent = isHidden
+        ? '➖ Hide catch details'
+        : '➕ Add catch details (gear, vessel, crew) — optional, helps traceability';
+}
+
 async function logCatch() {
     const species   = document.getElementById('lc-species').value;
     const weight    = parseFloat(document.getElementById('lc-weight').value);
@@ -434,19 +498,70 @@ async function logCatch() {
     if (!weight || weight <= 0) { errEl.textContent = 'Please enter weight'; errEl.style.display = 'block'; return; }
     if (!price  || price  <= 0) { errEl.textContent = 'Please enter price';  errEl.style.display = 'block'; return; }
 
+    const gearType   = document.getElementById('lc-gear').value;
+    const vesselName = document.getElementById('lc-vessel-name').value;
+    const vesselReg  = document.getElementById('lc-vessel-reg').value;
+    const bmuRef     = document.getElementById('lc-bmu-ref').value;
+    const crewSize   = document.getElementById('lc-crew-size').value;
+    const femaleCrew = document.getElementById('lc-female-crew').value;
+    const temp       = document.getElementById('lc-temp').value;
+    const iceUsed    = document.getElementById('lc-ice-used').checked;
+
     try {
-        const url = `${API}/api/v1/inventory/?species=${species}&weight_kg=${weight}&selling_price_per_kg=${price}&landing_site=${site}&condition=${condition}${notes ? '&notes=' + encodeURIComponent(notes) : ''}`;
+        let url = `${API}/api/v1/inventory/?species=${species}&weight_kg=${weight}&selling_price_per_kg=${price}&landing_site=${site}&condition=${condition}`;
+        if (notes)     url += `&notes=${encodeURIComponent(notes)}`;
+        if (vesselReg) url += `&vessel_reg=${encodeURIComponent(vesselReg)}`;
+        if (gearType)  url += `&gear_type=${encodeURIComponent(gearType)}`;
+        if (bmuRef)    url += `&bmu_reference=${encodeURIComponent(bmuRef)}`;
+
         const res  = await fetch(url, {
             method: 'POST',
             headers: {'Authorization': `Bearer ${token}`}
         });
         const data = await res.json();
+
         if (res.ok) {
             sucEl.textContent = `✅ Catch logged! Lot: ${data.lot_number}`;
             sucEl.style.display = 'block';
+
+            // Also log the richer ESG catch event, linked to this lot.
+            // Non-blocking — if this fails, the lot itself is already safely created.
+            try {
+                await fetch(`${API}/api/v1/esg/catch`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                    body: JSON.stringify({
+                        fisher_id: currentUser.id,
+                        species: species,
+                        weight_kg: weight,
+                        landing_site: site,
+                        lot_id: data.id,
+                        gear_type: gearType || null,
+                        vessel_reg: vesselReg || null,
+                        vessel_name: vesselName || null,
+                        bmu_reference: bmuRef || null,
+                        crew_size: crewSize ? parseInt(crewSize) : null,
+                        female_crew_count: femaleCrew ? parseInt(femaleCrew) : null,
+                        temperature_at_landing: temp ? parseFloat(temp) : null,
+                        ice_used: iceUsed,
+                        notes: notes || null
+                    })
+                });
+            } catch(e) {
+                // Silently skip — ESG logging is supplementary, lot creation already succeeded
+            }
+
             document.getElementById('lc-weight').value = '';
             document.getElementById('lc-price').value  = '';
             document.getElementById('lc-notes').value  = '';
+            document.getElementById('lc-vessel-name').value = '';
+            document.getElementById('lc-vessel-reg').value  = '';
+            document.getElementById('lc-bmu-ref').value     = '';
+            document.getElementById('lc-crew-size').value   = '';
+            document.getElementById('lc-female-crew').value = '';
+            document.getElementById('lc-temp').value        = '';
+            document.getElementById('lc-ice-used').checked  = false;
+
             loadMyLots();
         } else {
             errEl.textContent = data.detail || 'Failed to log catch';

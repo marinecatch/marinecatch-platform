@@ -372,6 +372,7 @@ def create_lot(
 
     return {
         "success":          True,
+        "id":               lot.id,
         "lot_number":       lot.lot_number,
         "traceability_code":lot.traceability_code,
         "species":          lot.species,
