@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics Network — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Growth</div>
+            <a href="/admin/pages/sales.html" class="nav-item"><span class="icon">📈</span> Sales & CRM</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Delivery Zones</a>
+            <a href="/admin/pages/logistics-network.html" class="nav-item active"><span class="icon">🧊</span> Logistics Network</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Logistics Network</div>
+                <div class="page-subtitle">Partners, cold storage, coolers, and transport jobs</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- NETWORK SUMMARY -->
+        <div class="stats-grid" id="summary-stats">
+            <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+
+        <!-- TABS -->
+        <div style="display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="showTab('jobs')" id="tab-btn-jobs">🚚 Active Jobs</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('partners')" id="tab-btn-partners">🤝 Partners</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('storage')" id="tab-btn-storage">🧊 Storage Nodes</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('coolers')" id="tab-btn-coolers">📦 Coolers</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('exceptions')" id="tab-btn-exceptions">⚠️ Exceptions</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('new-partner')" id="tab-btn-new-partner">➕ Add Partner</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('new-storage')" id="tab-btn-new-storage">➕ Add Storage</button>
+        </div>
+
+        <!-- ACTIVE JOBS -->
+        <div id="tab-jobs">
+            <div class="card">
+                <div class="card-title">
+                    Active Transport Jobs
+                    <button class="btn btn-outline btn-sm" onclick="loadJobs()">🔄 Refresh</button>
+                </div>
+                <div id="jobs-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- PARTNERS -->
+        <div id="tab-partners" style="display:none">
+            <div class="card">
+                <div class="card-title">
+                    Logistics Partners
+                    <div style="display:flex; gap:8px;">
+                        <select id="filter-partner-type" class="form-control" style="width:180px" onchange="loadPartners()">
+                            <option value="">All Types</option>
+                            <option value="individual_rider">Individual Rider</option>
+                            <option value="bus_company">Bus Company</option>
+                            <option value="courier">Courier</option>
+                            <option value="fleet_operator">Fleet Operator</option>
+                            <option value="cold_storage_operator">Cold Storage Operator</option>
+                            <option value="integrated_logistics_co">Integrated Logistics Co</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="loadPartners()">🔄 Refresh</button>
+                    </div>
+                </div>
+                <div id="partners-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- STORAGE NODES -->
+        <div id="tab-storage" style="display:none">
+            <div class="card">
+                <div class="card-title">
+                    Cold Storage Network
+                    <button class="btn btn-outline btn-sm" onclick="loadStorage()">🔄 Refresh</button>
+                </div>
+                <div id="storage-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- COOLERS -->
+        <div id="tab-coolers" style="display:none">
+            <div class="card">
+                <div class="card-title">
+                    Cooler Assets
+                    <div style="display:flex; gap:8px;">
+                        <select id="filter-cooler-status" class="form-control" style="width:160px" onchange="loadCoolers()">
+                            <option value="">All Status</option>
+                            <option value="available">Available</option>
+                            <option value="in_transit">In Transit</option>
+                            <option value="at_storage">At Storage</option>
+                            <option value="with_partner">With Partner</option>
+                            <option value="damaged">Damaged</option>
+                            <option value="lost">Lost</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="openAddCoolerModal()">➕ Register Cooler</button>
+                    </div>
+                </div>
+                <div id="coolers-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- EXCEPTIONS -->
+        <div id="tab-exceptions" style="display:none">
+            <div class="card">
+                <div class="card-title" style="color:var(--danger)">⚠️ Open Exceptions</div>
+                <div id="exceptions-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+
+        <!-- NEW PARTNER -->
+        <div id="tab-new-partner" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Add Logistics Partner</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input type="text" id="np-name" class="form-control" placeholder="e.g. John Motorbike">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Partner Type *</label>
+                        <select id="np-type" class="form-control">
+                            <option value="individual_rider">Individual Rider</option>
+                            <option value="bus_company">Bus Company</option>
+                            <option value="courier">Courier</option>
+                            <option value="fleet_operator">Fleet Operator</option>
+                            <option value="cold_storage_operator">Cold Storage Operator</option>
+                            <option value="integrated_logistics_co">Integrated Logistics Co</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact Phone</label>
+                        <input type="text" id="np-phone" class="form-control" placeholder="07XXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Coverage Areas</label>
+                        <input type="text" id="np-coverage" class="form-control" placeholder="e.g. Ukunda,Nairobi">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Commission Model</label>
+                        <select id="np-commission" class="form-control">
+                            <option value="flat_fee">Flat Fee</option>
+                            <option value="per_kg">Per KG</option>
+                            <option value="tiered">Tiered</option>
+                            <option value="percentage">Percentage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Base Rate (KES)</label>
+                        <input type="number" id="np-rate" class="form-control" placeholder="e.g. 1000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="np-cold-chain"> Cold chain capable
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="np-notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div id="np-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div id="np-success" style="color:var(--success); font-size:13px; margin-bottom:12px; display:none"></div>
+                <button class="btn btn-primary" onclick="createPartner()">Add Partner</button>
+            </div>
+        </div>
+
+        <!-- NEW STORAGE -->
+        <div id="tab-new-storage" style="display:none">
+            <div class="card">
+                <div class="card-title">➕ Add Storage Node</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input type="text" id="ns-name" class="form-control" placeholder="e.g. Vanga Cold Storage">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Operator Name *</label>
+                        <input type="text" id="ns-operator" class="form-control" placeholder="e.g. Vanga BMU">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location *</label>
+                        <input type="text" id="ns-location" class="form-control" placeholder="e.g. Vanga">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Capacity (kg) *</label>
+                        <input type="number" id="ns-capacity" class="form-control" placeholder="e.g. 1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Power Source</label>
+                        <select id="ns-power" class="form-control">
+                            <option value="solar">Solar</option>
+                            <option value="grid">Grid</option>
+                            <option value="hybrid">Hybrid</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cost Rate (KES)</label>
+                        <input type="number" id="ns-cost" class="form-control" placeholder="e.g. 10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="ns-ice"> Has ice machine
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Access Terms</label>
+                    <textarea id="ns-terms" class="form-control" rows="2" placeholder="e.g. Informal, chairman approval required"></textarea>
+                </div>
+                <div id="ns-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+                <div id="ns-success" style="color:var(--success); font-size:13px; margin-bottom:12px; display:none"></div>
+                <button class="btn btn-primary" onclick="createStorageNode()">Add Storage Node</button>
+            </div>
+        </div>
+
+        <!-- ADD COOLER MODAL -->
+        <div id="cooler-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:400px; max-width:90%;">
+                <h3 style="margin-bottom:16px;">Register New Cooler</h3>
+                <div class="form-group">
+                    <label class="form-label">Capacity (Litres) *</label>
+                    <input type="number" id="cm-capacity" class="form-control" placeholder="e.g. 50">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Purchase Value (KES)</label>
+                    <input type="number" id="cm-value" class="form-control" placeholder="e.g. 15000">
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closeAddCoolerModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitNewCooler()">Register</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+function showTab(tab) {
+    ['jobs','partners','storage','coolers','exceptions','new-partner','new-storage'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = 'none';
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.className = 'btn btn-outline btn-sm';
+    });
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    const activeBtn = document.getElementById(`tab-btn-${tab}`);
+    if (activeBtn) activeBtn.className = 'btn btn-primary btn-sm';
+
+    if (tab === 'jobs')       loadJobs();
+    if (tab === 'partners')   loadPartners();
+    if (tab === 'storage')    loadStorage();
+    if (tab === 'coolers')    loadCoolers();
+    if (tab === 'exceptions') loadExceptions();
+}
+
+async function loadSummary() {
+    const data = await apiGet('/api/v1/logistics-network/summary');
+    if (!data) return;
+
+    document.getElementById('summary-stats').innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Active Partners</div>
+            <div class="stat-value">${data.partners.total_active}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Storage Capacity</div>
+            <div class="stat-value">${(data.storage.total_capacity_kg/1000).toFixed(1)}T</div>
+            <div class="stat-sub">${data.storage.utilization_pct}% utilized</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Available Space</div>
+            <div class="stat-value">${data.storage.available_capacity_kg.toLocaleString()}kg</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Coolers</div>
+            <div class="stat-value">${data.coolers.available}/${data.coolers.total}</div>
+            <div class="stat-sub">available</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Jobs</div>
+            <div class="stat-value" style="color:var(--accent-blue)">${data.jobs.active}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Delayed / Exceptions</div>
+            <div class="stat-value" style="color:var(--danger)">${data.jobs.delayed + data.exceptions.open}</div>
+        </div>`;
+}
+
+async function loadJobs() {
+    const data = await apiGet('/api/v1/logistics-network/jobs/active');
+    if (!data) return;
+    const jobs = data.jobs || [];
+
+    if (!jobs.length) {
+        document.getElementById('jobs-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No active jobs. Ship an order to create one.</p>';
+        return;
+    }
+
+    document.getElementById('jobs-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>ID</th><th>Type</th><th>Route</th><th>Partner</th>
+                <th>Status</th><th>Departure</th><th>Cost</th>
+            </tr></thead>
+            <tbody>
+            ${jobs.map(j => `
+                <tr>
+                    <td>#${j.id}</td>
+                    <td><span class="badge badge-neutral">${j.job_type?.replace('_',' ')}</span></td>
+                    <td style="font-size:12px">${j.pickup_location} → ${j.destination_location}</td>
+                    <td>${j.partner_name || '—'}</td>
+                    <td>${statusBadge(j.status)}</td>
+                    <td>${j.scheduled_departure ? formatDate(j.scheduled_departure) : '—'}</td>
+                    <td>${j.cost_kes ? formatKES(j.cost_kes) : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadPartners() {
+    const type = document.getElementById('filter-partner-type').value;
+    const url = '/api/v1/logistics-network/partners' + (type ? `?partner_type=${type}` : '');
+    const data = await apiGet(url);
+    if (!data) return;
+    const partners = data.partners || [];
+
+    document.getElementById('partners-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Name</th><th>Type</th><th>Phone</th><th>Coverage</th>
+                <th>Commission</th><th>Rate</th><th>On-Time</th><th>Jobs</th>
+            </tr></thead>
+            <tbody>
+            ${partners.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong> ${p.cold_chain_capable ? '❄️' : ''}</td>
+                    <td><span class="badge badge-neutral">${p.partner_type?.replace('_',' ')}</span></td>
+                    <td>${p.contact_phone || '—'}</td>
+                    <td style="font-size:12px">${p.coverage_areas || '—'}</td>
+                    <td>${p.commission_model?.replace('_',' ')}</td>
+                    <td>${p.base_rate_kes ? formatKES(p.base_rate_kes) : '—'}</td>
+                    <td>${p.on_time_rate ? (p.on_time_rate*100).toFixed(0)+'%' : '—'}</td>
+                    <td>${p.total_jobs_completed || 0}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadStorage() {
+    const data = await apiGet('/api/v1/logistics-network/storage-nodes');
+    if (!data) return;
+    const nodes = data.nodes || [];
+
+    document.getElementById('storage-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Name</th><th>Operator</th><th>Location</th>
+                <th>Capacity</th><th>Available</th><th>Power</th>
+                <th>Ice</th><th>Cost</th>
+            </tr></thead>
+            <tbody>
+            ${nodes.map(n => `
+                <tr>
+                    <td><strong>${n.name}</strong></td>
+                    <td>${n.operator_name || '—'}</td>
+                    <td>${n.location || '—'}</td>
+                    <td>${n.capacity_kg?.toLocaleString()}kg</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span>${n.available_kg?.toLocaleString()}kg</span>
+                            <div style="width:60px; height:6px; background:var(--bg); border-radius:3px;">
+                                <div style="width:${(n.available_kg/n.capacity_kg)*100}%; height:6px; background:var(--success); border-radius:3px;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${n.power_source || '—'}</td>
+                    <td>${n.has_ice_machine ? '✅' : '❌'}</td>
+                    <td style="font-size:12px">${n.cost_rate_kes ? formatKES(n.cost_rate_kes) + ' (' + n.cost_model?.replace('_',' ') + ')' : n.cost_model}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadCoolers() {
+    const status = document.getElementById('filter-cooler-status').value;
+    const url = '/api/v1/logistics-network/coolers' + (status ? `?status=${status}` : '');
+    const data = await apiGet(url);
+    if (!data) return;
+    const coolers = data.coolers || [];
+
+    document.getElementById('coolers-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Code</th><th>Capacity</th><th>Owner</th><th>Status</th>
+                <th>Current Holder</th><th>Location</th><th>Value</th>
+            </tr></thead>
+            <tbody>
+            ${coolers.map(c => `
+                <tr>
+                    <td><strong>${c.asset_code}</strong></td>
+                    <td>${c.capacity_kg}L</td>
+                    <td>${c.owner}</td>
+                    <td>${statusBadge(c.status)}</td>
+                    <td>${c.current_holder || '—'}</td>
+                    <td>${c.current_location || '—'}</td>
+                    <td>${c.purchase_value_kes ? formatKES(c.purchase_value_kes) : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function loadExceptions() {
+    const data = await apiGet('/api/v1/logistics-network/exceptions/open');
+    if (!data) return;
+    const exceptions = data.exceptions || [];
+
+    if (!exceptions.length) {
+        document.getElementById('exceptions-table').innerHTML =
+            '<p style="color:var(--success);padding:20px">✅ No open exceptions.</p>';
+        return;
+    }
+
+    document.getElementById('exceptions-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Type</th><th>Severity</th><th>Description</th>
+                <th>Status</th><th>Reported</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${exceptions.map(e => `
+                <tr>
+                    <td><span class="badge badge-neutral">${e.exception_type?.replace('_',' ')}</span></td>
+                    <td><span class="badge badge-${e.severity === 'critical' || e.severity === 'high' ? 'danger' : 'warning'}">${e.severity}</span></td>
+                    <td style="font-size:12px">${e.description}</td>
+                    <td>${statusBadge(e.resolution_status)}</td>
+                    <td>${formatDate(e.reported_at)}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="resolveException(${e.id})">Resolve</button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function resolveException(id) {
+    const notes = prompt('Resolution notes:');
+    if (!notes) return;
+    const result = await apiPost(`/api/v1/logistics-network/exceptions/${id}/resolve`, { resolution_notes: notes });
+    if (result && result.success) {
+        loadExceptions();
+        loadSummary();
+    }
+}
+
+async function createPartner() {
+    const errEl = document.getElementById('np-error');
+    const sucEl = document.getElementById('np-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    const name = document.getElementById('np-name').value;
+    if (!name) {
+        errEl.textContent = 'Name is required.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/logistics-network/partners', {
+        name: name,
+        partner_type: document.getElementById('np-type').value,
+        contact_phone: document.getElementById('np-phone').value || null,
+        coverage_areas: document.getElementById('np-coverage').value || null,
+        commission_model: document.getElementById('np-commission').value,
+        base_rate_kes: parseFloat(document.getElementById('np-rate').value) || null,
+        cold_chain_capable: document.getElementById('np-cold-chain').checked,
+        notes: document.getElementById('np-notes').value || null,
+    });
+
+    if (result && result.success) {
+        sucEl.textContent = `✅ Partner "${result.name}" added.`;
+        sucEl.style.display = 'block';
+        loadSummary();
+    } else {
+        errEl.textContent = result?.detail || 'Failed to add partner.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function createStorageNode() {
+    const errEl = document.getElementById('ns-error');
+    const sucEl = document.getElementById('ns-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    const name = document.getElementById('ns-name').value;
+    const capacity = parseFloat(document.getElementById('ns-capacity').value);
+    if (!name || !capacity) {
+        errEl.textContent = 'Name and capacity are required.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/logistics-network/storage-nodes', {
+        name: name,
+        operator_name: document.getElementById('ns-operator').value,
+        location: document.getElementById('ns-location').value,
+        capacity_kg: capacity,
+        power_source: document.getElementById('ns-power').value,
+        has_ice_machine: document.getElementById('ns-ice').checked,
+        cost_model: 'per_kg_per_night',
+        cost_rate_kes: parseFloat(document.getElementById('ns-cost').value) || null,
+        access_terms: document.getElementById('ns-terms').value || null,
+    });
+
+    if (result && result.success) {
+        sucEl.textContent = `✅ Storage node "${result.name}" added.`;
+        sucEl.style.display = 'block';
+        loadSummary();
+    } else {
+        errEl.textContent = result?.detail || 'Failed to add storage node.';
+        errEl.style.display = 'block';
+    }
+}
+
+function openAddCoolerModal() {
+    document.getElementById('cm-capacity').value = '';
+    document.getElementById('cm-value').value = '';
+    document.getElementById('cooler-modal').style.display = 'flex';
+}
+
+function closeAddCoolerModal() {
+    document.getElementById('cooler-modal').style.display = 'none';
+}
+
+async function submitNewCooler() {
+    const capacity = parseFloat(document.getElementById('cm-capacity').value);
+    if (!capacity) return;
+
+    const result = await apiPost('/api/v1/logistics-network/coolers', {
+        capacity_kg: capacity,
+        purchase_value_kes: parseFloat(document.getElementById('cm-value').value) || null,
+    });
+
+    if (result && result.success) {
+        closeAddCoolerModal();
+        loadCoolers();
+        loadSummary();
+    }
+}
+
+loadSummary();
+loadJobs();
+</script>
+</body>
+</html>
