@@ -590,6 +590,63 @@
     </div>
 </section>
 
+<!-- BLUE ECONOMY INTELLIGENCE -->
+<section style="background:linear-gradient(135deg, #1D60AE, #00B3F0); padding:80px 40px;">
+    <div class="container" style="max-width:700px; text-align:center;">
+        <div class="section-label" style="color:rgba(255,255,255,0.7)">Free Report</div>
+        <h2 style="font-size:clamp(28px,4vw,40px); font-weight:800; color:white; margin-bottom:16px;">
+            Get the Coastal Seafood Price Report
+        </h2>
+        <p style="font-size:18px; color:rgba(255,255,255,0.9); margin-bottom:32px;">
+            Monthly prices for Tafi, Kole Kole, Octopus, Lobster, Prawns, and other key species across the Kenyan coast — plus landing volumes, supply shortages, and blue economy opportunities.
+        </p>
+
+        <div id="newsletter-form-fields" style="background:white; border-radius:16px; padding:32px; text-align:left; box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="nl-name" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Email Address *</label>
+                    <input type="email" id="nl-email" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Organization</label>
+                    <input type="text" id="nl-org" placeholder="Company or organization">
+                </div>
+                <div class="form-group">
+                    <label>I am a *</label>
+                    <select id="nl-stakeholder">
+                        <option value="buyer">Buyer (Hotel/Restaurant/Processor)</option>
+                        <option value="supplier">Fisher / Supplier</option>
+                        <option value="investor">Investor</option>
+                        <option value="government">Government / Policy</option>
+                        <option value="research">Researcher</option>
+                        <option value="partner">Logistics / Cold Chain Partner</option>
+                        <option value="media">Media / Journalist</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-submit" onclick="submitNewsletter()">
+                📊 Send Me the Report
+            </button>
+            <p style="text-align:center; font-size:12px; color:#718096; margin-top:16px;">
+                Used by seafood businesses, investors, researchers, and policymakers.
+            </p>
+        </div>
+
+        <div id="newsletter-success" style="display:none; background:white; border-radius:16px; padding:40px; text-align:center;">
+            <div style="font-size:48px; margin-bottom:16px;">✅</div>
+            <h3 style="font-size:22px; color:#1D60AE; margin-bottom:8px;">You're subscribed!</h3>
+            <p style="color:#718096;">Check your inbox for MarineCatch Blue Economy Intelligence.</p>
+        </div>
+    </div>
+</section>
+
 <!-- CTA -->
 <section class="cta">
     <div class="container">
@@ -694,6 +751,15 @@
         <a href="/terms">Terms of Service</a>
     </div>
     <p style="margin-top:24px; font-size:12px; color:rgba(255,255,255,0.4);">© 2026 MarineCatch Africa Limited. All rights reserved.</p>
+
+    <div style="max-width:400px; margin:24px auto 0; display:flex; gap:8px;">
+    <input type="email" id="footer-nl-email" placeholder="Your email"
+        style="flex:1; padding:8px 12px; border-radius:6px; border:none; font-size:13px;">
+    <button onclick="submitFooterNewsletter()"
+        style="background:var(--accent); color:white; border:none; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+        Get Insights
+    </button>
+</div>
 </footer>
 
 <script>
@@ -747,6 +813,59 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         if (el) el.scrollIntoView({ behavior: 'smooth' });
     });
 });
+
+async function submitNewsletter() {
+    const name         = document.getElementById('nl-name').value.trim();
+    const email        = document.getElementById('nl-email').value.trim();
+    const organization = document.getElementById('nl-org').value.trim();
+    const stakeholder  = document.getElementById('nl-stakeholder').value;
+
+    if (!email) {
+        alert('Please enter your email address.');
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const utm_source   = params.get('utm_source') || 'direct';
+    const utm_campaign = params.get('utm_campaign') || null;
+
+    try {
+        const res = await fetch('/api/v1/newsletter/subscribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email, name, organization,
+                stakeholder_type: stakeholder,
+                source: 'landing_page',
+                utm_source, utm_campaign,
+            })
+        });
+
+        document.getElementById('newsletter-form-fields').style.display = 'none';
+        document.getElementById('newsletter-success').style.display = 'block';
+    } catch (e) {
+        document.getElementById('newsletter-form-fields').style.display = 'none';
+        document.getElementById('newsletter-success').style.display = 'block';
+    }
+}
+
+async function submitFooterNewsletter() {
+    const email = document.getElementById('footer-nl-email').value.trim();
+    if (!email) return;
+
+    try {
+        await fetch('/api/v1/newsletter/subscribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email, stakeholder_type: 'other', source: 'footer' })
+        });
+        document.getElementById('footer-nl-email').value = '';
+        alert('Thank you for subscribing to MarineCatch Blue Economy Intelligence!');
+    } catch (e) {
+        alert('Something went wrong. Please try again.');
+    }
+}
+
 </script>
 </body>
 </html>

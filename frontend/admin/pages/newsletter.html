@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Growth</div>
+            <a href="/admin/pages/sales.html" class="nav-item"><span class="icon">📈</span> Sales & CRM</a>
+            <a href="/admin/pages/newsletter.html" class="nav-item active"><span class="icon">📰</span> Blue Economy Intel</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Delivery Zones</a>
+            <a href="/admin/pages/logistics-network.html" class="nav-item"><span class="icon">🧊</span> Logistics Network</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">Blue Economy Intelligence</div>
+                <div class="page-subtitle">Newsletter subscribers and stakeholder relationships</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="stats-grid" id="overview-stats">
+            <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+
+        <!-- BREAKDOWN -->
+        <div class="card">
+            <div class="card-title">Subscribers by Stakeholder Type</div>
+            <div id="breakdown-view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+        <!-- SUBSCRIBERS TABLE -->
+        <div class="card">
+            <div class="card-title">
+                All Subscribers
+                <div style="display:flex; gap:8px;">
+                    <select id="filter-type" class="form-control" style="width:180px" onchange="loadSubscribers()">
+                        <option value="">All Types</option>
+                        <option value="investor">Investor</option>
+                        <option value="government">Government</option>
+                        <option value="buyer">Buyer</option>
+                        <option value="supplier">Supplier</option>
+                        <option value="processor">Processor</option>
+                        <option value="research">Research</option>
+                        <option value="partner">Partner</option>
+                        <option value="media">Media</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="loadSubscribers()">🔄 Refresh</button>
+                    <button class="btn btn-accent btn-sm" onclick="exportSubscribers()">📥 Export CSV</button>
+                </div>
+            </div>
+            <div id="subscribers-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+async function loadOverview() {
+    const data = await apiGet('/api/v1/newsletter/overview');
+    if (!data) return;
+
+    document.getElementById('overview-stats').innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Total Subscribers</div>
+            <div class="stat-value">${data.total_subscribers}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">New This Week</div>
+            <div class="stat-value" style="color:var(--accent-blue)">${data.new_this_week}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Stakeholder Types</div>
+            <div class="stat-value">${Object.keys(data.breakdown_by_type || {}).length}</div>
+        </div>`;
+
+    const breakdown = data.breakdown_by_type || {};
+    const entries = Object.entries(breakdown).sort((a,b) => b[1]-a[1]);
+
+    if (!entries.length) {
+        document.getElementById('breakdown-view').innerHTML =
+            '<p style="color:var(--text-light);padding:16px">No subscribers yet.</p>';
+        return;
+    }
+
+    document.getElementById('breakdown-view').innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${entries.map(([type, count]) => `
+                <div style="background:var(--bg); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:100px;">
+                    <div style="font-size:20px; font-weight:700; color:var(--primary);">${count}</div>
+                    <div style="font-size:12px; color:var(--text-light); text-transform:capitalize;">${type}</div>
+                </div>`).join('')}
+        </div>`;
+}
+
+async function loadSubscribers() {
+    const type = document.getElementById('filter-type').value;
+    const url = '/api/v1/newsletter/subscribers' + (type ? `?stakeholder_type=${type}` : '');
+    const data = await apiGet(url);
+    if (!data) return;
+
+    const subs = data.subscribers || [];
+    if (!subs.length) {
+        document.getElementById('subscribers-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No subscribers found.</p>';
+        return;
+    }
+
+    document.getElementById('subscribers-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Email</th><th>Name</th><th>Organization</th>
+                <th>Type</th><th>Country</th><th>Source</th>
+                <th>Status</th><th>Joined</th>
+            </tr></thead>
+            <tbody>
+            ${subs.map(s => `
+                <tr>
+                    <td><strong>${s.email}</strong></td>
+                    <td>${s.name || '—'}</td>
+                    <td>${s.organization || '—'}</td>
+                    <td><span class="badge badge-info">${s.stakeholder_type}</span></td>
+                    <td>${s.country || '—'}</td>
+                    <td style="font-size:12px">${s.source || '—'} ${s.utm_source ? '('+s.utm_source+')' : ''}</td>
+                    <td>${s.status === 'confirmed'
+                        ? '<span class="badge badge-success">Confirmed</span>'
+                        : '<span class="badge badge-neutral">'+s.status+'</span>'}</td>
+                    <td>${formatDate(s.created_at)}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function exportSubscribers() {
+    apiGet('/api/v1/newsletter/subscribers').then(data => {
+        const subs = data.subscribers || [];
+        const csv = [
+            'Email,Name,Organization,Type,Country,Source,Status,Joined',
+            ...subs.map(s =>
+                `"${s.email}","${s.name||''}","${s.organization||''}","${s.stakeholder_type}","${s.country||''}","${s.source||''}","${s.status}","${s.created_at}"`
+            )
+        ].join('\n');
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `marinecatch_subscribers_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+    });
+}
+
+loadOverview();
+loadSubscribers();
+</script>
+</body>
+</html>
