@@ -20,8 +20,18 @@ from datetime import datetime, timezone
 router   = APIRouter(prefix="/api/v1/users", tags=["Users"])
 security = HTTPBearer()
 
+# Roles the public /register endpoint is allowed to create.
+# Everything else (admin, coordinator, partner) must be created
+# through an authenticated admin action, never self-service.
+PUBLIC_REGISTRATION_ROLES = {"fisher", "supplier", "buyer"}
+
 @router.post("/register", status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    if user.role not in PUBLIC_REGISTRATION_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Public registration only supports these roles: {', '.join(PUBLIC_REGISTRATION_ROLES)}. Contact an administrator for other account types."
+        )
     new_user = create_user(
         db=            db,
         name=          user.name,
@@ -49,6 +59,8 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_email(db, credentials.email)
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user.account_status != "active":
+        raise HTTPException(status_code=403, detail="This account is not active. Contact MarineCatch support.")
     token = create_token({
         "user_id":  user.id,
         "email":    user.email,
@@ -67,6 +79,42 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
             "location":      user.location,
             "business_name": user.business_name
         }
+    }
+
+class AccountStatusUpdate(BaseModel):
+    account_status: str  # "active" | "suspended" | "archived"
+
+
+@router.patch("/{user_id}/status")
+def update_account_status(
+    user_id: int,
+    payload: AccountStatusUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Suspend, reactivate, or archive a user account. Admin only."""
+    admin_payload = decode_token(credentials.credentials)
+    if not admin_payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    admin_user = get_user_by_id(db, admin_payload["user_id"])
+    if not admin_user or admin_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    if payload.account_status not in ("active", "suspended", "archived"):
+        raise HTTPException(status_code=400, detail="Invalid status. Use: active, suspended, archived")
+
+    target = get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target.account_status = payload.account_status
+    db.commit()
+
+    return {
+        "id": target.id,
+        "name": target.name,
+        "email": target.email,
+        "account_status": target.account_status,
     }
 
 @router.get("/me")
@@ -90,6 +138,7 @@ def get_me(
         "business_name": user.business_name,
         "is_active":     user.is_active,
         "is_ceo":        user.is_ceo,
+        "account_status": user.account_status,
         "created_at":    user.created_at,
     }
 

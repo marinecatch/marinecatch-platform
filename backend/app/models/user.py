@@ -98,6 +98,11 @@ class User(Base):
     # Replaces multiple user roles with cleaner buyer_type field
     # ── STATUS + TIMESTAMPS ───────────────────────────────────
     is_active  = Column(Boolean, default=True, nullable=False)
+    # Genuine account status — separate from is_active, which is
+    # overloaded by the lead-capture system (see sales.py). This is
+    # the field actual account suspension should use going forward.
+    # Values: "active", "suspended", "archived"
+    account_status = Column(String(20), default="active", nullable=False)
     # CEO-only dashboard access — distinct from role=admin.
     # Admin staff can see the operations dashboard; only accounts
     # with is_ceo=True can see the CEO/executive dashboard.
