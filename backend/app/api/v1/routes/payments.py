@@ -27,6 +27,7 @@ from app.services.payment_service import (
     confirm_payment_manually,
     initiate_fisher_payout,
 )
+from app.services.kcb_service import parse_kcb_callback
 from app.models.payment import PaymentMethod, PaymentChannel
 from app.models.order import Order
 
@@ -240,6 +241,7 @@ def run_expiry_check(
         "expired_orders":  count,
         "message":         f"{count} stale reservation(s) expired and stock released."
     }
+
 # ── FISHER PAYOUT (admin) ─────────────────────────────────────────
 
 @router.post("/payout/{order_id}")
@@ -274,3 +276,64 @@ async def trigger_fisher_payout(
     )
 
     return result
+
+# ── KCB BUNI INTEGRATION ────────────────────────────────────────
+
+@router.post("/kcb/validate")
+async def kcb_validate(request: Request):
+    """
+    KCB validation endpoint — called before a payment is processed.
+    KCB expects a specific response format to confirm the
+    account/reference is valid before allowing the transaction.
+    """
+    payload = await request.json()
+    print(f"KCB validation request: {payload}")
+
+    # Basic validation — always accept for now since we don't
+    # have KCB's exact account reference format yet
+    return {
+        "ResultCode": "0",
+        "ResultDesc": "Accepted",
+    }
+
+
+@router.post("/kcb/confirm")
+async def kcb_confirm(request: Request, db: Session = Depends(get_db)):
+    """
+    KCB confirmation endpoint — called after a payment succeeds.
+    This is where we record the payment against a receivable
+    or order once KCB shares their exact payload structure.
+    """
+    payload = await request.json()
+    print(f"KCB confirmation received: {payload}")
+
+    parsed = parse_kcb_callback(payload)
+
+    # TODO: Once KCB shares exact payload format, match
+    # parsed['reference'] to a TradeReceivable or Order
+    # and call settlement_service.record_payment()
+
+    return {
+        "ResultCode": "0",
+        "ResultDesc": "Confirmed",
+    }
+
+
+@router.post("/kcb/callback")
+async def kcb_callback(request: Request):
+    """
+    General KCB callback endpoint — for B2C/bank transfer
+    confirmations (MarineCatch paying suppliers via KCB).
+    """
+    payload = await request.json()
+    print(f"KCB callback received: {payload}")
+
+    parsed = parse_kcb_callback(payload)
+
+    # TODO: Match parsed['reference'] to a SupplierPayment
+    # and call settlement_service.record_supplier_payout()
+
+    return {
+        "ResultCode": "0",
+        "ResultDesc": "Received",
+    }
