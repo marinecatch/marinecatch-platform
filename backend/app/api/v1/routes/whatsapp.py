@@ -309,17 +309,25 @@ async def route_fisher_message(
                 channel="whatsapp",
             )
 
+            # Get AI price suggestion grounded in real data
+            price_hint = ""
+            try:
+                from app.services.price_intelligence_service import suggest_price
+                suggestion = await suggest_price(db, species_input, weight_kg)
+                price_hint = f"\n{suggestion}\n"
+            except Exception as e:
+                print(f"Price suggestion failed: {e}")
+
             await send_text(
                 from_phone,
                 f"✅ *Catch Recorded*\n\n"
                 f"• Species: {species_input.title()}\n"
                 f"• Weight: {weight_kg}kg\n"
                 f"• Site: {site_input.title()}\n"
-                f"• Draft: {draft.reference_number}\n\n"
+                f"• Draft: {draft.reference_number}\n"
+                f"{price_hint}\n"
                 f"💰 *What is your asking price per kg? (KES)*\n\n"
-                f"Type just the number, e.g: *780*\n\n"
-                f"This is what you would like to receive per kg.\n"
-                f"MarineCatch sets the final market price after inspection."
+                f"Type just the number, e.g: *780*"
             )
             return
 
@@ -448,17 +456,30 @@ async def route_fisher_message(
         )
         return
 
-    # ── DEFAULT ───────────────────────────────────────────────
-    await send_text(
-        from_phone,
-        f"Samahani {fisher_name}, sikuelewa. 🤔\n\n"
-        f"Type *MENU* kwa chaguo\n"
-        f"Type *CATCH tuna 45 kibuyuni* kusajili samaki\n"
-        f"Type *PAYOUT* kuona malipo\n"
-        f"Type *PRICES* kuona bei\n\n"
-        f"MarineCatch Africa 🐟"
-    )
-
+    # ── DEFAULT — AI FALLBACK (compliance-aware) ─────────────
+    compliance_keywords = ["kra", "pin", "tax", "compliance", "verify",
+                           "verified", "level", "member"]
+    try:
+        if any(kw in text for kw in compliance_keywords):
+            from app.services.compliance_assistant_service import (
+                answer_compliance_question
+            )
+            reply = await answer_compliance_question(db, fisher.id, text)
+        else:
+            from app.services.whatsapp_ai_service import get_ai_response
+            reply = await get_ai_response(db, text)
+        await send_text(from_phone, reply)
+    except Exception as e:
+        print(f"Fisher AI fallback failed: {e}")
+        await send_text(
+            from_phone,
+            f"Samahani {fisher_name}, sikuelewa. 🤔\n\n"
+            f"Type *MENU* kwa chaguo\n"
+            f"Type *CATCH tuna 45 kibuyuni* kusajili samaki\n"
+            f"Type *PAYOUT* kuona malipo\n"
+            f"Type *PRICES* kuona bei\n\n"
+            f"MarineCatch Africa 🐟"
+        )
 
 async def route_buyer_message(
     db:         Session,
