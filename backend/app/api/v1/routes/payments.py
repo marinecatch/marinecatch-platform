@@ -282,9 +282,9 @@ async def trigger_fisher_payout(
 @router.post("/kcb/validate")
 async def kcb_validate(request: Request):
     """
-    KCB validation endpoint — called before a payment is processed.
-    KCB expects a specific response format to confirm the
-    account/reference is valid before allowing the transaction.
+    IPN Account validation endpoint (per KCB Buni spec).
+    Called by KCB to validate account/reference before a
+    Funds Transfer transaction proceeds.
     """
     payload = await request.json()
     print(f"KCB validation request: {payload}")
@@ -300,30 +300,42 @@ async def kcb_validate(request: Request):
 @router.post("/kcb/confirm")
 async def kcb_confirm(request: Request, db: Session = Depends(get_db)):
     """
-    KCB confirmation endpoint — called after a payment succeeds.
-    This is where we record the payment against a receivable
-    or order once KCB shares their exact payload structure.
+    STK Callback endpoint (per KCB Buni spec).
+    Called by KCB after an M-Pesa Express (STK Push) payment
+    from a buyer completes — success or failure.
     """
     payload = await request.json()
-    print(f"KCB confirmation received: {payload}")
+    print(f"KCB STK callback received: {payload}")
 
     parsed = parse_kcb_callback(payload)
 
-    # TODO: Once KCB shares exact payload format, match
-    # parsed['reference'] to a TradeReceivable or Order
-    # and call settlement_service.record_payment()
+    if parsed["success"]:
+        print(
+            f"KCB payment SUCCESS: KES {parsed['amount']} from "
+            f"{parsed['phone_number']}, receipt {parsed['mpesa_receipt']}"
+        )
+        # TODO: Match parsed['checkout_request_id'] or amount/phone
+        # to a pending TradeReceivable, then call:
+        # settlement_service.record_payment(db, receivable_id, ...)
+    else:
+        print(
+            f"KCB payment FAILED: {parsed['result_desc']} "
+            f"(code {parsed['result_code']})"
+        )
 
     return {
         "ResultCode": "0",
-        "ResultDesc": "Confirmed",
+        "ResultDesc": "Accepted",
     }
 
 
 @router.post("/kcb/callback")
 async def kcb_callback(request: Request):
     """
-    General KCB callback endpoint — for B2C/bank transfer
-    confirmations (MarineCatch paying suppliers via KCB).
+    B2C Funds Transfer callback endpoint (per KCB Buni spec).
+    Called by KCB after MarineCatch's payout to a supplier/
+    fisher via bank transfer completes. This is where we
+    match to a SupplierPayment and call record_supplier_payout().
     """
     payload = await request.json()
     print(f"KCB callback received: {payload}")

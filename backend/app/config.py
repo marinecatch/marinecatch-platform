@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     KCB_PAYBILL_NUMBER: str = ""
     KCB_CALLBACK_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/callback"
     KCB_VALIDATION_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/validate"
-    KCB_CONFIRMATION_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/confirm"
+    KCB_CONFIRM_URL: str = "https://api.marinecatchafrica.com/api/v1/payments/kcb/confirm"
     # WhatsApp
     WHATSAPP_TOKEN:            str = ""
     WHATSAPP_PHONE_NUMBER_ID:  str = ""

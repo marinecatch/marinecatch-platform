@@ -39,12 +39,14 @@ def get_base_url() -> str:
 async def get_access_token() -> str:
     """
     Get OAuth access token from KCB Buni API.
-    Uses client credentials grant.
+    Uses Basic Auth (consumer_key:consumer_secret) with
+    client_credentials grant — per KCB spec.
     """
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{get_base_url()}/token?grant_type=client_credentials",
             auth=(settings.KCB_CONSUMER_KEY, settings.KCB_CONSUMER_SECRET),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()
         return response.json()["access_token"]
@@ -75,39 +77,39 @@ async def check_account_balance() -> dict:
 
 # ── BANK TRANSFER / EFT ───────────────────────────────────────────
 
-async def initiate_bank_transfer(
-    amount:            float,
-    destination_account: str,
-    destination_bank_code: str,
-    reference:         str,
-    narrative:         str,
+async def initiate_stk_push(
+    phone_number: str,
+    amount: float,
+    invoice_number: str,
+    transaction_description: str = "MarineCatch seafood order",
 ) -> dict:
     """
-    Initiate a bank transfer for large B2B payments.
+    Initiate M-Pesa Express (STK Push) via KCB paybill 522533.
 
-    Use case: Processor or exporter pays MarineCatch KES 500K+
-    for a bulk seafood order — too large for M-Pesa STK Push.
-
-    Use case: MarineCatch pays a large supplier (like Shimoni
-    aggregator) via bank transfer instead of M-Pesa B2C.
+    invoice_number format required by KCB: KCBTILLNO-YOURACCREF
+    e.g. "522533-MC-INV-20260724-0001"
     """
     token = await get_access_token()
 
     payload = {
-        "sourceAccount":      settings.KCB_ACCOUNT_NUMBER,
-        "destinationAccount": destination_account,
-        "destinationBankCode": destination_bank_code,
-        "amount":             amount,
-        "currency":           "KES",
-        "reference":          reference,
-        "narrative":          narrative,
-        "callbackUrl":        settings.KCB_CALLBACK_URL,
+        "phoneNumber": phone_number,
+        "amount": str(amount),
+        "invoiceNumber": invoice_number,
+        "sharedShortCode": True,
+        "orgShortCode": "",
+        "orgPassKey": "",
+        "callbackUrl": settings.KCB_CONFIRM_URL,
+        "transactionDescription": transaction_description,
     }
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"{get_base_url()}/mm/api/v1/transfer",
-            headers={"Authorization": f"Bearer {token}"},
+            f"{get_base_url()}/mm/api/request/1.0.0/stkpush",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "accept": "application/json",
+            },
             json=payload,
         )
         response.raise_for_status()
@@ -159,13 +161,52 @@ async def query_transaction_status(reference: str) -> dict:
 
 def parse_kcb_callback(payload: dict) -> dict:
     """
-    Parse incoming KCB payment confirmation webhook.
-    Called from the payments route when KCB confirms a transfer.
-    """
-    return {
-        "reference":     payload.get("reference"),
-        "amount":        payload.get("amount"),
-        "status":        payload.get("status"),
-        "transaction_id": payload.get("transactionId"),
-        "timestamp":     payload.get("timestamp", datetime.now().isoformat()),
+    Parse the real KCB M-Pesa Express STK callback payload.
+
+    Success structure:
+    {
+      "Body": {"stkCallback": {
+        "MerchantRequestID", "CheckoutRequestID",
+        "ResultCode": 0, "ResultDesc",
+        "CallbackMetadata": {"Item": [
+          {"Name": "Amount", "Value": 1.00},
+          {"Name": "MpesaReceiptNumber", "Value": "ABCDE12345"},
+          {"Name": "TransactionDate", "Value": 20230721153232},
+          {"Name": "PhoneNumber", "Value": 254700000000}
+        ]}
+      }}
     }
+
+    Failure structure omits CallbackMetadata, ResultCode != 0.
+    """
+    stk = payload.get("Body", {}).get("stkCallback", {})
+    result_code = stk.get("ResultCode")
+    result_desc = stk.get("ResultDesc")
+
+    parsed = {
+        "merchant_request_id": stk.get("MerchantRequestID"),
+        "checkout_request_id": stk.get("CheckoutRequestID"),
+        "success": result_code == 0,
+        "result_code": result_code,
+        "result_desc": result_desc,
+        "amount": None,
+        "mpesa_receipt": None,
+        "transaction_date": None,
+        "phone_number": None,
+    }
+
+    if result_code == 0:
+        items = stk.get("CallbackMetadata", {}).get("Item", [])
+        for item in items:
+            name = item.get("Name")
+            value = item.get("Value")
+            if name == "Amount":
+                parsed["amount"] = value
+            elif name == "MpesaReceiptNumber":
+                parsed["mpesa_receipt"] = value
+            elif name == "TransactionDate":
+                parsed["transaction_date"] = value
+            elif name == "PhoneNumber":
+                parsed["phone_number"] = value
+
+    return parsed
