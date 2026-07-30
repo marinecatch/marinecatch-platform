@@ -72,16 +72,52 @@
         <div class="login-logo">🎣</div>
         <div class="login-title">MarineCatch Africa</div>
         <div class="login-sub">Fisher Portal — Dhibiti Mauzo Yako</div>
-        <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" id="login-email" class="form-control" placeholder="your@email.com">
+
+        <!-- LOGIN FORM -->
+        <div id="login-form-fields">
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" id="login-email" class="form-control" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Password">
+            </div>
+            <div id="login-error" class="error"></div>
+            <button class="btn btn-primary" style="width:100%; background:#276749" onclick="doLogin()">Ingia / Sign In</button>
+            <p style="text-align:center; margin-top:16px; font-size:13px; color:#718096;">
+                Mpya hapa? <a href="#" onclick="showRegisterForm(); return false;" style="color:#276749; font-weight:600;">Jisajili / Register</a>
+            </p>
         </div>
-        <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" id="login-password" class="form-control" placeholder="Password">
+
+        <!-- REGISTER FORM -->
+        <div id="register-form-fields" style="display:none;">
+            <div class="form-group">
+                <label class="form-label">Jina Kamili / Full Name *</label>
+                <input type="text" id="reg-name" class="form-control" placeholder="Jina lako">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email *</label>
+                <input type="email" id="reg-email" class="form-control" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Simu / Phone *</label>
+                <input type="tel" id="reg-phone" class="form-control" placeholder="0700 000 000">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password * (herufi 8+ / min 8 characters)</label>
+                <input type="password" id="reg-password" class="form-control" placeholder="Chagua password">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mahali / Location</label>
+                <input type="text" id="reg-location" class="form-control" placeholder="e.g. Kibuyuni, Shimoni">
+            </div>
+            <div id="register-error" class="error"></div>
+            <button class="btn btn-primary" style="width:100%; background:#276749" onclick="doRegister()">Jisajili / Create Account</button>
+            <p style="text-align:center; margin-top:16px; font-size:13px; color:#718096;">
+                Una akaunti tayari? <a href="#" onclick="showLoginForm(); return false;" style="color:#276749; font-weight:600;">Ingia / Sign in</a>
+            </p>
         </div>
-        <div id="login-error" class="error"></div>
-        <button class="btn btn-primary" style="width:100%; background:#276749" onclick="doLogin()">Ingia / Sign In</button>
     </div>
 </div>
 
@@ -340,6 +376,74 @@ let token = localStorage.getItem('mc_fisher_token');
 let currentUser = null;
 let inspectionMap = {};
 let currentManageLot = null;
+
+function showRegisterForm() {
+    document.getElementById('login-form-fields').style.display = 'none';
+    document.getElementById('register-form-fields').style.display = 'block';
+}
+
+function showLoginForm() {
+    document.getElementById('register-form-fields').style.display = 'none';
+    document.getElementById('login-form-fields').style.display = 'block';
+}
+
+async function doRegister() {
+    const name     = document.getElementById('reg-name').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const phone    = document.getElementById('reg-phone').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const location = document.getElementById('reg-location').value.trim();
+    const errEl    = document.getElementById('register-error');
+    errEl.style.display = 'none';
+
+    if (!name || !email || !phone || !password) {
+        errEl.textContent = 'Tafadhali jaza sehemu zote muhimu. / Please fill in all required fields.';
+        errEl.style.display = 'block';
+        return;
+    }
+    if (password.length < 8) {
+        errEl.textContent = 'Password lazima iwe herufi 8+ / Password must be at least 8 characters.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/api/v1/users/register`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name, email, phone, password,
+                role: 'fisher',
+                location: location || null,
+            })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            const loginRes = await fetch(`${API}/api/v1/users/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password})
+            });
+            const loginData = await loginRes.json();
+            if (loginRes.ok && loginData.access_token) {
+                token = loginData.access_token;
+                currentUser = loginData.user;
+                localStorage.setItem('mc_fisher_token', token);
+                showApp();
+            } else {
+                showLoginForm();
+                alert('Akaunti imeundwa! Tafadhali ingia. / Account created! Please sign in.');
+            }
+        } else {
+            errEl.textContent = data.detail || 'Usajili umeshindwa. / Registration failed.';
+            errEl.style.display = 'block';
+        }
+    } catch (e) {
+        errEl.textContent = 'Hitilafu ya muunganisho. / Connection error.';
+        errEl.style.display = 'block';
+    }
+}
 
 async function doLogin() {
     const email = document.getElementById('login-email').value;

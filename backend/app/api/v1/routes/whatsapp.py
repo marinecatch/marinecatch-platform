@@ -535,7 +535,10 @@ async def route_buyer_message(
 
     # ── SPECIES LOOKUP ────────────────────────────────────────
     species_list = ["tuna", "octopus", "prawns", "lobster",
-                    "snapper", "kingfish", "sardines", "crab"]
+                    "snapper", "kingfish", "sardines", "crab",
+                    "rabbitfish", "parrotfish", "goatfish",
+                    "rockcod", "barracuda", "jack", "squid",
+                    "shark", "sea_cucumber"]
     if text in species_list:
         lots = get_available_lots(db, species=text, limit=3)
         if not lots:
