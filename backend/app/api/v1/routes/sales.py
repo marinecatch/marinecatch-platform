@@ -29,7 +29,7 @@ def pipeline_summary(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    leads = db.query(User).filter(User.is_active == False).all()
+    leads = db.query(User).filter(User.is_lead == True).all()
 
     funnel = {
         "new":            0,
@@ -64,7 +64,7 @@ def leads_by_role(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    leads = db.query(User).filter(User.is_active == False).all()
+    leads = db.query(User).filter(User.is_lead == True).all()
 
     breakdown = {}
     for l in leads:
@@ -123,7 +123,7 @@ def leads_timeline(
     since = datetime.now(timezone.utc) - timedelta(days=days)
 
     leads = db.query(User).filter(
-        User.is_active == False,
+        User.is_lead == True,
         User.created_at >= since,
     ).all()
 
@@ -147,7 +147,7 @@ def recent_leads(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    query = db.query(User).filter(User.is_active == False)
+    query = db.query(User).filter(User.is_lead == True)
     if status:
         query = query.filter(User.lead_status == status)
 
@@ -185,9 +185,9 @@ def sales_overview(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    total_leads     = db.query(User).filter(User.is_active == False).count()
+    total_leads     = db.query(User).filter(User.is_lead == True).count()
     total_converted = db.query(User).filter(
-        User.is_active == False,
+        User.is_lead == True,
         User.lead_status == "converted"
     ).count()
     total_active_buyers = db.query(User).filter(
@@ -199,13 +199,13 @@ def sales_overview(
     # Leads this week
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     leads_this_week = db.query(User).filter(
-        User.is_active == False,
-        User.created_at >= week_ago,
+       User.is_lead == True,
+       User.created_at >= week_ago,
     ).count()
 
     # Unassigned leads needing attention
     unassigned = db.query(User).filter(
-        User.is_active == False,
+        User.is_lead == True,
         User.assigned_to.is_(None),
     ).count()
 

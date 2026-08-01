@@ -249,7 +249,8 @@ def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
     role            = system_role,
     location        = payload.location or "",
     business_name = f"{payload.role} | src:{payload.utm_source or 'direct'} | med:{payload.utm_medium or 'none'} | camp:{payload.utm_campaign or 'none'} | {payload.message or ''}"[:200],
-    is_active       = False,
+    is_active       = True,
+    is_lead         = True,
 )
     db.add(lead)
     # Save lead attribution
@@ -276,11 +277,25 @@ def capture_lead(payload: LeadCreate, db: Session = Depends(get_db)):
     db.add(attribution)
     db.commit()
 
+    # AI lead qualification — score for sales prioritization
+    try:
+        from app.services.lead_qualification_service import score_lead
+        scoring = score_lead(
+            name=payload.name, role=payload.role,
+            location=payload.location, message=payload.message,
+        )
+        lead.lead_notes = (
+            f"AI Score: {scoring['score']}/10 ({scoring['priority']} priority) "
+            f"— {scoring['reason']}"
+        )
+        db.commit()
+    except Exception as e:
+        print(f"Lead qualification failed: {e}")
+
     return {
         "success": True,
         "message": "Registration received. Our team will contact you within 24 hours on WhatsApp."
     }
-
 # ── LEAD PIPELINE MANAGEMENT ──────────────────────────────────────
 
 class LeadUpdate(BaseModel):

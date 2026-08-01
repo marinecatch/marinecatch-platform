@@ -103,6 +103,11 @@ class User(Base):
     # the field actual account suspension should use going forward.
     # Values: "active", "suspended", "archived"
     account_status = Column(String(20), default="active", nullable=False)
+    # Marks a row as a marketing/landing-page lead, NOT a real registered
+    # account. Deliberately separate from is_active and account_status —
+    # this was previously conflated with is_active=False, which created a
+    # collision risk with any future account-suspension feature.
+    is_lead        = Column(Boolean, default=False, nullable=False)
     # CEO-only dashboard access — distinct from role=admin.
     # Admin staff can see the operations dashboard; only accounts
     # with is_ceo=True can see the CEO/executive dashboard.
