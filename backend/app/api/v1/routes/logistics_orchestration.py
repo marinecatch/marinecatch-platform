@@ -134,6 +134,16 @@ class ShipOrderRequest(BaseModel):
     # Each job: {pickup_location, destination_location, job_type,
     #            partner_id, cooler_asset_id, cost_kes, tracking_reference}    
 
+class PartnerApplication(BaseModel):
+    name: str
+    partner_type: str
+    contact_phone: str
+    contact_person: Optional[str] = None
+    coverage_areas: Optional[str] = None
+    cold_chain_capable: bool = False
+    max_payload_kg: Optional[float] = None
+    message: Optional[str] = None
+    email: Optional[str] = None
 
 # ── NETWORK SUMMARY ────────────────────────────────────────────────
 
@@ -510,4 +520,83 @@ def ship_order(
         "order_id": order.id,
         "jobs_created": len(created_jobs),
         "job_ids": [j.id for j in created_jobs],
-    }    
+    }   
+
+@router.post("/partner-applications", status_code=201)
+def submit_partner_application(payload: PartnerApplication, db: Session = Depends(get_db)):
+    """
+    Public endpoint — logistics/cold storage partners apply here.
+    Creates an inactive partner record for admin review.
+    No auth required — this is a lead capture for the partner network.
+    """
+    partner = LogisticsPartner(
+        name               = payload.name,
+        partner_type       = payload.partner_type,
+        contact_phone      = payload.contact_phone,
+        contact_person     = payload.contact_person,
+        coverage_areas     = payload.coverage_areas,
+        cold_chain_capable = payload.cold_chain_capable,
+        max_payload_kg     = payload.max_payload_kg,
+        is_active          = False,
+        # Inactive until admin reviews and approves
+        notes              = f"APPLICATION — Email: {payload.email or 'not provided'} | "
+                             f"Message: {payload.message or 'none'}",
+    )
+    db.add(partner)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Thank you for your interest in partnering with MarineCatch Africa. "
+                   "Our logistics team will review your application and contact you within 48 hours.",
+    }
+
+
+@router.get("/partner-applications/pending")
+def list_pending_applications(
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Admin — view partner applications awaiting approval."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    pending = db.query(LogisticsPartner).filter(
+        LogisticsPartner.is_active == False
+    ).order_by(LogisticsPartner.onboarded_at.desc()).all()
+
+    return {
+        "total": len(pending),
+        "applications": [
+            {
+                "id": p.id, "name": p.name, "partner_type": p.partner_type,
+                "contact_phone": p.contact_phone, "contact_person": p.contact_person,
+                "coverage_areas": p.coverage_areas,
+                "cold_chain_capable": p.cold_chain_capable,
+                "notes": p.notes,
+                "onboarded_at": p.onboarded_at,
+            } for p in pending
+        ]
+    }
+
+
+@router.post("/partner-applications/{partner_id}/approve")
+def approve_partner_application(
+    partner_id: int,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Admin — approve a pending partner application."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    partner = db.query(LogisticsPartner).filter(
+        LogisticsPartner.id == partner_id
+    ).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    partner.is_active = True
+    db.commit()
+
+    return {"success": True, "message": f"{partner.name} approved and activated."}

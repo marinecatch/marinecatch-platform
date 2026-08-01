@@ -60,6 +60,7 @@
             <button class="btn btn-outline btn-sm" onclick="showTab('exceptions')" id="tab-btn-exceptions">⚠️ Exceptions</button>
             <button class="btn btn-outline btn-sm" onclick="showTab('new-partner')" id="tab-btn-new-partner">➕ Add Partner</button>
             <button class="btn btn-outline btn-sm" onclick="showTab('new-storage')" id="tab-btn-new-storage">➕ Add Storage</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('applications')" id="tab-btn-applications">📋 Applications</button>
         </div>
 
         <!-- ACTIVE JOBS -->
@@ -73,6 +74,16 @@
             </div>
         </div>
 
+        <div id="tab-applications" style="display:none">
+            <div class="card">
+                <div class="card-title">
+                    Logistics Partner Applications
+                    <button class="btn btn-outline btn-sm" onclick="loadApplications()">🔄 Refresh</button>
+                </div>
+                <div id="applications-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+            </div>
+        </div>
+        
         <!-- PARTNERS -->
         <div id="tab-partners" style="display:none">
             <div class="card">
@@ -270,7 +281,7 @@ if (!requireAuth()) throw new Error('Not authenticated');
 showUser();
 
 function showTab(tab) {
-    ['jobs','partners','storage','coolers','exceptions','new-partner','new-storage'].forEach(t => {
+    ['jobs','partners','storage','coolers','exceptions','applications','new-partner','new-storage'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = 'none';
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.className = 'btn btn-outline btn-sm';
@@ -284,6 +295,7 @@ function showTab(tab) {
     if (tab === 'storage')    loadStorage();
     if (tab === 'coolers')    loadCoolers();
     if (tab === 'exceptions') loadExceptions();
+    if (tab === 'applications') loadApplications();
 }
 
 async function loadSummary() {
@@ -582,8 +594,54 @@ async function submitNewCooler() {
     }
 }
 
+async function loadApplications() {
+    const data = await apiGet('/api/v1/logistics-network/partner-applications/pending');
+    if (!data) return;
+    const apps = data.applications || [];
+
+    if (!apps.length) {
+        document.getElementById('applications-table').innerHTML =
+            '<p style="color:var(--success);padding:20px">✅ No pending applications.</p>';
+        return;
+    }
+
+    document.getElementById('applications-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Name</th><th>Type</th><th>Phone</th>
+                <th>Coverage</th><th>Cold Chain</th><th>Notes</th>
+                <th>Applied</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${apps.map(a => `
+                <tr>
+                    <td><strong>${a.name}</strong></td>
+                    <td><span class="badge badge-neutral">${a.partner_type?.replace('_',' ')}</span></td>
+                    <td>${a.contact_phone}</td>
+                    <td style="font-size:12px">${a.coverage_areas || '—'}</td>
+                    <td>${a.cold_chain_capable ? '❄️ Yes' : 'No'}</td>
+                    <td style="font-size:11px; max-width:200px;">${a.notes || '—'}</td>
+                    <td>${formatDate(a.onboarded_at)}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="approveApplication(${a.id})">Approve</button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+async function approveApplication(id) {
+    const result = await apiPost(`/api/v1/logistics-network/partner-applications/${id}/approve`, {});
+    if (result && result.success) {
+        loadApplications();
+        loadSummary();
+        alert(`✅ ${result.message}`);
+    }
+}
+
 loadSummary();
 loadJobs();
+loadApplications();
 </script>
 </body>
 </html>

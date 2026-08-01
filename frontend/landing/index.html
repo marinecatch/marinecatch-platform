@@ -393,6 +393,7 @@
     </div>
 </div>
 </section>
+
 <!-- CREDIBILITY STRIP -->
 <section style="background:white; padding:32px 40px; border-bottom:1px solid #e2e8f0;">
     <div class="container">
@@ -560,6 +561,75 @@
         </div>
     </div>
 </section>
+
+<!-- LOGISTICS & COLD STORAGE PARTNERS -->
+<section style="background:#f7fafc; padding:80px 40px;">
+    <div class="container" style="max-width:700px;">
+        <div style="text-align:center; margin-bottom:40px;">
+            <div class="section-label">Partner With Us</div>
+            <h2 style="font-size:clamp(28px,4vw,40px); font-weight:800; color:#1D60AE; margin-bottom:16px;">
+                Logistics & Cold Storage Partners
+            </h2>
+            <p style="font-size:16px; color:#4a5568;">
+                MarineCatch coordinates a network of riders, bus companies, couriers, fleet operators, and cold storage facilities across Kenya's coast. If you can move or store seafood, we want to hear from you.
+            </p>
+        </div>
+
+        <div id="partner-form-fields" style="background:white; border-radius:16px; padding:32px; box-shadow:0 4px 24px rgba(0,0,0,0.06); border:1px solid #e2e8f0;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Company / Individual Name *</label>
+                    <input type="text" id="pt-name" placeholder="Your name or company">
+                </div>
+                <div class="form-group">
+                    <label>Partner Type *</label>
+                    <select id="pt-type">
+                        <option value="individual_rider">Individual Rider / Motorbike</option>
+                        <option value="bus_company">Bus Company</option>
+                        <option value="courier">Courier Service</option>
+                        <option value="fleet_operator">Fleet Operator</option>
+                        <option value="cold_storage_operator">Cold Storage Operator</option>
+                        <option value="integrated_logistics_co">Integrated Logistics Company</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="pt-phone" placeholder="0700 000 000">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="pt-email" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Coverage Areas</label>
+                <input type="text" id="pt-coverage" placeholder="e.g. Mombasa, Nairobi, Eldoret">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="pt-cold-chain" style="width:auto; margin-right:8px;">
+                    Cold chain capable (refrigerated transport / storage)
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Tell us about your fleet/facility</label>
+                <textarea id="pt-message" rows="3" placeholder="Capacity, vehicles, storage size, experience..."></textarea>
+            </div>
+            <button class="btn-submit" onclick="submitPartnerApplication()">
+                🤝 Submit Partnership Application
+            </button>
+        </div>
+
+        <div id="partner-success" style="display:none; background:white; border-radius:16px; padding:40px; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+            <div style="font-size:48px; margin-bottom:16px;">✅</div>
+            <h3 style="font-size:22px; color:#1D60AE; margin-bottom:8px;">Application Received!</h3>
+            <p style="color:#718096;">Our logistics team will review and contact you within 48 hours.</p>
+        </div>
+    </div>
+</section>
+
 <!-- INVESTOR SECTION -->
 <section style="background:white; padding:80px 40px; border-top:1px solid #e2e8f0;">
     <div class="container" style="max-width:800px; text-align:center;">
@@ -863,6 +933,38 @@ async function submitFooterNewsletter() {
         alert('Thank you for subscribing to MarineCatch Blue Economy Intelligence!');
     } catch (e) {
         alert('Something went wrong. Please try again.');
+    }
+}
+
+async function submitPartnerApplication() {
+    const name       = document.getElementById('pt-name').value.trim();
+    const type       = document.getElementById('pt-type').value;
+    const phone      = document.getElementById('pt-phone').value.trim();
+    const email      = document.getElementById('pt-email').value.trim();
+    const coverage   = document.getElementById('pt-coverage').value.trim();
+    const coldChain  = document.getElementById('pt-cold-chain').checked;
+    const message    = document.getElementById('pt-message').value.trim();
+
+    if (!name || !phone) {
+        alert('Please enter your name and phone number.');
+        return;
+    }
+
+    try {
+        await fetch('/api/v1/logistics-network/partner-applications', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name, partner_type: type, contact_phone: phone,
+                email, coverage_areas: coverage,
+                cold_chain_capable: coldChain, message,
+            })
+        });
+        document.getElementById('partner-form-fields').style.display = 'none';
+        document.getElementById('partner-success').style.display = 'block';
+    } catch (e) {
+        document.getElementById('partner-form-fields').style.display = 'none';
+        document.getElementById('partner-success').style.display = 'block';
     }
 }
 
