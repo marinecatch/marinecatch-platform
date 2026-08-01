@@ -365,9 +365,9 @@ def executive_summary(
         for r in region_q
     ]
 
-    total_users   = db.query(func.count(User.id)).scalar() or 0
-    total_fishers = db.query(func.count(User.id)).filter(User.role == "fisher").scalar() or 0
-    total_buyers  = db.query(func.count(User.id)).filter(User.role == "buyer").scalar() or 0
+    total_users   = db.query(func.count(User.id)).filter(User.is_lead == False).scalar() or 0
+    total_fishers = db.query(func.count(User.id)).filter(User.role == "fisher", User.is_lead == False).scalar() or 0
+    total_buyers  = db.query(func.count(User.id)).filter(User.role == "buyer", User.is_lead == False).scalar() or 0
 
     return {
         "gmv_kes":                 round(gmv, 0),

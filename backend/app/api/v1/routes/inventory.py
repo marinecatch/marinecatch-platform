@@ -121,6 +121,14 @@ def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):
         QualityInspection.lot_id == lot.id
     ).first()
 
+    # Enriched ESG catch data, when the fisher logged it with additional
+    # details (currently only the web portal writes this — WhatsApp catch
+    # logging doesn't yet, so this will be null for most WhatsApp-logged lots).
+    from app.models.esg import CatchEvent
+    catch_event = db.query(CatchEvent).filter(
+        CatchEvent.lot_id == lot.id
+    ).first()
+
     return {
         "lot_number":            lot.lot_number,
         "traceability_code":     lot.traceability_code,
@@ -154,6 +162,21 @@ def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):
             "inspected_at":   inspection.inspected_at,
             "disposition":    inspection.disposition,
         } if inspection else None,
+        "catch_details": {
+            "gps_lat":              catch_event.gps_lat_catch,
+            "gps_lng":              catch_event.gps_lng_catch,
+            "fishing_ground":       catch_event.fishing_ground,
+            "catch_method":         catch_event.catch_method,
+            "crew_size":            catch_event.crew_size,
+            "female_crew_count":    catch_event.female_crew_count,
+            "trip_duration_days":   catch_event.trip_duration_days,
+            "fishing_permit_no":    catch_event.fishing_permit_no,
+            "is_cross_border":      catch_event.is_cross_border,
+            "origin_country":       catch_event.origin_country,
+            "iuu_risk_level":       catch_event.iuu_risk_level,
+            "temperature_at_landing": catch_event.temperature_at_landing_celsius,
+            "ice_used":             catch_event.ice_used,
+        } if catch_event else None,
     }
 
 class ProcessingUpdate(BaseModel):
@@ -455,13 +478,19 @@ def get_quote(
 def reserve_lot(
     lot_id:      int,
     quantity_kg: float = Query(..., gt=0),
+    current_user = Depends(get_current_user),
     db: Session  = Depends(get_db)
 ):
     """
     Reserve kg against a lot when an order is placed.
     Reduces available_kg immediately — prevents double-selling.
-    Called by order service, not directly by buyers.
+    NOT used by the real order flow (order_service.py calls reserve_stock()
+    directly as a Python function). This HTTP route is kept for manual
+    admin correction only — admin-gated, since it was previously public
+    and unauthenticated, a real exploitable gap.
     """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
     lot = reserve_stock(db, lot_id, quantity_kg)
     return {
         "success":      True,
@@ -479,13 +508,18 @@ def reserve_lot(
 def release_lot(
     lot_id:      int,
     quantity_kg: float = Query(..., gt=0),
+    current_user = Depends(get_current_user),
     db: Session  = Depends(get_db)
 ):
     """
     Release reserved stock back to available.
-    Called when an order is cancelled before delivery.
-    Real world: buyer changed mind, payment failed, order expired.
+    NOT used by the real cancel flow (order_service.py handles this
+    directly). Kept for manual admin correction only — admin-gated,
+    since it was previously public and unauthenticated, a real
+    exploitable gap.
     """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
     lot = release_stock(db, lot_id, quantity_kg)
     return {
         "success":      True,

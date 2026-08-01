@@ -173,6 +173,7 @@ def list_users(
             "business_name": u.business_name,
             "is_active":     u.is_active,
             "is_ceo":        u.is_ceo,
+            "is_lead":       u.is_lead,
             "created_at":    u.created_at,
             "lead_status":       u.lead_status,
             "lead_source":       u.lead_source,

@@ -170,6 +170,18 @@ function render(lot, code) {
             <p style="font-size:14px; color:#4a5568;">${lot.sustainability_notes}</p>
         </div>` : ''}
 
+        ${lot.catch_details ? `
+        <div class="card">
+            <div class="section-title">Extended Catch Verification</div>
+            <div class="row"><span>IUU Risk Assessment</span><span>${cap(lot.catch_details.iuu_risk_level)}</span></div>
+            ${lot.catch_details.fishing_permit_no ? `<div class="row"><span>Fishing Permit</span><span>${lot.catch_details.fishing_permit_no}</span></div>` : ''}
+            ${lot.catch_details.origin_country ? `<div class="row"><span>Origin</span><span>${lot.catch_details.origin_country}${lot.catch_details.is_cross_border ? ' (cross-border)' : ''}</span></div>` : ''}
+            ${lot.catch_details.fishing_ground ? `<div class="row"><span>Fishing Ground</span><span>${lot.catch_details.fishing_ground}</span></div>` : ''}
+            ${lot.catch_details.crew_size ? `<div class="row"><span>Crew</span><span>${lot.catch_details.crew_size}${lot.catch_details.female_crew_count ? ' (' + lot.catch_details.female_crew_count + ' female)' : ''}</span></div>` : ''}
+            ${lot.catch_details.trip_duration_days ? `<div class="row"><span>Trip Duration</span><span>${lot.catch_details.trip_duration_days} days</span></div>` : ''}
+            ${lot.catch_details.gps_lat && lot.catch_details.gps_lng ? `<div class="row"><span>Catch Location</span><span>${lot.catch_details.gps_lat.toFixed(4)}, ${lot.catch_details.gps_lng.toFixed(4)}</span></div>` : ''}
+        </div>` : ''}
+
         <div class="card">
             <div class="section-title">Verification Code</div>
             <div class="qr-wrap">

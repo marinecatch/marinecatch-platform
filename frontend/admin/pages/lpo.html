@@ -149,7 +149,7 @@ function toggleLpoForm() {
 async function loadBuyersAndLots() {
     const users = await apiGet('/api/v1/users/');
     if (Array.isArray(users)) {
-        availableBuyers = users.filter(u => u.role === 'buyer');
+        availableBuyers = users.filter(u => u.role === 'buyer' && !u.is_lead);
         document.getElementById('lpo-buyer').innerHTML =
             '<option value="">Select buyer</option>' +
             availableBuyers.map(b => `<option value="${b.id}">${b.business_name || b.name} (${b.email || b.phone})</option>`).join('');

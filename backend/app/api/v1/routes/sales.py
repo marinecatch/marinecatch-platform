@@ -192,7 +192,8 @@ def sales_overview(
     ).count()
     total_active_buyers = db.query(User).filter(
         User.role == "buyer",
-        User.is_active == True
+        User.is_active == True,
+        User.is_lead == False
     ).count()
     total_orders    = db.query(Order).count()
 

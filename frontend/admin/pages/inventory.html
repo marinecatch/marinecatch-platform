@@ -186,6 +186,40 @@
                 </div>
             </div>
         </div>
+
+        <!-- PROCESSING MODAL -->
+        <div id="processing-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:420px; max-width:90%;">
+                <h3 style="margin-bottom:16px;">Record Processing</h3>
+                <p style="margin-bottom:12px; color:#718096;">Lot <strong id="processing-lot-id"></strong> — landed as <strong id="processing-original-form"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Processed Form</label>
+                    <select id="processing-form" class="form-control">
+                        <option value="whole_ungutted">Whole Ungutted</option>
+                        <option value="whole_gutted">Whole Gutted</option>
+                        <option value="headed_gutted">Headed & Gutted</option>
+                        <option value="fillet">Fillet</option>
+                        <option value="dried">Dried</option>
+                        <option value="smoked">Smoked</option>
+                        <option value="live">Live</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Weight After Processing (kg)</label>
+                    <input type="number" id="processing-weight" class="form-control" placeholder="Weight after gutting/cleaning" min="0" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <input type="text" id="processing-notes" class="form-control" placeholder="e.g. gutted, scaled, iced">
+                </div>
+                <div id="processing-error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="closeProcessingModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitProcessing()">Save</button>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 
@@ -327,6 +361,10 @@ async function loadInventory() {
                             onclick="openModal(${l.id}, '${l.lot_number}')">
                             Set Price
                         </button>
+                        <button class="btn btn-outline btn-sm"
+                            onclick="openProcessingModal(${l.id}, '${l.lot_number}', '${l.product_form || 'whole_ungutted'}')">
+                            Record Processing
+                        </button>
                     </td>
                 </tr>`).join('')}
             </tbody>
@@ -361,6 +399,62 @@ async function setPrice() {
         loadInventory();
     } else {
         alert('Failed to update price. ' + (result?.detail || ''));
+    }
+}
+
+let currentProcessingLotId = null;
+
+function openProcessingModal(lotId, lotNumber, currentForm) {
+    currentProcessingLotId = lotId;
+    document.getElementById('processing-lot-id').textContent = lotNumber;
+    document.getElementById('processing-original-form').textContent = currentForm.replace(/_/g, ' ');
+    document.getElementById('processing-weight').value = '';
+    document.getElementById('processing-notes').value = '';
+    document.getElementById('processing-error').style.display = 'none';
+    document.getElementById('processing-modal').style.display = 'flex';
+}
+
+function closeProcessingModal() {
+    document.getElementById('processing-modal').style.display = 'none';
+    currentProcessingLotId = null;
+}
+
+async function submitProcessing() {
+    if (!currentProcessingLotId) return;
+    const errEl = document.getElementById('processing-error');
+    errEl.style.display = 'none';
+
+    const processedForm = document.getElementById('processing-form').value;
+    const weight = parseFloat(document.getElementById('processing-weight').value);
+    const notes = document.getElementById('processing-notes').value;
+
+    if (!weight || weight <= 0) {
+        errEl.textContent = 'Please enter a valid processed weight.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/v1/inventory/${currentProcessingLotId}/processing`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}`},
+            body: JSON.stringify({
+                processed_form: processedForm,
+                processed_weight_kg: weight,
+                processing_notes: notes || null
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeProcessingModal();
+            loadInventory();
+        } else {
+            errEl.textContent = data.detail || 'Failed to record processing.';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
     }
 }
 

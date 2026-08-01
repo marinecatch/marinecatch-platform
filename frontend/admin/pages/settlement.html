@@ -442,7 +442,7 @@ async function loadBuyers() {
     const data = await apiGet('/api/v1/users/');
     if (!data) return;
     const users  = Array.isArray(data) ? data : (data.users || []);
-    const buyers = users.filter(u => u.role === 'buyer' && u.is_active);
+    const buyers = users.filter(u => u.role === 'buyer' && u.is_active && !u.is_lead);
     const select = document.getElementById('nr-buyer');
     select.innerHTML = '<option value="">Select buyer...</option>' +
         buyers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
@@ -452,7 +452,7 @@ async function loadSuppliers() {
     const data = await apiGet('/api/v1/users/');
     if (!data) return;
     const users     = Array.isArray(data) ? data : (data.users || []);
-    const suppliers = users.filter(u => (u.role === 'fisher' || u.role === 'supplier') && u.is_active);
+    const suppliers = users.filter(u => (u.role === 'fisher' || u.role === 'supplier') && u.is_active && !u.is_lead);
     const select    = document.getElementById('np-supplier');
     select.innerHTML = '<option value="">Select supplier...</option>' +
         suppliers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
