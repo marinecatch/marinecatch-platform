@@ -59,7 +59,11 @@
         /* ── HERO ── */
         .hero {
             min-height: 100vh;
-            background: linear-gradient(135deg, #1D60AE 0%, #2070c0 50%, #1558a0 100%);
+            background:
+                linear-gradient(135deg, rgba(29,96,174,0.88) 0%, rgba(32,112,192,0.85) 50%, rgba(21,88,160,0.9) 100%),
+                url("/landing/assets/hero-background.jpeg");
+            background-size: cover;
+            background-position: center;
             display: flex; align-items: center; justify-content: center;
             text-align: center;
             padding: 120px 40px 80px;
@@ -353,12 +357,13 @@
 <!-- NAV -->
 <nav>
     <a href="/" class="nav-logo" style="display:flex; align-items:center; gap:10px;">
-    <img src="/landing/assets/marinecatch%20logo-01.svg" alt="MarineCatch Africa" style="height:52px;">
-</a>
+        <img src="/landing/assets/marinecatch%20logo-01.svg" alt="MarineCatch Africa" style="height:52px;">
+    </a>
     <div class="nav-links">
         <a href="#how-it-works">How It Works</a>
         <a href="#features">Platform</a>
-        <a href="#who-we-serve">Who We Serve</a>
+        <a href="/landing/partners.html">Partners</a>
+        <a href="/landing/investors.html">Investors</a>
         <a href="/insights">Insights</a>
         <a href="#join" class="btn-nav">Get Early Access</a>
     </div>
@@ -367,12 +372,12 @@
 <!-- HERO -->
 <section class="hero">
     <div class="hero-content">
-        <div class="hero-badge" style="background:rgba(238,57,105,0.2); border-color:rgba(238,57,105,0.4); color:#EE3969;">
-        <h1>From Landing Site to Buyer<br><span>Digitising Africa's Seafood Trade</span></h1>
-        <p>MarineCatch Africa is the digital infrastructure layer for seafood trade, procurement, traceability, logistics, and payments across African seafood supply chains.</p>
+        <h1>Fresh Seafood.<br><span>Direct From Kenya's Coast.</span></h1>
+        <p>Buy seafood from verified fishers and suppliers with real-time inventory, secure M-Pesa payments, and full traceability from landing site to delivery. Built for restaurants, hotels, processors, and seafood businesses.</p>
         <div class="hero-buttons">
-            <a href="#join" class="btn-primary">Join the Platform</a>
-            <a href="https://wa.me/254707939810" target="_blank" class="btn-secondary">💬 WhatsApp Us</a>
+            <a href="/buyer" class="btn-primary">Browse Seafood</a>
+            <a href="#join" class="btn-secondary" style="background:transparent; border:2px solid white; color:white;">Sell Your Catch</a>
+            <a href="https://wa.me/254707939810" target="_blank" class="btn-secondary">💬 Talk to Sales</a>
         </div>
        <div class="hero-stats">
     <div>
@@ -388,7 +393,9 @@
         <div class="hero-stat-label">Counties Covered</div>
     </div>
     <div>
-        <div><img src="/mpesa.png" alt="M-Pesa" style="height:32px; object-fit:contain; filter:brightness(0) invert(1);"></div>
+        <div style="background:white; padding:6px 12px; border-radius:6px; display:inline-block;">
+            <img src="/mpesa.png" alt="M-Pesa" style="height:24px; object-fit:contain; display:block;">
+        </div>
         <div class="hero-stat-label">Instant Fisher Payouts</div>
     </div>
 </div>
@@ -397,19 +404,23 @@
 <!-- CREDIBILITY STRIP -->
 <section style="background:white; padding:32px 40px; border-bottom:1px solid #e2e8f0;">
     <div class="container">
-        <p style="text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#718096; margin-bottom:24px; font-weight:600;">Recognised & Supported By</p>
-        <div style="display:flex; align-items:center; justify-content:center; gap:48px; flex-wrap:wrap;">
-           <div style="text-align:center;">
-    <img src="/kenia.png" alt="Kenya National Innovation Agency" style="height:80px; object-fit:contain;">
-    <p style="font-size:11px; color:#718096; margin-top:8px;">Presidential Innovation Award<br>2023/2024</p>
-</div>
-<div style="text-align:center;">
-    <img src="/sotehub.webp" alt="Sote Hub" style="height:80px; object-fit:contain;">
-    <p style="font-size:11px; color:#718096; margin-top:8px;">Blue Economy Accelerator<br>Mombasa</p>
-</div>
-            <div style="text-align:center; padding:0 16px;">
-                <p style="font-size:13px; color:#1D60AE; font-weight:700; border:2px solid #1D60AE; padding:8px 16px; border-radius:6px;">🇰🇪 Made in Kenya</p>
-                <p style="font-size:11px; color:#718096; margin-top:8px;">Proudly Kenyan Platform</p>
+        <p style="text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#718096; margin-bottom:24px; font-weight:600;">Recognised, Featured & Supported By</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:40px; flex-wrap:wrap;">
+            <div style="text-align:center; max-width:180px;">
+                <img src="/kenia.png" alt="Kenya National Innovation Agency" style="height:64px; object-fit:contain;">
+                <p style="font-size:11px; color:#718096; margin-top:8px;">Presidential Innovation Challenge & Award Finalist — KeNIA (2023/2024)</p>
+            </div>
+            <div style="text-align:center; max-width:180px;">
+                <div style="font-size:32px;">📖</div>
+                <p style="font-size:11px; color:#718096; margin-top:8px;">Featured in <em>Seeds of Good Anthropocenes: Transforming Mombasa's Food System</em> — Wits University (2025)</p>
+            </div>
+            <div style="text-align:center; max-width:180px;">
+                <div style="font-size:32px;">🇰🇪</div>
+                <p style="font-size:11px; color:#718096; margin-top:8px;">Featured in the KeNIA Innovation Publication (2023/2024)</p>
+            </div>
+            <div style="text-align:center; max-width:180px;">
+                <img src="/sotehub.webp" alt="Sote Hub" style="height:64px; object-fit:contain;">
+                <p style="font-size:11px; color:#718096; margin-top:8px;">Alumni — Sote Hub Blue Economy Accelerator</p>
             </div>
         </div>
     </div>
@@ -426,24 +437,20 @@
                 <h3 style="color:#dc3545; margin-bottom:16px; font-size:16px;">❌ Traditional Procurement</h3>
                 <ul style="list-style:none; display:flex; flex-direction:column; gap:10px;">
                     <li style="font-size:14px; color:#4a5568;">❌ No inventory visibility</li>
-                    <li style="font-size:14px; color:#4a5568;">❌ Inconsistent quality</li>
                     <li style="font-size:14px; color:#4a5568;">❌ Cash payments, no records</li>
                     <li style="font-size:14px; color:#4a5568;">❌ No traceability</li>
-                    <li style="font-size:14px; color:#4a5568;">❌ Manual ordering via calls</li>
-                    <li style="font-size:14px; color:#4a5568;">❌ Fishers underpaid</li>
                     <li style="font-size:14px; color:#4a5568;">❌ Cold chain unmonitored</li>
+                    <li style="font-size:14px; color:#4a5568;">❌ Inconsistent quality</li>
                 </ul>
             </div>
             <div style="background:#f0fff4; border:1px solid #c3e6cb; border-radius:12px; padding:28px;">
                 <h3 style="color:#1D60AE; margin-bottom:16px; font-size:16px;">✅ MarineCatch Africa</h3>
                 <ul style="list-style:none; display:flex; flex-direction:column; gap:10px;">
                     <li style="font-size:14px; color:#4a5568;">✅ Real-time inventory</li>
-                    <li style="font-size:14px; color:#4a5568;">✅ Verified, graded seafood</li>
                     <li style="font-size:14px; color:#4a5568;">✅ Digital M-Pesa payments</li>
                     <li style="font-size:14px; color:#4a5568;">✅ Full traceability chain</li>
-                    <li style="font-size:14px; color:#4a5568;">✅ WhatsApp and USSD ordering</li>
-                    <li style="font-size:14px; color:#4a5568;">✅ Instant fisher payouts</li>
-                    <li style="font-size:14px; color:#4a5568;">✅ IoT cold chain monitoring</li>
+                    <li style="font-size:14px; color:#4a5568;">✅ Coordinated cold-chain logistics</li>
+                    <li style="font-size:14px; color:#4a5568;">✅ Verified, graded seafood</li>
                 </ul>
             </div>
         </div>
@@ -457,24 +464,27 @@
         <div class="section-sub">From landing site to buyer's kitchen. Fully digital. Fully traceable.</div>
         <div class="steps">
             <div class="step">
+                <img src="/landing/assets/whatsapp-catch-logging.jpeg" alt="Fisher logging catch via WhatsApp" style="width:100%; height:140px; object-fit:cover; border-radius:8px; margin-bottom:16px;">
                 <div class="step-num">1</div>
                 <h3>Fisher Logs Catch</h3>
-                <p>Fisher dials *384*71253# or sends a WhatsApp message to log species, weight, and landing site. Works on any phone, zero data required.</p>
+                <p>Species, weight, landing site — logged via WhatsApp or USSD in under a minute. Any phone, zero data required.</p>
             </div>
             <div class="step">
+                <img src="/landing/assets/weighing-fish.jpeg" alt="Weighing fresh catch" style="width:100%; height:140px; object-fit:cover; border-radius:8px; margin-bottom:16px;">
                 <div class="step-num">2</div>
                 <h3>Inventory Created</h3>
-                <p>Catch is logged in real-time to MarineCatch inventory with full traceability including species, location, gear type, BMU reference, IUU risk assessment.</p>
+                <p>Catch appears in real-time inventory with full traceability — species, location, gear type, and BMU reference.</p>
             </div>
             <div class="step">
                 <div class="step-num">3</div>
                 <h3>Buyer Orders</h3>
-                <p>Hotels, restaurants and processors browse available stock and place orders via WhatsApp, the web platform, or institutional LPO flow.</p>
+                <p>Hotels, restaurants, and processors browse verified stock and order via WhatsApp, web, or institutional LPO.</p>
             </div>
             <div class="step">
+                <img src="/landing/assets/kitchen-receiving-delivery.jpeg" alt="Kitchen receiving fresh delivery" style="width:100%; height:140px; object-fit:cover; border-radius:8px; margin-bottom:16px;">
                 <div class="step-num">4</div>
                 <h3>Payment & Delivery</h3>
-                <p>M-Pesa payment confirmed. Cold-chain logistics dispatched. IoT temperature monitoring throughout. Fisher paid directly to M-Pesa on delivery.</p>
+                <p>M-Pesa payment confirmed instantly. Fisher paid the moment delivery is confirmed.</p>
             </div>
         </div>
     </div>
@@ -488,34 +498,24 @@
         <div class="section-sub">Infrastructure that works in low-connectivity environments, on feature phones, and across Kenya's seafood corridors.</div>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">📱</div>
-                <h3>WhatsApp & USSD</h3>
-                <p>Fishers and buyers interact through WhatsApp and USSD. No app download. No data required for USSD. Works on any handset.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">💚</div>
-                <h3>Instant M-Pesa Payouts</h3>
-                <p>Fishers receive payment directly to their M-Pesa the moment delivery is confirmed. No cash handling. Full transaction record.</p>
+                <div class="feature-icon">🛒</div>
+                <h3>Buy & Sell</h3>
+                <p>Browse verified inventory and order via WhatsApp, USSD, or web. Institutional buyers get LPO flows, invoicing, and Net terms.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔍</div>
-                <h3>Full Traceability</h3>
-                <p>Every lot traced from catch to consumer. IUU risk assessment, BMU verification, cold chain monitoring. Export-ready compliance records.</p>
+                <h3>Traceability</h3>
+                <p>Every lot traced from catch to consumer — species, location, BMU reference, and quality inspection, all verifiable.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💚</div>
+                <h3>Payments</h3>
+                <p>Fishers receive M-Pesa payment the moment delivery is confirmed. No cash handling, full transaction record.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">❄️</div>
-                <h3>Cold Chain IoT</h3>
-                <p>Real-time temperature and humidity monitoring during transit. Automatic breach detection and alerts. Built for Kenya's seafood corridors.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📋</div>
-                <h3>Institutional LPO Flow</h3>
-                <p>Hotels and processors submit purchase orders digitally. Invoice generation, Net 7/14/30 payment terms, automated reconciliation.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🌍</div>
-                <h3>ESG & Sustainability</h3>
-                <p>Species sustainability profiles, fisher impact data, gender participation tracking. Ready for blue economy fund reporting and eco-labelling.</p>
+                <h3>Cold Chain</h3>
+                <p>Coordinated cold-storage and logistics partners keep seafood fresh from landing site to delivery.</p>
             </div>
         </div>
     </div>
@@ -529,12 +529,12 @@
         <div class="section-sub">MarineCatch connects every actor in Kenya's seafood supply chain.</div>
         <div class="audience-grid">
             <div class="audience-card">
-                <div class="audience-icon">🎣</div>
+                <img src="/landing/assets/a-fisher.jpeg" alt="MarineCatch fisher" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:12px;">
                 <h3>Small-Scale Fishers</h3>
                 <p>Log catches, check prices, receive instant M-Pesa payouts. Works on feature phones via USSD.</p>
             </div>
             <div class="audience-card">
-                <div class="audience-icon">🏨</div>
+                <img src="/landing/assets/kitchen-receiving-delivery.jpeg" alt="Hotel kitchen receiving delivery" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:12px;">
                 <h3>Hotels & Resorts</h3>
                 <p>Browse traceable inventory, submit LPOs, track deliveries, manage invoices digitally.</p>
             </div>
@@ -558,161 +558,6 @@
                 <h3>BMUs & Cooperatives</h3>
                 <p>Digital catch reporting, member earnings tracking, co-management data for fisheries officers.</p>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- LOGISTICS & COLD STORAGE PARTNERS -->
-<section style="background:#f7fafc; padding:80px 40px;">
-    <div class="container" style="max-width:700px;">
-        <div style="text-align:center; margin-bottom:40px;">
-            <div class="section-label">Partner With Us</div>
-            <h2 style="font-size:clamp(28px,4vw,40px); font-weight:800; color:#1D60AE; margin-bottom:16px;">
-                Logistics & Cold Storage Partners
-            </h2>
-            <p style="font-size:16px; color:#4a5568;">
-                MarineCatch coordinates a network of riders, bus companies, couriers, fleet operators, and cold storage facilities across Kenya's coast. If you can move or store seafood, we want to hear from you.
-            </p>
-        </div>
-
-        <div id="partner-form-fields" style="background:white; border-radius:16px; padding:32px; box-shadow:0 4px 24px rgba(0,0,0,0.06); border:1px solid #e2e8f0;">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Company / Individual Name *</label>
-                    <input type="text" id="pt-name" placeholder="Your name or company">
-                </div>
-                <div class="form-group">
-                    <label>Partner Type *</label>
-                    <select id="pt-type">
-                        <option value="individual_rider">Individual Rider / Motorbike</option>
-                        <option value="bus_company">Bus Company</option>
-                        <option value="courier">Courier Service</option>
-                        <option value="fleet_operator">Fleet Operator</option>
-                        <option value="cold_storage_operator">Cold Storage Operator</option>
-                        <option value="integrated_logistics_co">Integrated Logistics Company</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" id="pt-phone" placeholder="0700 000 000">
-                </div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="pt-email" placeholder="you@example.com">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Coverage Areas</label>
-                <input type="text" id="pt-coverage" placeholder="e.g. Mombasa, Nairobi, Eldoret">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="pt-cold-chain" style="width:auto; margin-right:8px;">
-                    Cold chain capable (refrigerated transport / storage)
-                </label>
-            </div>
-            <div class="form-group">
-                <label>Tell us about your fleet/facility</label>
-                <textarea id="pt-message" rows="3" placeholder="Capacity, vehicles, storage size, experience..."></textarea>
-            </div>
-            <button class="btn-submit" onclick="submitPartnerApplication()">
-                🤝 Submit Partnership Application
-            </button>
-        </div>
-
-        <div id="partner-success" style="display:none; background:white; border-radius:16px; padding:40px; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-            <div style="font-size:48px; margin-bottom:16px;">✅</div>
-            <h3 style="font-size:22px; color:#1D60AE; margin-bottom:8px;">Application Received!</h3>
-            <p style="color:#718096;">Our logistics team will review and contact you within 48 hours.</p>
-        </div>
-    </div>
-</section>
-
-<!-- INVESTOR SECTION -->
-<section style="background:white; padding:80px 40px; border-top:1px solid #e2e8f0;">
-    <div class="container" style="max-width:800px; text-align:center;">
-        <div class="section-label">For Investors & Partners</div>
-        <div class="section-title">Building Seafood Infrastructure for Africa</div>
-        <p style="font-size:18px; color:#4a5568; line-height:1.7; margin-bottom:32px;">
-            MarineCatch Africa is developing the digital infrastructure layer for seafood trade, procurement, traceability, logistics, and payments across African seafood supply chains. We are not a marketplace, we are the operating system for fisheries commerce.
-        </p>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:20px; margin-bottom:40px;">
-            <div style="background:#f7fafc; border-radius:8px; padding:20px; text-align:center;">
-                <div style="font-size:28px; font-weight:800; color:#1D60AE;">17</div>
-                <div style="font-size:12px; color:#718096; margin-top:4px;">Database Tables</div>
-            </div>
-            <div style="background:#f7fafc; border-radius:8px; padding:20px; text-align:center;">
-                <div style="font-size:28px; font-weight:800; color:#1D60AE;">4</div>
-                <div style="font-size:12px; color:#718096; margin-top:4px;">Live Interfaces</div>
-            </div>
-            <div style="background:#f7fafc; border-radius:8px; padding:20px; text-align:center;">
-                <div style="font-size:28px; font-weight:800; color:#1D60AE;">7</div>
-                <div style="font-size:12px; color:#718096; margin-top:4px;">Delivery Corridors</div>
-            </div>
-            <div style="background:#f7fafc; border-radius:8px; padding:20px; text-align:center;">
-                <div style="font-size:28px; font-weight:800; color:#1D60AE;">38</div>
-                <div style="font-size:12px; color:#718096; margin-top:4px;">Target Nations</div>
-            </div>
-        </div>
-        <a href="#join" class="btn-primary" style="background:#1D60AE;">Partner With Us</a>
-    </div>
-</section>
-
-<!-- BLUE ECONOMY INTELLIGENCE -->
-<section style="background:linear-gradient(135deg, #1D60AE, #00B3F0); padding:80px 40px;">
-    <div class="container" style="max-width:700px; text-align:center;">
-        <div class="section-label" style="color:rgba(255,255,255,0.7)">Free Report</div>
-        <h2 style="font-size:clamp(28px,4vw,40px); font-weight:800; color:white; margin-bottom:16px;">
-            Get the Coastal Seafood Price Report
-        </h2>
-        <p style="font-size:18px; color:rgba(255,255,255,0.9); margin-bottom:32px;">
-            Monthly prices for Tafi, Kole Kole, Octopus, Lobster, Prawns, and other key species across the Kenyan coast — plus landing volumes, supply shortages, and blue economy opportunities.
-        </p>
-
-        <div id="newsletter-form-fields" style="background:white; border-radius:16px; padding:32px; text-align:left; box-shadow:0 8px 32px rgba(0,0,0,0.15);">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="nl-name" placeholder="Your name">
-                </div>
-                <div class="form-group">
-                    <label>Email Address *</label>
-                    <input type="email" id="nl-email" placeholder="you@example.com">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Organization</label>
-                    <input type="text" id="nl-org" placeholder="Company or organization">
-                </div>
-                <div class="form-group">
-                    <label>I am a *</label>
-                    <select id="nl-stakeholder">
-                        <option value="buyer">Buyer (Hotel/Restaurant/Processor)</option>
-                        <option value="supplier">Fisher / Supplier</option>
-                        <option value="investor">Investor</option>
-                        <option value="government">Government / Policy</option>
-                        <option value="research">Researcher</option>
-                        <option value="partner">Logistics / Cold Chain Partner</option>
-                        <option value="media">Media / Journalist</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-submit" onclick="submitNewsletter()">
-                📊 Send Me the Report
-            </button>
-            <p style="text-align:center; font-size:12px; color:#718096; margin-top:16px;">
-                Used by seafood businesses, investors, researchers, and policymakers.
-            </p>
-        </div>
-
-        <div id="newsletter-success" style="display:none; background:white; border-radius:16px; padding:40px; text-align:center;">
-            <div style="font-size:48px; margin-bottom:16px;">✅</div>
-            <h3 style="font-size:22px; color:#1D60AE; margin-bottom:8px;">You're subscribed!</h3>
-            <p style="color:#718096;">Check your inbox for MarineCatch Blue Economy Intelligence.</p>
         </div>
     </div>
 </section>
@@ -884,40 +729,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     });
 });
 
-async function submitNewsletter() {
-    const name         = document.getElementById('nl-name').value.trim();
-    const email        = document.getElementById('nl-email').value.trim();
-    const organization = document.getElementById('nl-org').value.trim();
-    const stakeholder  = document.getElementById('nl-stakeholder').value;
-
-    if (!email) {
-        alert('Please enter your email address.');
-        return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const utm_source   = params.get('utm_source') || 'direct';
-    const utm_campaign = params.get('utm_campaign') || null;
-
-    try {
-        const res = await fetch('/api/v1/newsletter/subscribe', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                email, name, organization,
-                stakeholder_type: stakeholder,
-                source: 'landing_page',
-                utm_source, utm_campaign,
-            })
-        });
-
-        document.getElementById('newsletter-form-fields').style.display = 'none';
-        document.getElementById('newsletter-success').style.display = 'block';
-    } catch (e) {
-        document.getElementById('newsletter-form-fields').style.display = 'none';
-        document.getElementById('newsletter-success').style.display = 'block';
-    }
-}
 
 async function submitFooterNewsletter() {
     const email = document.getElementById('footer-nl-email').value.trim();
@@ -933,38 +744,6 @@ async function submitFooterNewsletter() {
         alert('Thank you for subscribing to MarineCatch Blue Economy Intelligence!');
     } catch (e) {
         alert('Something went wrong. Please try again.');
-    }
-}
-
-async function submitPartnerApplication() {
-    const name       = document.getElementById('pt-name').value.trim();
-    const type       = document.getElementById('pt-type').value;
-    const phone      = document.getElementById('pt-phone').value.trim();
-    const email      = document.getElementById('pt-email').value.trim();
-    const coverage   = document.getElementById('pt-coverage').value.trim();
-    const coldChain  = document.getElementById('pt-cold-chain').checked;
-    const message    = document.getElementById('pt-message').value.trim();
-
-    if (!name || !phone) {
-        alert('Please enter your name and phone number.');
-        return;
-    }
-
-    try {
-        await fetch('/api/v1/logistics-network/partner-applications', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                name, partner_type: type, contact_phone: phone,
-                email, coverage_areas: coverage,
-                cold_chain_capable: coldChain, message,
-            })
-        });
-        document.getElementById('partner-form-fields').style.display = 'none';
-        document.getElementById('partner-success').style.display = 'block';
-    } catch (e) {
-        document.getElementById('partner-form-fields').style.display = 'none';
-        document.getElementById('partner-success').style.display = 'block';
     }
 }
 

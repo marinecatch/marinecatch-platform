@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner With Us — MarineCatch Africa</title>
+    <meta name="description" content="Join MarineCatch Africa's logistics and cold storage partner network across Kenya's coast.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1D60AE; --primary-light: #2070c0; --accent: #EE3969;
+            --accent-blue: #00B3F0; --text: #2d3748; --text-light: #718096;
+            --bg: #f7fafc; --white: #ffffff;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text); line-height: 1.6; background: var(--bg); }
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: linear-gradient(135deg, #1D60AE 0%, #2070c0 50%, #1558a0 100%);
+            padding: 16px 40px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px; }
+        .nav-links a:hover { color: white; }
+        .btn-nav { background: var(--accent); color: white !important; padding: 8px 20px; border-radius: 6px; font-weight: 600 !important; }
+        .container { max-width: 700px; margin: 0 auto; padding: 0 40px; }
+        .hero-section {
+            padding: 160px 40px 60px;
+            background: linear-gradient(135deg, rgba(29,96,174,0.88) 0%, rgba(21,88,160,0.9) 100%), url("/landing/assets/cold-room.jpeg");
+            background-size: cover; background-position: center;
+            text-align: center; color: white;
+        }
+        .hero-section h1 { font-size: clamp(28px,4vw,42px); font-weight: 800; margin-bottom: 16px; }
+        .hero-section p { font-size: 17px; max-width: 640px; margin: 0 auto; opacity: 0.95; }
+        .form-section { padding: 60px 40px; }
+        .form-card { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;
+        }
+        .form-group { margin-bottom: 16px; }
+        .btn-submit {
+            width: 100%; background: var(--accent); color: white; border: none;
+            padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+        }
+        .partner-types { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 16px; margin: 40px 0; }
+        .partner-type-card { background: white; border-radius: 10px; padding: 20px; text-align: center; border: 1px solid #e2e8f0; }
+        .partner-type-card .icon { font-size: 28px; margin-bottom: 8px; }
+        .partner-type-card h4 { font-size: 14px; color: var(--primary); }
+        footer { background: #0D2137; color: rgba(255,255,255,0.7); text-align: center; padding: 32px; font-size: 13px; }
+        footer a { color: white; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/" style="display:flex; align-items:center;">
+        <img src="/landing/assets/marinecatch%20logo-01.svg" alt="MarineCatch Africa" style="height:44px;">
+    </a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/insights">Insights</a>
+        <a href="/landing/investors.html">Investors</a>
+        <a href="/buyer" class="btn-nav">Browse Seafood</a>
+    </div>
+</nav>
+
+<div class="hero-section">
+    <h1>Logistics & Cold Storage Partners</h1>
+    <p>MarineCatch coordinates a network of riders, bus companies, couriers, fleet operators, and cold storage facilities across Kenya's coast. If you can move or store seafood, we want to hear from you.</p>
+</div>
+
+<div class="container">
+    <div class="partner-types">
+        <div class="partner-type-card"><div class="icon">🏍️</div><h4>Riders & Couriers</h4></div>
+        <div class="partner-type-card"><div class="icon">🚌</div><h4>Bus & Fleet Operators</h4></div>
+        <div class="partner-type-card"><div class="icon">❄️</div><h4>Cold Storage Facilities</h4></div>
+        <div class="partner-type-card"><div class="icon">🚚</div><h4>Integrated Logistics Co.</h4></div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="container">
+        <div id="partner-form-fields" class="form-card">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Company / Individual Name *</label>
+                    <input type="text" id="pt-name" placeholder="Your name or company">
+                </div>
+                <div class="form-group">
+                    <label>Partner Type *</label>
+                    <select id="pt-type">
+                        <option value="individual_rider">Individual Rider / Motorbike</option>
+                        <option value="bus_company">Bus Company</option>
+                        <option value="courier">Courier Service</option>
+                        <option value="fleet_operator">Fleet Operator</option>
+                        <option value="cold_storage_operator">Cold Storage Operator</option>
+                        <option value="integrated_logistics_co">Integrated Logistics Company</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="pt-phone" placeholder="0700 000 000">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="pt-email" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Coverage Areas</label>
+                <input type="text" id="pt-coverage" placeholder="e.g. Mombasa, Nairobi, Eldoret">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="pt-cold-chain" style="width:auto; margin-right:8px;">
+                    Cold chain capable (refrigerated transport / storage)
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Tell us about your fleet/facility</label>
+                <textarea id="pt-message" rows="3" placeholder="Capacity, vehicles, storage size, experience..."></textarea>
+            </div>
+            <button class="btn-submit" onclick="submitPartnerApplication()">
+                🤝 Submit Partnership Application
+            </button>
+        </div>
+
+        <div id="partner-success" style="display:none;" class="form-card">
+            <div style="text-align:center;">
+                <div style="font-size:48px; margin-bottom:16px;">✅</div>
+                <h3 style="font-size:22px; color:var(--primary); margin-bottom:8px;">Application Received!</h3>
+                <p style="color:var(--text-light);">Our logistics team will review and contact you within 48 hours.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 MarineCatch Africa. <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms</a></p>
+</footer>
+
+<script>
+async function submitPartnerApplication() {
+    const name       = document.getElementById('pt-name').value.trim();
+    const type       = document.getElementById('pt-type').value;
+    const phone      = document.getElementById('pt-phone').value.trim();
+    const email      = document.getElementById('pt-email').value.trim();
+    const coverage   = document.getElementById('pt-coverage').value.trim();
+    const coldChain  = document.getElementById('pt-cold-chain').checked;
+    const message    = document.getElementById('pt-message').value.trim();
+
+    if (!name || !phone) {
+        alert('Please enter your name and phone number.');
+        return;
+    }
+
+    try {
+        await fetch('/api/v1/logistics-network/partner-applications', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name, partner_type: type, contact_phone: phone,
+                email, coverage_areas: coverage,
+                cold_chain_capable: coldChain, message,
+            })
+        });
+        document.getElementById('partner-form-fields').style.display = 'none';
+        document.getElementById('partner-success').style.display = 'block';
+    } catch(e) {
+        alert('Something went wrong. Please try again or WhatsApp us directly.');
+    }
+}
+</script>
+</body>
+</html>

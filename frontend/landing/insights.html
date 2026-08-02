@@ -202,13 +202,42 @@
         </div>
         <p style="font-size:11px; color:#a0aec0; margin-top:12px;">Data collected in partnership with BMU stakeholders in Kwale County, Kenya, 2024–2025. Used with permission for market intelligence purposes. Raw data belongs to Kenya Fisheries Service.</p>
 
-    <!-- Newsletter -->
+    <!-- Newsletter / Price Report -->
     <div class="newsletter">
-        <h2>Stay Informed</h2>
-        <p>Market intelligence, fisheries data and platform updates — delivered monthly.</p>
-        <div class="newsletter-form">
-            <input type="email" placeholder="your@email.com" />
-            <button onclick="subscribeNewsletter(this)">Subscribe</button>
+        <h2>Get the Coastal Seafood Price Report</h2>
+        <p>Monthly prices for Tafi, Kole Kole, Octopus, Lobster, Prawns, and other key species across the Kenyan coast — plus landing volumes and supply trends.</p>
+        <div id="newsletter-form-fields" style="max-width:440px; margin:0 auto; text-align:left; background:white; border-radius:12px; padding:24px;">
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#2d3748; margin-bottom:4px;">Full Name</label>
+                <input type="text" id="nl-name" placeholder="Your name" style="width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#2d3748; margin-bottom:4px;">Email Address *</label>
+                <input type="email" id="nl-email" placeholder="you@example.com" style="width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#2d3748; margin-bottom:4px;">Organization</label>
+                <input type="text" id="nl-org" placeholder="Company or organization" style="width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#2d3748; margin-bottom:4px;">I am a *</label>
+                <select id="nl-stakeholder" style="width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px;">
+                    <option value="buyer">Buyer (Hotel/Restaurant/Processor)</option>
+                    <option value="supplier">Fisher / Supplier</option>
+                    <option value="investor">Investor</option>
+                    <option value="government">Government / Policy</option>
+                    <option value="research">Researcher</option>
+                    <option value="partner">Logistics / Cold Chain Partner</option>
+                    <option value="media">Media / Journalist</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <button onclick="subscribeNewsletter()" style="width:100%; padding:12px; background:#00B3F0; color:white; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:14px;">
+                📊 Send Me the Report
+            </button>
+        </div>
+        <div id="newsletter-success" style="display:none; background:white; border-radius:12px; padding:32px; margin-top:16px;">
+            <p style="color:#276749; font-weight:700; font-size:16px;">✅ You're subscribed! Check your inbox for MarineCatch Blue Economy Intelligence.</p>
         </div>
     </div>
 
@@ -219,12 +248,41 @@
 </footer>
 
 <script>
-function subscribeNewsletter(btn) {
-    const email = btn.previousElementSibling.value;
-    if (!email) return;
-    btn.textContent = 'Subscribed ✓';
-    btn.style.background = '#276749';
-    btn.previousElementSibling.value = '';
+async function subscribeNewsletter() {
+    const name         = document.getElementById('nl-name').value.trim();
+    const email        = document.getElementById('nl-email').value.trim();
+    const organization = document.getElementById('nl-org').value.trim();
+    const stakeholder  = document.getElementById('nl-stakeholder').value;
+
+    if (!email) {
+        alert('Please enter your email address.');
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const utm_source   = params.get('utm_source') || 'direct';
+    const utm_campaign = params.get('utm_campaign') || null;
+
+    try {
+        const res = await fetch('/api/v1/newsletter/subscribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email, name, organization,
+                stakeholder_type: stakeholder,
+                source: 'insights_page',
+                utm_source, utm_campaign,
+            })
+        });
+        if (res.ok) {
+            document.getElementById('newsletter-form-fields').style.display = 'none';
+            document.getElementById('newsletter-success').style.display = 'block';
+        } else {
+            alert('Something went wrong. Please try again.');
+        }
+    } catch(e) {
+        alert('Network error. Please try again.');
+    }
 }
 </script>
 
