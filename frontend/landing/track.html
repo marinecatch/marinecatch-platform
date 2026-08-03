@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Order — MarineCatch Africa</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', system-ui, sans-serif; background:#f7fafc; color:#2d3748; min-height:100vh; }
+        nav { background:#1D60AE; padding:16px 40px; }
+        nav a { color:white; text-decoration:none; font-weight:700; font-size:18px; }
+        .container { max-width:600px; margin:0 auto; padding:60px 20px; }
+        h1 { font-size:28px; color:#1D60AE; margin-bottom:8px; text-align:center; }
+        .sub { text-align:center; color:#718096; margin-bottom:32px; }
+        .search-box { background:white; border-radius:12px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.06); margin-bottom:24px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+        input { width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; }
+        label { display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:#4a5568; }
+        button { width:100%; padding:12px; background:#1D60AE; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; }
+        button:hover { background:#164a87; }
+        .error { color:#dc3545; font-size:13px; margin-top:12px; display:none; }
+        .result { background:white; border-radius:12px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.06); display:none; }
+        .status-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600; }
+        .timeline { margin-top:24px; }
+        .step { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+        .step-dot { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+        .step-done { background:#28a745; color:white; }
+        .step-current { background:#00B3F0; color:white; }
+        .step-pending { background:#e2e8f0; color:#a0aec0; }
+        .step-label { font-size:14px; font-weight:600; }
+        .step-sub { font-size:12px; color:#718096; }
+    </style>
+</head>
+<body>
+<nav><a href="/">🐟 MarineCatch Africa</a></nav>
+<div class="container">
+    <h1>Track Your Order</h1>
+    <p class="sub">Enter your order number and phone number to see live status</p>
+
+    <div class="search-box">
+        <div class="form-row">
+            <div>
+                <label>Order Number</label>
+                <input type="number" id="order-id" placeholder="e.g. 5">
+            </div>
+            <div>
+                <label>Phone Number</label>
+                <input type="tel" id="phone" placeholder="0700 000 000">
+            </div>
+        </div>
+        <button onclick="trackOrder()">Track Order</button>
+        <div id="error" class="error"></div>
+    </div>
+
+    <div id="result" class="result"></div>
+</div>
+
+<script>
+async function trackOrder() {
+    const orderId = document.getElementById('order-id').value;
+    const phone   = document.getElementById('phone').value;
+    const errEl   = document.getElementById('error');
+    const resultEl = document.getElementById('result');
+    errEl.style.display = 'none';
+    resultEl.style.display = 'none';
+
+    if (!orderId || !phone) {
+        errEl.textContent = 'Please enter both order number and phone number.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/v1/orders/track/${orderId}?phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            errEl.textContent = data.detail || 'Order not found.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        const steps = [
+            {key:1, label:'Payment Pending', icon:'1'},
+            {key:2, label:'Order Confirmed', icon:'2'},
+            {key:3, label:'Preparing', icon:'3'},
+            {key:4, label:'Dispatched', icon:'4'},
+            {key:5, label:'Delivered', icon:'5'},
+            {key:6, label:'Completed', icon:'✓'},
+        ];
+
+        const statusColors = {
+            pending_payment: '#f0a500', confirmed: '#00B3F0',
+            preparing: '#00B3F0', dispatched: '#00B3F0',
+            delivered: '#28a745', completed: '#28a745',
+        };
+
+        resultEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div>
+                    <div style="font-size:12px; color:#718096;">Order #${data.order_id}</div>
+                    <div style="font-size:18px; font-weight:700;">${data.species?.charAt(0).toUpperCase()+data.species?.slice(1)} — ${data.quantity_kg}kg</div>
+                </div>
+                <span class="status-badge" style="background:${statusColors[data.status]}22; color:${statusColors[data.status]}">
+                    ${data.status.replace('_',' ').toUpperCase()}
+                </span>
+            </div>
+            <div style="font-size:14px; color:#4a5568; margin-bottom:8px;">
+                Total: KES ${data.total_kes?.toLocaleString()}
+            </div>
+            <div style="font-size:13px; color:#718096;">
+                Delivery: ${data.delivery_address || 'To be confirmed'}
+            </div>
+
+            <div class="timeline">
+                ${steps.map(s => `
+                    <div class="step">
+                        <div class="step-dot ${s.key < data.current_step ? 'step-done' : s.key === data.current_step ? 'step-current' : 'step-pending'}">
+                            ${s.key < data.current_step ? '✓' : s.icon}
+                        </div>
+                        <div>
+                            <div class="step-label">${s.label}</div>
+                        </div>
+                    </div>`).join('')}
+            </div>
+
+            ${data.jobs.length ? `
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:8px;">Shipment Legs</div>
+                ${data.jobs.map(j => `
+                    <div style="font-size:13px; color:#4a5568; margin-bottom:6px;">
+                        ${j.job_type?.replace('_',' ')}: ${j.pickup} → ${j.destination}
+                        <span style="color:#718096;">(${j.status})</span>
+                    </div>`).join('')}
+            </div>` : ''}
+
+            <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e2e8f0; font-size:13px;">
+                <strong>Questions?</strong> WhatsApp us: <a href="https://wa.me/254707939810" style="color:#1D60AE;">+254 707 939 810</a>
+            </div>
+        `;
+        resultEl.style.display = 'block';
+
+    } catch (e) {
+        errEl.textContent = 'Something went wrong. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+document.getElementById('phone').addEventListener('keypress', e => {
+    if (e.key === 'Enter') trackOrder();
+});
+</script>
+</body>
+</html>
