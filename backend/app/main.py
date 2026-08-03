@@ -206,3 +206,9 @@ def serve_blue_economy():
 def serve_financial_inclusion():
     path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "landing", "insights", "financial-inclusion.html")
     return FileResponse(os.path.abspath(path))
+
+@app.get("/track")
+def serve_track_page():
+    path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "landing", "track.html"))
+    return FileResponse(path)

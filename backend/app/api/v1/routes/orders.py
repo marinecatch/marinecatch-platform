@@ -36,7 +36,87 @@ from app.services.order_service import (
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-# ── SCHEMAS ───────────────────────────────────────────────────────
+# ── PUBLIC TRACKING (no auth) ───────────────────────────────────
+
+@router.get("/track/{order_id}")
+def track_order_public(
+    order_id: int,
+    phone:    str = Query(..., description="Phone number used for the order"),
+    db:       Session = Depends(get_db),
+):
+    """
+    Public order tracking — no login required.
+    Customer provides order ID + their phone number to verify identity.
+    Used by ad-driven customers who haven't registered yet.
+    """
+    from app.models.order import Order
+    from app.models.user import User
+    from app.models.transport_job import TransportJob
+    from app.models.custody_event import CustodyEvent
+    from app.models.trade_receivable import TradeReceivable
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    buyer = db.query(User).filter(User.id == order.buyer_id).first()
+    if not buyer or not buyer.phone or phone[-9:] not in buyer.phone:
+        raise HTTPException(
+            status_code=403,
+            detail="Phone number does not match this order. Please check and try again."
+        )
+
+    # Get transport jobs for this order
+    jobs = db.query(TransportJob).filter(
+        TransportJob.order_id == order_id
+    ).order_by(TransportJob.sequence_number.asc()).all()
+
+    # Get custody events
+    custody = db.query(CustodyEvent).join(
+        TransportJob, CustodyEvent.transport_job_id == TransportJob.id
+    ).filter(TransportJob.order_id == order_id).order_by(
+        CustodyEvent.event_at.asc()
+    ).all() if jobs else []
+
+    # Get payment status
+    receivable = db.query(TradeReceivable).filter(
+        TradeReceivable.order_id == order_id
+    ).first()
+
+    status_timeline = {
+        "pending_payment": 1, "confirmed": 2, "preparing": 3,
+        "dispatched": 4, "delivered": 5, "completed": 6,
+    }
+    current_step = status_timeline.get(order.status.value, 1)
+
+    return {
+        "order_id":     order.id,
+        "species":      order.species,
+        "quantity_kg":  order.quantity_kg,
+        "total_kes":    order.total_kes,
+        "status":       order.status.value,
+        "current_step": current_step,
+        "delivery_address": order.delivery_address,
+        "created_at":   order.created_at,
+        "payment_status": receivable.status if receivable else "pending",
+        "jobs": [
+            {
+                "job_type":    j.job_type,
+                "pickup":      j.pickup_location,
+                "destination": j.destination_location,
+                "status":      j.status,
+                "scheduled_departure": j.scheduled_departure,
+                "actual_arrival": j.actual_arrival,
+            } for j in jobs
+        ],
+        "timeline": [
+            {
+                "event": c.event_type,
+                "location": c.location,
+                "at": c.event_at,
+            } for c in custody
+        ],
+    }
 
 class OrderCreate(BaseModel):
     lot_id:           int
