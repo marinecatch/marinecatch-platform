@@ -62,6 +62,22 @@
         .knowledge-link { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.15); color:white; text-decoration:none; padding:6px 14px; border-radius:20px; font-size:13px; }
         .species-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #f7fafc; font-size:14px; }
         .toggle-row { display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px; color:#4a5568; }
+        .input-with-btn { display:flex; gap:8px; }
+        .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+        @media (max-width: 600px) {
+            .container { padding:12px; }
+            .header { padding:12px 16px; }
+            .header-logo { font-size:16px; }
+            .card { padding:14px; }
+            .tab { padding:8px 12px; font-size:12px; }
+            .stat-val { font-size:22px; }
+            .modal-box { padding:16px; width:100%; }
+            .input-with-btn { flex-direction:column; }
+            .input-with-btn button { width:100%; }
+            table { font-size:12px; }
+            th, td { padding:8px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -303,7 +319,7 @@
         <div id="tab-payouts" style="display:none">
             <div class="card">
                 <div class="card-title">💰 My Payments</div>
-                <div id="payouts-list"><div style="text-align:center;padding:20px;color:#718096">Loading...</div></div>
+                <div id="payouts-list" class="table-scroll"><div style="text-align:center;padding:20px;color:#718096">Loading...</div></div>
             </div>
             <div class="card" id="analytics-card" style="display:none">
                 <div class="card-title">📈 This Month</div>
@@ -330,7 +346,7 @@
                 <div style="font-size:13px; color:#718096; margin-bottom:16px;">
                     Current market prices based on recent platform transactions and coastal fisheries data.
                 </div>
-                <div id="prices-content"><div style="text-align:center;padding:20px;color:#718096">Loading price data...</div></div>
+                <div id="prices-content" class="table-scroll"><div style="text-align:center;padding:20px;color:#718096">Loading price data...</div></div>
             </div>
         </div>
     </div>
@@ -344,7 +360,7 @@
 
         <div class="form-group">
             <label class="form-label">Update Price (KES/kg)</label>
-            <div style="display:flex; gap:8px;">
+            <div class="input-with-btn">
                 <input type="number" id="manage-price" class="form-control" placeholder="New price">
                 <button class="btn btn-primary btn-sm" onclick="submitPriceUpdate()">Update</button>
             </div>
@@ -354,7 +370,7 @@
 
         <div id="manage-partial-sale" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #f7fafc;">
             <label class="form-label">Kg sold outside the platform</label>
-            <div style="display:flex; gap:8px;">
+            <div class="input-with-btn">
                 <input type="number" id="manage-sold-kg" class="form-control" placeholder="e.g. 10">
                 <button class="btn btn-danger btn-sm" onclick="submitPartialSale()">Confirm</button>
             </div>

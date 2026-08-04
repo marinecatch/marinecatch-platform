@@ -381,19 +381,21 @@ async def api_update_status(
                     f"✅ *Order Confirmed*\n\n"
                     f"Your order #{order.id} for {order.quantity_kg}kg "
                     f"{order.species} has been confirmed.\n\n"
-                    f"We'll notify you when it's dispatched.\n"
+                    f"Track your order: https://marinecatchafrica.com/track\n"
                     f"MarineCatch Africa 🐟"
                 ),
                 "preparing": (
                     f"🔧 *Order Being Prepared*\n\n"
                     f"Order #{order.id} — {order.quantity_kg}kg {order.species}\n"
                     f"is being prepared for dispatch.\n\n"
+                    f"Track your order: https://marinecatchafrica.com/track\n"
                     f"MarineCatch Africa 🐟"
                 ),
                 "dispatched": (
                     f"🚚 *Order Dispatched*\n\n"
                     f"Order #{order.id} — {order.quantity_kg}kg {order.species}\n"
                     f"is on its way to you.\n\n"
+                    f"Track your order: https://marinecatchafrica.com/track\n"
                     f"MarineCatch Africa 🐟"
                 ),
                 "delivered": (
