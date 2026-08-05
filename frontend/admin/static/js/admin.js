@@ -10,6 +10,11 @@ function setToken(token) {
     localStorage.setItem('mc_admin_token', token);
 }
 
+function toggleSidebar() {
+    document.querySelector('.sidebar')?.classList.toggle('open');
+    document.querySelector('.sidebar-overlay')?.classList.toggle('open');
+}
+
 function clearToken() {
     localStorage.removeItem('mc_admin_token');
     localStorage.removeItem('mc_admin_user');

@@ -95,12 +95,16 @@ def generate_invoice(db: Session, order_id: int) -> dict:
         "generated_at":       now.isoformat(),
         "status":             "issued",
         "seller": {
-            "name":           "MarineCatch Africa",
-            "email":          "finance@marinecatch.co.ke",
-            "phone":          "+254700000000",
-            "location":       "Mombasa, Kenya",
-            "pin":            "PENDING-KRA-REGISTRATION",
+            "name":           "MarineCatch Africa Limited",
+            "email":          "sales@marinecatchafrica.com",
+            "phone":          "+254 798 169 857",
+            "address_line1":  "Diani Beach Road", 
+            "address_line2":  "Msambweni BMU Offices,Kinondo",
+            "po_box":         "P.O. Box 143-80401",
+            "location":       "Diani, Kenya",
+            "pin":            "P052235582J",
         },
+
         "buyer": {
             "id":             buyer.id if buyer else None,
             "name":           buyer.name if buyer else None,

@@ -25,7 +25,25 @@
         .btn-danger { background:#c53030; color:white; }
         .btn-sm { padding:6px 12px; font-size:13px; }
         .container { max-width:1100px; margin:0 auto; padding:24px; }
-        .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; }
+        .tabs { display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:24px; border:1px solid #e2e8f0; flex-wrap:wrap; }
+        .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+        .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+        @media (max-width: 600px) {
+            .container { padding:12px; }
+            .header { padding:12px 16px; }
+            .header-logo { font-size:16px; }
+            .card { padding:14px; }
+            .tab { padding:8px 12px; font-size:12px; }
+            .modal-box { padding:16px; width:100%; }
+            .modal-actions { flex-direction:column-reverse; }
+            .modal-actions button { width:100%; }
+            .lot-price { text-align:left; width:100%; }
+            .lot-card { flex-direction:column; align-items:flex-start; }
+            table { font-size:12px; }
+            th, td { padding:8px 6px; }
+        }
+    </style>
         .tab { padding:8px 20px; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; color:#718096; border:none; background:none; }
         .tab.active { background:#2b6cb0; color:white; }
         .card { background:white; border-radius:8px; border:1px solid #e2e8f0; padding:20px; margin-bottom:16px; }
@@ -225,7 +243,7 @@
         <div id="tab-orders" style="display:none">
             <div class="card">
                 <div class="card-title">My Orders</div>
-                <div id="orders-list"><div class="empty">Loading orders...</div></div>
+                <div id="orders-list" class="table-scroll"><div class="empty">Loading orders...</div></div>
             </div>
         </div>
 
@@ -236,7 +254,7 @@
                 <div style="font-size:13px; color:#718096; margin-bottom:16px;">
                     Current market prices based on recent platform transactions and coastal fisheries data.
                 </div>
-                <div id="prices-content"><div class="empty">Loading price data...</div></div>
+                <div id="prices-content" class="table-scroll"><div class="empty">Loading price data...</div></div>
             </div>
         </div>
 
@@ -244,7 +262,7 @@
         <div id="tab-invoices" style="display:none">
             <div class="card">
                 <div class="card-title">Order Invoices</div>
-                <div id="invoices-content"><div class="empty">Loading invoices...</div></div>
+                <div id="invoices-content" class="table-scroll"><div class="empty">Loading invoices...</div></div>
             </div>
         </div>
     </div>
@@ -269,7 +287,7 @@
         </div>
         <div id="o-quote" style="background:#ebf8ff; padding:12px; border-radius:6px; margin-bottom:16px; display:none; font-size:14px;"></div>
         <div id="o-error" class="error"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <div class="modal-actions">
             <button class="btn btn-outline" onclick="closeOrderModal()">Cancel</button>
             <button class="btn btn-outline btn-sm" onclick="getQuote()">Get Quote</button>
             <button class="btn btn-success" onclick="placeOrder()">Place Order</button>
@@ -281,7 +299,7 @@
 <div id="invoice-modal" class="modal">
     <div class="modal-box" style="width:600px; max-width:95%;">
         <div id="invoice-content"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:20px;" class="no-print">
+        <div class="modal-actions no-print" style="margin-top:20px;">
             <button class="btn btn-outline" onclick="closeInvoiceModal()">Close</button>
             <button class="btn btn-primary" onclick="printInvoice()">🖨️ Print / Save as PDF</button>
         </div>
@@ -293,7 +311,7 @@
     <div class="modal-box" style="width:480px;">
         <h3 style="margin-bottom:16px;">Order Details</h3>
         <div id="detail-content"><div class="empty">Loading...</div></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+        <div class="modal-actions" style="margin-top:16px;">
             <button class="btn btn-outline" onclick="closeDetailModal()">Close</button>
             <button id="detail-cancel-btn" class="btn btn-danger" style="display:none" onclick="cancelCurrentOrder()">Cancel Order</button>
         </div>
@@ -835,15 +853,22 @@ async function requestInvoice(orderId) {
         content.innerHTML = `
             <div id="invoice-printable">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px;">
-                    <div>
-                        <div style="font-size:20px; font-weight:700; color:#1a365d;">MarineCatch Africa</div>
-                        <div style="font-size:13px; color:#718096;">${inv.seller.location}</div>
-                        <div style="font-size:13px; color:#718096;">${inv.seller.email}</div>
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <img src="/landing/assets/marinecatch%20logo-01.svg" alt="MarineCatch Africa" style="height:44px; margin-top:2px;">
+                        <div>
+                            <div style="font-size:18px; font-weight:700; color:#1a365d;">${inv.seller.name}</div>
+                            <div style="font-size:12px; color:#718096;">${inv.seller.po_box}</div>
+                            <div style="font-size:12px; color:#718096;">${inv.seller.address_line1}</div>
+                            <div style="font-size:12px; color:#718096;">${inv.seller.address_line2}</div>
+                            <div style="font-size:12px; color:#718096;">Sales: ${inv.seller.phone}</div>
+                        </div>
                     </div>
                     <div style="text-align:right;">
                         <div style="font-size:16px; font-weight:700;">INVOICE</div>
                         <div style="font-size:13px; color:#718096; font-family:monospace;">${inv.document_reference}</div>
-                        <div style="font-size:12px; color:#a0aec0;">${new Date(inv.generated_at).toLocaleDateString('en-KE')}</div>
+                        <div style="font-size:12px; color:#a0aec0; margin-top:6px;">Invoice Date: ${new Date(inv.generated_at).toLocaleDateString('en-KE')}</div>
+                        ${inv.payment.due_date ? `<div style="font-size:12px; color:#a0aec0;">Due Date: ${new Date(inv.payment.due_date).toLocaleDateString('en-KE')}</div>` : ''}
+                        ${inv.payment.terms_days ? `<div style="font-size:12px; color:#a0aec0;">Terms: Net ${inv.payment.terms_days} days</div>` : ''}
                     </div>
                 </div>
 
@@ -899,9 +924,14 @@ async function requestInvoice(orderId) {
 
                 <div style="margin-top:20px; padding-top:16px; border-top:1px solid #f7fafc; font-size:13px;">
                     <strong>Payment Status:</strong> <span style="text-transform:capitalize;">${inv.payment.status}</span>
-                    ${inv.payment.due_date ? `<br><strong>Due:</strong> ${new Date(inv.payment.due_date).toLocaleDateString('en-KE')}` : ''}
                     ${inv.payment.mpesa_receipt ? `<br><strong>M-Pesa Receipt:</strong> ${inv.payment.mpesa_receipt}` : ''}
                 </div>
+
+                ${inv.notes ? `
+                <div style="margin-top:16px; padding-top:16px; border-top:1px solid #f7fafc; font-size:13px;">
+                    <strong>Notes:</strong>
+                    <p style="color:#4a5568; margin-top:4px;">${inv.notes}</p>
+                </div>` : ''}
 
                 <div style="margin-top:20px; font-size:11px; color:#a0aec0;">${inv.footer}</div>
             </div>

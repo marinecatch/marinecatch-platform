@@ -341,14 +341,35 @@
         footer a:hover { color: white; }
         .footer-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
 
+        .mobile-nav-toggle { display: none; }
+        .mobile-nav-panel { display: none; }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
             nav { padding: 16px 20px; }
             .nav-links { display: none; }
+            .mobile-nav-toggle {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 40px; height: 40px; border-radius: 6px;
+                background: rgba(255,255,255,0.15); color: white; border: none;
+                font-size: 20px; cursor: pointer;
+            }
+            .mobile-nav-panel {
+                position: fixed; top: 84px; left: 0; right: 0;
+                background: #1D60AE; z-index: 99;
+                flex-direction: column; padding: 8px 20px 20px;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            }
+            .mobile-nav-panel.open { display: flex; }
+            .mobile-nav-panel a {
+                color: white; text-decoration: none; padding: 14px 4px;
+                border-bottom: 1px solid rgba(255,255,255,0.15); font-size: 15px;
+            }
             section { padding: 60px 20px; }
             .form-row { grid-template-columns: 1fr; }
             .lead-form { padding: 28px 20px; }
             .hero-stats { gap: 32px; }
+            div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
         }
     </style>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
@@ -368,7 +389,17 @@
         <a href="/track">Track Order</a>
         <a href="#join" class="btn-nav">Get Early Access</a>
     </div>
+    <button class="mobile-nav-toggle" onclick="document.querySelector('.mobile-nav-panel').classList.toggle('open')">☰</button>
 </nav>
+<div class="mobile-nav-panel">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#features">Platform</a>
+    <a href="/landing/partners.html">Partners</a>
+    <a href="/landing/investors.html">Investors</a>
+    <a href="/insights">Insights</a>
+    <a href="/track">Track Order</a>
+    <a href="#join">Get Early Access</a>
+</div>
 
 <!-- HERO -->
 <section class="hero">
