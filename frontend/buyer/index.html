@@ -206,26 +206,29 @@
         <div id="tab-inventory">
             <div class="card">
                 <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-                    <select id="f-species" class="form-control" style="width:160px" onchange="loadInventory()">
-                        <option value="">All Species</option>
-                        <option value="tuna">Tuna</option>
-                        <option value="octopus">Octopus</option>
-                        <option value="prawns">Prawns</option>
-                        <option value="lobster">Lobster</option>
-                        <option value="snapper">Snapper</option>
-                        <option value="kingfish">Kingfish</option>
-                        <option value="sardines">Sardines</option>
-                        <option value="crab">Crab</option>
-                        <option value="rabbitfish">Rabbit Fish (Tafi)</option>
-                        <option value="parrotfish">Parrot Fish (Pono)</option>
-                        <option value="goatfish">Goat Fish (Mkundaji)</option>
-                        <option value="rockcod">Rock Cod (Tewa)</option>
-                        <option value="barracuda">Barracuda (Tengezi)</option>
-                        <option value="jack">Cavalla / Jack (Kole Kole)</option>
-                        <option value="squid">Squid (Ngisi)</option>
-                        <option value="shark">Shark (Papa)</option>
-                        <option value="sea_cucumber">Sea Cucumber</option>
-                    </select>
+                    <input list="f-species-options" id="f-species" class="form-control" style="width:180px" placeholder="All Species" onchange="loadInventory()">
+                    <datalist id="f-species-options">
+                        <option value="Tuna">
+                        <option value="Octopus">
+                        <option value="Prawns">
+                        <option value="Lobster">
+                        <option value="Snapper">
+                        <option value="Kingfish">
+                        <option value="Sardines">
+                        <option value="Crab">
+                        <option value="Rabbit Fish">
+                        <option value="Parrot Fish">
+                        <option value="Goat Fish">
+                        <option value="Rock Cod">
+                        <option value="Barracuda">
+                        <option value="Jack">
+                        <option value="Squid">
+                        <option value="Shark">
+                        <option value="Sea Cucumber">
+                        <option value="Indian Mackerel">
+                        <option value="Emperor">
+                        <option value="Scavenger">
+                    </datalist>
                     <select id="f-condition" class="form-control" style="width:140px" onchange="loadInventory()">
                         <option value="">All Conditions</option>
                         <option value="fresh">Fresh</option>
@@ -452,12 +455,13 @@ function showTab(tab) {
 
 // ── INVENTORY ─────────────────────────────────────────────────────
 async function loadInventory() {
-    const species   = document.getElementById('f-species').value;
+    const speciesRaw = document.getElementById('f-species').value.trim();
+    let species = speciesRaw.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '');
+    if (speciesRaw.toLowerCase() === 'sea cucumber') species = 'sea_cucumber'; // the one irregular key
     const condition = document.getElementById('f-condition').value;
     let url = `${API}/api/v1/inventory/?`;
     if (species)   url += `species=${species}&`;
     if (condition) url += `condition=${condition}&`;
-
     try {
         const res  = await fetch(url);
         const data = await res.json();

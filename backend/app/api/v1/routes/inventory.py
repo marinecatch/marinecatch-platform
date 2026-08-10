@@ -31,6 +31,7 @@ from app.services.inventory_service import (
 from app.api.v1.routes.users import get_current_user
 from app.services.fee_service import calculate_full_fee_breakdown
 from app.models.inventory_lot import InventoryLot, LotStatus
+from app.models.user import User
 from app.models.quality_inspection import QualityInspection
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -351,6 +352,9 @@ def create_lot(
     landing_site:         str,
     condition:            str   = "fresh",
     product_form:         str   = "whole_ungutted",
+    ownership_type:       str   = "marketplace",
+    purchase_price_per_kg: Optional[float] = None,
+    fisher_user_id:       Optional[int]   = None,
     vessel_reg:           Optional[str]   = None,
     bmu_reference:        Optional[str]   = None,
     gear_type:            Optional[str]   = None,
@@ -374,15 +378,32 @@ def create_lot(
             detail=f"Only fishers and suppliers can create listings. Your role: {current_user.role}"
         )
 
+    VALID_OWNERSHIP = ["marketplace", "marinecatch_owned", "consignment", "contract_reserved"]
+    if ownership_type not in VALID_OWNERSHIP:
+        raise HTTPException(status_code=400, detail=f"Invalid ownership_type. Use one of: {', '.join(VALID_OWNERSHIP)}")
+
+    # When an admin creates a lot on behalf of a specific fisher (marketplace
+    # or consignment stock), attribute it to that fisher, not the admin.
+    # Self-service fisher/supplier creation is unchanged — always their own id.
+    source_user_id = current_user.id
+    source_name     = current_user.name
+    if current_user.role == "admin" and fisher_user_id and ownership_type in ("marketplace", "consignment"):
+        fisher = db.query(User).filter(User.id == fisher_user_id).first()
+        if not fisher:
+            raise HTTPException(status_code=404, detail="Selected fisher not found")
+        source_user_id = fisher.id
+        source_name     = fisher.name
+
     lot = create_inventory_lot(
         db=                   db,
-        source_user_id=       current_user.id,
-        source_name=          current_user.name,
+        source_user_id=       source_user_id,
+        source_name=          source_name,
         species=              species,
         weight_kg=            weight_kg,
         selling_price_per_kg= selling_price_per_kg,
         landing_site=         landing_site,
-        ownership_type=       "marketplace",
+        ownership_type=       ownership_type,
+        purchase_price_per_kg=purchase_price_per_kg,
         product_form=         product_form,
         condition=            condition,
         vessel_reg=           vessel_reg,

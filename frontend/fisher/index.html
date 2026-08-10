@@ -199,26 +199,30 @@
             <div class="card">
                 <div class="card-title">➕ Log New Catch</div>
                 <div class="form-group">
-                    <label class="form-label">Species *</label>
-                    <select id="lc-species" class="form-control">
-                        <option value="tuna">Tuna / Jodari</option>
-                        <option value="octopus">Octopus / Pweza</option>
-                        <option value="prawns">Prawns / Kamba</option>
-                        <option value="lobster">Lobster / Kamba Kochi</option>
-                        <option value="snapper">Snapper / Changu</option>
-                        <option value="kingfish">Kingfish / Nguru</option>
-                        <option value="sardines">Sardines / Dagaa</option>
-                        <option value="crab">Crab / Kaa</option>
-                        <option value="rabbitfish">Rabbit Fish / Tafi</option>
-                        <option value="parrotfish">Parrot Fish / Pono</option>
-                        <option value="goatfish">Goat Fish / Mkundaji</option>
-                        <option value="rockcod">Rock Cod / Tewa</option>
-                        <option value="barracuda">Barracuda / Tengezi</option>
-                        <option value="jack">Cavalla / Jack / Kole Kole</option>
-                        <option value="squid">Squid / Ngisi</option>
-                        <option value="shark">Shark / Papa</option>
-                        <option value="sea_cucumber">Sea Cucumber</option>
-                    </select>
+                    <label class="form-label">Species * <span style="font-weight:400; color:#a0aec0; font-size:12px;">(pick or type your own)</span></label>
+                    <input list="lc-species-options" id="lc-species" class="form-control" placeholder="e.g. Tuna">
+                    <datalist id="lc-species-options">
+                        <option value="Tuna / Jodari">
+                        <option value="Octopus / Pweza">
+                        <option value="Prawns / Kamba">
+                        <option value="Lobster / Kamba Kochi">
+                        <option value="Snapper / Changu">
+                        <option value="Kingfish / Nguru">
+                        <option value="Sardines / Dagaa">
+                        <option value="Crab / Kaa">
+                        <option value="Rabbit Fish / Tafi">
+                        <option value="Parrot Fish / Pono">
+                        <option value="Goat Fish / Mkundaji">
+                        <option value="Rock Cod / Tewa">
+                        <option value="Barracuda / Tengezi">
+                        <option value="Cavalla / Jack / Kole Kole">
+                        <option value="Squid / Ngisi">
+                        <option value="Shark / Papa">
+                        <option value="Sea Cucumber">
+                        <option value="Indian Mackerel">
+                        <option value="Emperor">
+                        <option value="Scavenger">
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Weight (kg) *</label>
@@ -229,16 +233,17 @@
                     <input type="number" id="lc-price" class="form-control" placeholder="e.g. 780">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Landing Site *</label>
-                    <select id="lc-site" class="form-control">
-                        <option value="kibuyuni">Kibuyuni</option>
-                        <option value="kinondo">Kinondo</option>
-                        <option value="shimoni">Shimoni</option>
-                        <option value="ukunda">Ukunda</option>
-                        <option value="vanga">Vanga</option>
-                        <option value="mwambao">Mwambao</option>
-                        <option value="majoreni">Majoreni</option>
-                    </select>
+                    <label class="form-label">Landing Site * <span style="font-weight:400; color:#a0aec0; font-size:12px;">(pick or type your own)</span></label>
+                    <input list="lc-site-options" id="lc-site" class="form-control" placeholder="e.g. Kibuyuni">
+                    <datalist id="lc-site-options">
+                        <option value="Kibuyuni">
+                        <option value="Kinondo">
+                        <option value="Shimoni">
+                        <option value="Ukunda">
+                        <option value="Vanga">
+                        <option value="Mwambao">
+                        <option value="Majoreni">
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Condition</label>
@@ -611,10 +616,30 @@ function toggleCatchDetails() {
 }
 
 async function logCatch() {
-    const species   = document.getElementById('lc-species').value;
+    // The species/site fields are now free-entry comboboxes (datalist),
+    // so normalize whatever the fisher picked or typed into a clean,
+    // storable key — e.g. "Tuna / Jodari" -> "tuna", "New Fishing Point" -> "new_fishing_point".
+    // Known values are matched to their existing clean key so prices/filters
+    // keep working; anything new just gets slugified.
+    const SPECIES_KEY_MAP = {
+        'tuna / jodari': 'tuna', 'octopus / pweza': 'octopus', 'prawns / kamba': 'prawns',
+        'lobster / kamba kochi': 'lobster', 'snapper / changu': 'snapper', 'kingfish / nguru': 'kingfish',
+        'sardines / dagaa': 'sardines', 'crab / kaa': 'crab', 'rabbit fish / tafi': 'rabbitfish',
+        'parrot fish / pono': 'parrotfish', 'goat fish / mkundaji': 'goatfish', 'rock cod / tewa': 'rockcod',
+        'barracuda / tengezi': 'barracuda', 'cavalla / jack / kole kole': 'jack', 'squid / ngisi': 'squid',
+        'shark / papa': 'shark', 'sea cucumber': 'sea_cucumber'
+    };
+    function normalize(raw) {
+        const key = raw.trim().toLowerCase();
+        return SPECIES_KEY_MAP[key] || key.replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    }
+
+    const speciesRaw = document.getElementById('lc-species').value;
+    const species    = normalize(speciesRaw);
     const weight    = parseFloat(document.getElementById('lc-weight').value);
     const price     = parseFloat(document.getElementById('lc-price').value);
-    const site      = document.getElementById('lc-site').value;
+    const siteRaw   = document.getElementById('lc-site').value;
+    const site      = siteRaw.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     const condition = document.getElementById('lc-condition').value;
     const notes     = document.getElementById('lc-notes').value;
     const errEl     = document.getElementById('lc-error');
@@ -623,6 +648,8 @@ async function logCatch() {
     errEl.style.display = 'none';
     sucEl.style.display = 'none';
 
+    if (!speciesRaw.trim()) { errEl.textContent = 'Please select or enter a species'; errEl.style.display = 'block'; return; }
+    if (!siteRaw.trim())    { errEl.textContent = 'Please select or enter a landing site'; errEl.style.display = 'block'; return; }
     if (!weight || weight <= 0) { errEl.textContent = 'Please enter weight'; errEl.style.display = 'block'; return; }
     if (!price  || price  <= 0) { errEl.textContent = 'Please enter price';  errEl.style.display = 'block'; return; }
 
