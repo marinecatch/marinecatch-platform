@@ -108,6 +108,8 @@ class User(Base):
     # this was previously conflated with is_active=False, which created a
     # collision risk with any future account-suspension feature.
     is_lead        = Column(Boolean, default=False, nullable=False)
+    is_demo        = Column(Boolean, default=False, nullable=False)
+    # True for demo/showcase accounts — excluded from real analytics
     # CEO-only dashboard access — distinct from role=admin.
     # Admin staff can see the operations dashboard; only accounts
     # with is_ceo=True can see the CEO/executive dashboard.

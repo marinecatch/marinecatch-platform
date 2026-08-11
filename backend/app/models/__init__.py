@@ -17,3 +17,16 @@ from app.models.esg import (
 from app.models.fisher_cluster import FisherCluster
 from app.models.organization import Organization
 from app.models.fisheries_data import Species, LandingSite, HistoricalLanding
+# Geography Intelligence Layer
+from app.models.intelligence.geography_source import GeographySource, GeographySourceClaim
+from app.models.intelligence.geographic_alias import GeographicAlias
+from app.models.intelligence.admin_geography import AdminGeography
+from app.models.intelligence.bmu import BMU
+from app.models.intelligence.fish_landing_site import FishLandingSite
+from app.models.intelligence.fishing_ground import FishingGround
+from app.models.intelligence.comanagement import JointCoManagementArea, MarineManagementArea
+from app.models.intelligence.infrastructure import InfrastructureAsset, ColdChainAsset
+from app.models.intelligence.logistics_graph import LogisticsNode, SupplyCorridor, SupplyCorridorNode
+from app.models.intelligence.species_availability import SpeciesAvailability, SpeciesSeasonality
+from app.models.intelligence.verification import FieldVerification, SiteCommercialScore, SiteInvestmentScore
+from app.models.intelligence.market import Market
