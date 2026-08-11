@@ -473,29 +473,47 @@ def get_my_lots(
 
 # ── PROTECTED — calculate order value before placing ─────────────
 @router.get("/{lot_id}/quote")
-def get_quote(
-    lot_id:      int,
+def get_lot_quote(
+    lot_id: int,
     quantity_kg: float = Query(..., gt=0),
-    db: Session  = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """
-    Get full price breakdown before placing order.
-    Shows fish value + all fees + net to seller.
-
-    Example:
-    Neptune Hotels wants to know total cost for 30kg tuna.
+    Calculate a buyer quote for a specific inventory lot.
+    Does not reserve stock or create an order.
     """
+
     lot = get_lot_by_id(db, lot_id)
+
     if not lot:
-        raise HTTPException(status_code=404, detail="Lot not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Lot not found"
+        )
+
+    if lot.lot_status != LotStatus.AVAILABLE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Lot is not available. Current status: {lot.lot_status}"
+        )
 
     if quantity_kg > lot.available_kg:
         raise HTTPException(
             status_code=400,
-            detail=f"Only {lot.available_kg}kg available"
+            detail=(
+                f"Insufficient stock. "
+                f"Available: {lot.available_kg}kg, "
+                f"requested: {quantity_kg}kg"
+            )
         )
 
-    return calculate_order_value(lot, quantity_kg)
+    breakdown = calculate_full_fee_breakdown(
+        lot=lot,
+        quantity_kg=quantity_kg,
+    )
+
+    return breakdown
+
 # ── INTERNAL — reserve stock for an order ─────────────────────────
 @router.post("/{lot_id}/reserve")
 def reserve_lot(

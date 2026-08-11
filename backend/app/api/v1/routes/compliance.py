@@ -302,11 +302,13 @@ def create_inspection(
     )
     db.add(inspection)
 
-    # Update lot status based on inspection result
+    # Update lot grade + status based on inspection result
+    lot.grade = payload.grade.upper()
+
     if status == "passed":
         lot.lot_status = LotStatus.AVAILABLE
     elif status == "failed":
-        lot.lot_status = LotStatus.EXPIRED  # Reuse as rejected status for now
+        lot.lot_status = LotStatus.EXPIRED
     # conditional stays available but with notes
 
     db.commit()
