@@ -1,0 +1,539 @@
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\admin_geography.py =====
+
+# app/models/intelligence/admin_geography.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class AdminGeography(Base, ProvenanceMixin):
+    """
+    Generic self-referencing administrative tree.
+    country_code always populated. geography_type is an open vocabulary
+    string, not a fixed enum. Kenya: county/sub_county/ward/locality.
+    Another country's hierarchy needs no schema change, only new rows.
+    """
+    __tablename__ = "admin_geography"
+
+    id                  = Column(Integer, primary_key=True)
+    parent_id           = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    country_code        = Column(String(3), nullable=False, index=True)
+    geography_type       = Column(String(50), nullable=False, index=True)
+    official_name         = Column(String(200), nullable=False)
+    administrative_code     = Column(String(50), nullable=True)
+    centroid_latitude         = Column(Float, nullable=True)
+    centroid_longitude          = Column(Float, nullable=True)
+    effective_from                = Column(DateTime(timezone=True), nullable=True)
+    effective_to                     = Column(DateTime(timezone=True), nullable=True)
+    is_active                           = Column(String(10), default="true")
+
+    children = relationship("AdminGeography", backref="parent", remote_side=[id])
+
+    def __repr__(self):
+        return f"<AdminGeography {self.geography_type}:{self.official_name}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\bmu.py =====
+
+# app/models/intelligence/bmu.py
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class BMU(Base, ProvenanceMixin):
+    """
+    Beach Management Unit. Distinct from FishLandingSite:
+    one BMU manages MANY landing sites.
+    Example: Kibuyuni BMU manages Kibuyuni, Kijiweni, Ngomani,
+    Kiromo, Huawen, Mtibwani landing sites.
+    """
+    __tablename__ = "bmus"
+
+    id                     = Column(Integer, primary_key=True)
+    official_name          = Column(String(200), nullable=False, index=True)
+    county_id               = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    sub_county_id             = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    ward_id                     = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    headquarters_location         = Column(String(200), nullable=True)
+    registration_status              = Column(String(50), nullable=True)
+    active_status                       = Column(String(30), default="UNKNOWN")
+    membership_count                       = Column(Integer, nullable=True)
+    fisher_count                              = Column(Integer, nullable=True)
+    boat_count                                   = Column(Integer, nullable=True)
+    trader_count                                    = Column(Integer, nullable=True)
+    women_members                                      = Column(Integer, nullable=True)
+    youth_members                                         = Column(Integer, nullable=True)
+    governance_status                                        = Column(String(100), nullable=True)
+    contact_person                                              = Column(String(150), nullable=True)
+    contact_phone                                                  = Column(String(30), nullable=True)
+    contact_email                                                     = Column(String(150), nullable=True)
+
+    landing_sites = relationship("FishLandingSite", back_populates="bmu")
+
+    def __repr__(self):
+        return f"<BMU {self.official_name}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\comanagement.py =====
+
+# app/models/intelligence/comanagement.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+bmu_jcma = Table(
+    "bmu_jcma", Base.metadata,
+    Column("bmu_id", Integer, ForeignKey("bmus.id"), primary_key=True),
+    Column("jcma_id", Integer, ForeignKey("jcm_as.id"), primary_key=True),
+)
+
+
+class JointCoManagementArea(Base, ProvenanceMixin):
+    __tablename__ = "jcm_as"
+    id          = Column(Integer, primary_key=True)
+    name         = Column(String(200), nullable=False)
+    description    = Column(String(500), nullable=True)
+
+    bmus = relationship("BMU", secondary=bmu_jcma)
+
+    def __repr__(self):
+        return f"<JointCoManagementArea {self.name}>"
+
+
+mma_bmu = Table(
+    "mma_bmu", Base.metadata,
+    Column("mma_id", Integer, ForeignKey("marine_management_areas.id"), primary_key=True),
+    Column("bmu_id", Integer, ForeignKey("bmus.id"), primary_key=True),
+)
+
+
+class MarineManagementArea(Base, ProvenanceMixin):
+    """LMMAs. Explicitly not the same entity as a BMU or JCMA."""
+    __tablename__ = "marine_management_areas"
+
+    id                  = Column(Integer, primary_key=True)
+    designation           = Column(String(200), nullable=False)
+    status                  = Column(String(30), nullable=True)
+    year_established           = Column(Integer, nullable=True)
+    area_km2                      = Column(Float, nullable=True)
+    no_take_status                   = Column(String(10), nullable=True)
+    management_authority                = Column(String(200), nullable=True)
+
+    bmus = relationship("BMU", secondary=mma_bmu)
+
+    def __repr__(self):
+        return f"<MarineManagementArea {self.designation}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\fishing_ground.py =====
+
+# app/models/intelligence/fishing_ground.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+landing_site_fishing_grounds = Table(
+    "landing_site_fishing_grounds", Base.metadata,
+    Column("landing_site_id", Integer, ForeignKey("fish_landing_sites.id"), primary_key=True),
+    Column("fishing_ground_id", Integer, ForeignKey("fishing_grounds.id"), primary_key=True),
+)
+
+
+class FishingGround(Base, ProvenanceMixin):
+    """
+    Explicitly NOT the same as a landing site.
+    Fishers travel from a landing site to a fishing ground and back.
+    """
+    __tablename__ = "fishing_grounds"
+
+    id                  = Column(Integer, primary_key=True)
+    name                = Column(String(200), nullable=False)
+    local_name             = Column(String(200), nullable=True)
+    latitude                 = Column(Float, nullable=True)
+    longitude                   = Column(Float, nullable=True)
+    associated_bmu_id              = Column(Integer, ForeignKey("bmus.id"), nullable=True)
+    habitat                           = Column(String(100), nullable=True)
+    depth_range                          = Column(String(50), nullable=True)
+    target_species                          = Column(String(300), nullable=True)
+    gear_types                                 = Column(String(200), nullable=True)
+    seasonal_usage                                = Column(String(100), nullable=True)
+    fishing_pressure                                 = Column(String(30), nullable=True)
+    protected_status                                    = Column(String(50), nullable=True)
+
+    landing_sites = relationship("FishLandingSite", secondary=landing_site_fishing_grounds)
+
+    def __repr__(self):
+        return f"<FishingGround {self.name}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\fish_landing_site.py =====
+
+# app/models/intelligence/fish_landing_site.py
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class FishLandingSite(Base, ProvenanceMixin):
+    __tablename__ = "fish_landing_sites"
+
+    id                       = Column(Integer, primary_key=True)
+    official_name            = Column(String(200), nullable=False, index=True)
+    local_name                 = Column(String(200), nullable=True)
+    county_id                    = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    sub_county_id                   = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    ward_id                            = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    locality_id                           = Column(Integer, ForeignKey("admin_geography.id"), nullable=True)
+    bmu_id                                   = Column(Integer, ForeignKey("bmus.id"), nullable=True)
+
+    latitude                                    = Column(Float, nullable=True)
+    longitude                                      = Column(Float, nullable=True)
+
+    gazetted_status                                   = Column(String(30), default="UNKNOWN")
+    operational_status                                   = Column(String(30), default="UNKNOWN")
+    landing_type                                            = Column(String(50), nullable=True)
+    marine_environment                                         = Column(String(50), nullable=True)
+    beach_type                                                    = Column(String(50), nullable=True)
+
+    estimated_fisher_count                                          = Column(Integer, nullable=True)
+    estimated_boat_count                                               = Column(Integer, nullable=True)
+    estimated_daily_volume_kg                                             = Column(Float, nullable=True)
+    infrastructure_grade                                                     = Column(String(20), nullable=True)
+
+    cold_storage_available    = Column(Boolean, nullable=True)
+    ice_available              = Column(Boolean, nullable=True)
+    electricity_available        = Column(Boolean, nullable=True)
+    water_available                = Column(Boolean, nullable=True)
+    road_access                       = Column(Boolean, nullable=True)
+    road_condition                       = Column(String(30), nullable=True)
+    boat_repair                             = Column(Boolean, nullable=True)
+    gear_repair                                = Column(Boolean, nullable=True)
+    fish_banda                                    = Column(Boolean, nullable=True)
+    toilets                                          = Column(Boolean, nullable=True)
+    fish_processing                                     = Column(Boolean, nullable=True)
+    fish_drying                                            = Column(Boolean, nullable=True)
+    waste_management                                          = Column(Boolean, nullable=True)
+    market_access                                                = Column(Boolean, nullable=True)
+    mobile_network                                                  = Column(Boolean, nullable=True)
+    internet_connectivity                                              = Column(Boolean, nullable=True)
+
+    bmu = relationship("BMU", back_populates="landing_sites")
+
+    def __repr__(self):
+        return f"<FishLandingSite {self.official_name}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\geographic_alias.py =====
+
+# app/models/intelligence/geographic_alias.py
+from sqlalchemy import Column, Integer, String
+from app.database.connection import Base
+
+
+class GeographicAlias(Base):
+    """
+    Alternate spellings/names for any geography or fisheries entity.
+    Kiromo / Chiromo / Koromo -> one canonical entity, multiple aliases.
+    Never auto-merge; aliases require human review and confidence rating.
+    """
+    __tablename__ = "geographic_aliases"
+
+    id                  = Column(Integer, primary_key=True)
+    entity_type         = Column(String(50), nullable=False)
+    canonical_entity_id = Column(Integer, nullable=False)
+    alias_name          = Column(String(200), nullable=False)
+    source_id           = Column(Integer, nullable=True)
+    source_year         = Column(Integer, nullable=True)
+    confidence          = Column(String(20), default="MEDIUM")
+
+    def __repr__(self):
+        return f"<GeographicAlias {self.alias_name} -> {self.entity_type}:{self.canonical_entity_id}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\geography_source.py =====
+
+# app/models/intelligence/geography_source.py
+from sqlalchemy import Column, Integer, String, Text
+from app.database.connection import Base
+
+
+class GeographySource(Base):
+    """Tier-ranked source registry. Every claim traces back here."""
+    __tablename__ = "geography_sources"
+
+    id                   = Column(Integer, primary_key=True)
+    title                = Column(String(300), nullable=False)
+    issuing_organization = Column(String(200), nullable=True)
+    publication_year     = Column(Integer, nullable=True)
+    document_type        = Column(String(100), nullable=True)
+    geographic_scope     = Column(String(150), nullable=True)
+    source_url           = Column(String(500), nullable=True)
+    reliability_tier     = Column(Integer, nullable=False)
+    extracted_date       = Column(String(20), nullable=True)
+
+    def __repr__(self):
+        return f"<GeographySource {self.title} tier={self.reliability_tier}>"
+
+
+class GeographySourceClaim(Base):
+    """
+    Polymorphic claim table. Conflicting facts from different sources
+    are both preserved here rather than one overwriting the other.
+    """
+    __tablename__ = "geography_source_claims"
+
+    id           = Column(Integer, primary_key=True)
+    entity_type  = Column(String(50), nullable=False)
+    entity_id    = Column(Integer, nullable=True)
+    claim_field  = Column(String(100), nullable=False)
+    claim_value  = Column(Text, nullable=False)
+    source_id    = Column(Integer, nullable=False)
+    is_canonical = Column(String(10), default="false")
+    notes        = Column(Text, nullable=True)
+
+    def __repr__(self):
+        return f"<GeographySourceClaim {self.entity_type}.{self.claim_field}={self.claim_value}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\infrastructure.py =====
+
+# app/models/intelligence/infrastructure.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class InfrastructureAsset(Base, ProvenanceMixin):
+    __tablename__ = "infrastructure_assets"
+
+    id                  = Column(Integer, primary_key=True)
+    landing_site_id       = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=False)
+    asset_type              = Column(String(50), nullable=False)
+    capacity                   = Column(String(100), nullable=True)
+    ownership                     = Column(String(50), nullable=True)
+    operator                         = Column(String(150), nullable=True)
+    operational_status                  = Column(String(30), default="UNKNOWN")
+    installation_year                      = Column(Integer, nullable=True)
+
+    def __repr__(self):
+        return f"<InfrastructureAsset {self.asset_type} @ site {self.landing_site_id}>"
+
+
+class ColdChainAsset(Base, ProvenanceMixin):
+    __tablename__ = "cold_chain_assets"
+
+    id                  = Column(Integer, primary_key=True)
+    landing_site_id       = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=True)
+    asset_type              = Column(String(50), nullable=False)
+    latitude                   = Column(Float, nullable=True)
+    longitude                     = Column(Float, nullable=True)
+    capacity_kg                      = Column(Float, nullable=True)
+    temperature_range                   = Column(String(50), nullable=True)
+    ownership                              = Column(String(50), nullable=True)
+    operator                                  = Column(String(150), nullable=True)
+    operational_status                           = Column(String(30), default="UNKNOWN")
+    energy_source                                   = Column(String(50), nullable=True)
+    species_supported                                  = Column(String(300), nullable=True)
+
+    def __repr__(self):
+        return f"<ColdChainAsset {self.asset_type}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\logistics_graph.py =====
+
+# app/models/intelligence/logistics_graph.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class LogisticsNode(Base, ProvenanceMixin):
+    __tablename__ = "logistics_nodes"
+    id             = Column(Integer, primary_key=True)
+    landing_site_id  = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=True)
+    node_type          = Column(String(50), nullable=False)
+    name                  = Column(String(200), nullable=False)
+
+    def __repr__(self):
+        return f"<LogisticsNode {self.name}>"
+
+
+class SupplyCorridor(Base, ProvenanceMixin):
+    """Conceptual, unvalidated until real logistics data confirms it."""
+    __tablename__ = "supply_corridors"
+    id            = Column(Integer, primary_key=True)
+    name           = Column(String(200), nullable=False)
+    is_validated     = Column(String(10), default="false")
+
+    def __repr__(self):
+        return f"<SupplyCorridor {self.name}>"
+
+
+class SupplyCorridorNode(Base):
+    __tablename__ = "supply_corridor_nodes"
+    id                  = Column(Integer, primary_key=True)
+    corridor_id           = Column(Integer, ForeignKey("supply_corridors.id"), nullable=False)
+    landing_site_id          = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=True)
+    node_name                   = Column(String(200), nullable=True)
+    sequence_order                 = Column(Integer, nullable=False)
+    distance_km                       = Column(Float, nullable=True)
+    estimated_travel_time_min            = Column(Integer, nullable=True)
+    transport_cost_kes                      = Column(Float, nullable=True)
+    refrigeration_required                     = Column(String(10), nullable=True)
+    road_quality                                  = Column(String(30), nullable=True)
+    seasonal_accessibility                           = Column(String(50), nullable=True)
+
+    def __repr__(self):
+        return f"<SupplyCorridorNode #{self.sequence_order} corridor={self.corridor_id}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\market.py =====
+
+# app/models/intelligence/market.py
+from sqlalchemy import Column, Integer, String, Table, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+landing_site_markets = Table(
+    "landing_site_markets", Base.metadata,
+    Column("landing_site_id", Integer, ForeignKey("fish_landing_sites.id"), primary_key=True),
+    Column("market_id", Integer, ForeignKey("markets.id"), primary_key=True),
+)
+
+
+class Market(Base, ProvenanceMixin):
+    __tablename__ = "markets"
+    id           = Column(Integer, primary_key=True)
+    name          = Column(String(200), nullable=False)
+    market_type     = Column(String(50), nullable=True)
+
+    landing_sites = relationship("FishLandingSite", secondary=landing_site_markets)
+
+    def __repr__(self):
+        return f"<Market {self.name}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\provenance.py =====
+
+# app/models/intelligence/provenance.py
+#
+# Shared provenance columns applied to reference/research tables only.
+# Never applied to operational tables (InventoryLot, Order, etc.)
+
+from sqlalchemy import Column, String, Integer, DateTime, Text
+from sqlalchemy.sql import func
+
+
+class ProvenanceMixin:
+    """
+    Every geography/fisheries intelligence record carries these fields.
+    verification_status values:
+    VERIFIED_OFFICIAL | VERIFIED_MULTI_SOURCE | OFFICIAL_UNVERIFIED |
+    RESEARCH_SOURCE | COMMUNITY_REPORTED | SECONDARY_SOURCE |
+    CONFLICTING | HISTORICAL | NEEDS_FIELD_VERIFICATION
+    """
+    source_id           = Column(Integer, nullable=True)
+    source_name         = Column(String(255), nullable=True)
+    source_year         = Column(Integer, nullable=True)
+    source_page         = Column(String(50), nullable=True)
+    source_text         = Column(Text, nullable=True)
+    verification_status = Column(String(30), nullable=False, default="RESEARCH_SOURCE")
+    last_verified_at    = Column(DateTime(timezone=True), nullable=True)
+    created_at          = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at          = Column(DateTime(timezone=True), onupdate=func.now())
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\species_availability.py =====
+
+# app/models/intelligence/species_availability.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from app.database.connection import Base
+from .provenance import ProvenanceMixin
+
+
+class SpeciesAvailability(Base, ProvenanceMixin):
+    __tablename__ = "species_availability"
+    id                  = Column(Integer, primary_key=True)
+    landing_site_id       = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=False)
+    species_id               = Column(Integer, ForeignKey("species.id"), nullable=True)
+    species_name_raw            = Column(String(150), nullable=True)
+    average_volume_kg               = Column(Float, nullable=True)
+    peak_volume_kg                     = Column(Float, nullable=True)
+    minimum_volume_kg                     = Column(Float, nullable=True)
+    catch_frequency                          = Column(String(50), nullable=True)
+    catch_method                                = Column(String(100), nullable=True)
+
+    def __repr__(self):
+        return f"<SpeciesAvailability site={self.landing_site_id} species={self.species_name_raw}>"
+
+
+class SpeciesSeasonality(Base, ProvenanceMixin):
+    __tablename__ = "species_seasonality"
+    id                       = Column(Integer, primary_key=True)
+    species_availability_id    = Column(Integer, ForeignKey("species_availability.id"), nullable=False)
+    month                         = Column(Integer, nullable=False)
+    expected_availability            = Column(Integer, nullable=True)
+    confidence                          = Column(String(20), default="LOW")
+    historical_basis                       = Column(String(200), nullable=True)
+    observed_date                             = Column(String(20), nullable=True)
+
+    def __repr__(self):
+        return f"<SpeciesSeasonality month={self.month} availability={self.expected_availability}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\verification.py =====
+
+# app/models/intelligence/verification.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy.sql import func
+from app.database.connection import Base
+
+
+class FieldVerification(Base):
+    __tablename__ = "field_verifications"
+    id                    = Column(Integer, primary_key=True)
+    landing_site_id         = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=False)
+    verification_status       = Column(String(30), nullable=False, default="UNVERIFIED")
+    gps_latitude                 = Column(Float, nullable=True)
+    gps_longitude                   = Column(Float, nullable=True)
+    photo_url                          = Column(String(500), nullable=True)
+    verified_by_name                      = Column(String(150), nullable=True)
+    verified_boat_count                      = Column(Integer, nullable=True)
+    verified_fisher_count                       = Column(Integer, nullable=True)
+    notes                                          = Column(Text, nullable=True)
+    verified_at                                       = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<FieldVerification site={self.landing_site_id} status={self.verification_status}>"
+
+
+class SiteCommercialScore(Base):
+    __tablename__ = "site_commercial_scores"
+    id                        = Column(Integer, primary_key=True)
+    landing_site_id             = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=False)
+    supply_volume_score            = Column(Float, nullable=True)
+    species_diversity_score           = Column(Float, nullable=True)
+    high_value_species_score             = Column(Float, nullable=True)
+    buyer_demand_score                      = Column(Float, nullable=True)
+    cold_chain_score                           = Column(Float, nullable=True)
+    logistics_access_score                        = Column(Float, nullable=True)
+    fisher_density_score                             = Column(Float, nullable=True)
+    data_quality_score                                  = Column(Float, nullable=True)
+    sustainability_risk_score                              = Column(Float, nullable=True)
+    composite_score                                           = Column(Float, nullable=True)
+    computed_at                                                  = Column(String(20), nullable=True)
+
+    def __repr__(self):
+        return f"<SiteCommercialScore site={self.landing_site_id} score={self.composite_score}>"
+
+
+class SiteInvestmentScore(Base):
+    __tablename__ = "site_investment_scores"
+    id                  = Column(Integer, primary_key=True)
+    landing_site_id       = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=False)
+    category                 = Column(String(50), nullable=False)
+    priority_rank                = Column(Integer, nullable=True)
+    estimated_cost_kes              = Column(Float, nullable=True)
+    rationale                          = Column(Text, nullable=True)
+
+    def __repr__(self):
+        return f"<SiteInvestmentScore site={self.landing_site_id} category={self.category}>"
+
+===== C:\Users\AvaAlexa\MarineCatch-Africa-Platform\backend\app\models\intelligence\__init__.py =====
+
