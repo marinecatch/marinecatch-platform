@@ -12,7 +12,8 @@ from app.services.user_service import (
     get_user_by_id,
     get_all_users
 )
-from app.core.security import verify_password, create_token, decode_token
+from app.core.security import verify_password, create_token, decode_token, hash_password
+from app.schemas.user import validate_password_strength
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
@@ -332,3 +333,107 @@ def update_lead(
 
     db.commit()
     return {"success": True, "lead_status": lead.lead_status}
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/me/change-password")
+def change_password(
+    payload: PasswordChange,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Self-service password change. Requires the current password."""
+    token_payload = decode_token(credentials.credentials)
+    if not token_payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = get_user_by_id(db, token_payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    try:
+        validate_password_strength(payload.new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+
+class DeactivateAccount(BaseModel):
+    password: str  # confirm identity before deactivating — no accidental clicks
+
+
+@router.post("/me/deactivate")
+def deactivate_my_account(
+    payload: DeactivateAccount,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Self-service account deactivation. Distinct from admin suspension."""
+    token_payload = decode_token(credentials.credentials)
+    if not token_payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = get_user_by_id(db, token_payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(payload.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Password is incorrect")
+
+    user.account_status = "self_deactivated"
+    db.commit()
+    return {"message": "Account deactivated. Contact support to reactivate."}
+
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    business_name: Optional[str] = None
+    age: Optional[int] = None
+
+
+@router.patch("/me")
+def update_my_profile(
+    payload: ProfileUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Self-service profile edit. Deliberately excludes email, role, and
+    anything security/permission-related — those need separate, more
+    careful handling, not a generic profile form."""
+    token_payload = decode_token(credentials.credentials)
+    if not token_payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = get_user_by_id(db, token_payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.name is not None:
+        user.name = payload.name
+    if payload.phone is not None:
+        user.phone = payload.phone
+    if payload.location is not None:
+        user.location = payload.location
+    if payload.business_name is not None:
+        user.business_name = payload.business_name
+    if payload.age is not None:
+        user.age = payload.age
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": user.id, "name": user.name, "phone": user.phone,
+        "location": user.location, "business_name": user.business_name,
+        "age": user.age,
+    }

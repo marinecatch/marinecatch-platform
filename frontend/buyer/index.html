@@ -169,6 +169,7 @@
         </div>
         <div class="header-right">
             <span class="badge">👤 <span id="buyer-name">Buyer</span></span>
+            <button class="btn btn-outline" style="color:white; border-color:rgba(255,255,255,0.3)" onclick="openProfileModal()">My Account</button>
             <button class="btn btn-outline" style="color:white; border-color:rgba(255,255,255,0.3)" onclick="doLogout()">Sign Out</button>
         </div>
     </div>
@@ -265,6 +266,87 @@
             <div class="card">
                 <div class="card-title">Order Invoices</div>
                 <div id="invoices-content" class="table-scroll"><div class="empty">Loading invoices...</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div id="profile-modal" class="modal">
+    <div class="modal-box" style="width:480px;">
+        <h3 style="margin-bottom:16px;">My Account</h3>
+
+        <div class="tabs" style="margin-bottom:16px;">
+            <button class="tab active" id="pm-tab-info" onclick="showProfileTab('info')">Profile</button>
+            <button class="tab" id="pm-tab-password" onclick="showProfileTab('password')">Password</button>
+            <button class="tab" id="pm-tab-danger" onclick="showProfileTab('danger')">Account</button>
+        </div>
+
+        <!-- PROFILE INFO -->
+        <div id="pm-panel-info">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="pm-name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email (contact support to change)</label>
+                <input type="email" id="pm-email" class="form-control" disabled style="background:#f7fafc;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input type="text" id="pm-phone" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Business Name</label>
+                <input type="text" id="pm-business" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" id="pm-location" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Age <span style="color:#a0aec0; font-weight:400;">(optional)</span></label>
+                <input type="number" id="pm-age" class="form-control" min="16" max="110">
+            </div>
+            <div id="pm-info-error" class="error"></div>
+            <div id="pm-info-success" class="success"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="saveProfile()">Save Changes</button>
+        </div>
+
+        <!-- CHANGE PASSWORD -->
+        <div id="pm-panel-password" style="display:none;">
+            <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="pm-current-password" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">New Password <span style="color:#a0aec0; font-weight:400;">(min 8 chars, 1 letter + 1 number)</span></label>
+                <input type="password" id="pm-new-password" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" id="pm-confirm-password" class="form-control">
+            </div>
+            <div id="pm-password-error" class="error"></div>
+            <div id="pm-password-success" class="success"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="changePassword()">Update Password</button>
+        </div>
+
+        <!-- DANGER ZONE / SUPPORT -->
+        <div id="pm-panel-danger" style="display:none;">
+            <div style="background:#f7fafc; border-radius:6px; padding:16px; margin-bottom:20px; text-align:center;">
+                <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">Need help with your account?</p>
+                <a href="https://wa.me/254798169857" target="_blank" class="btn btn-success" style="text-decoration:none; display:inline-block;">💬 Contact Support on WhatsApp</a>
+            </div>
+            <div style="border:1px solid #fed7d7; border-radius:6px; padding:16px;">
+                <h4 style="color:#c53030; margin-bottom:8px;">Deactivate Account</h4>
+                <p style="font-size:13px; color:#718096; margin-bottom:12px;">This disables your account. Your order history is kept, but you won't be able to log in until support reactivates it.</p>
+                <div class="form-group">
+                    <label class="form-label">Confirm your password to continue</label>
+                    <input type="password" id="pm-deactivate-password" class="form-control">
+                </div>
+                <div id="pm-danger-error" class="error"></div>
+                <button class="btn btn-danger" style="width:100%" onclick="deactivateAccount()">Deactivate My Account</button>
             </div>
         </div>
     </div>
@@ -430,6 +512,131 @@ async function doLogin() {
 function doLogout() {
     localStorage.removeItem('mc_buyer_token');
     location.reload();
+}
+
+// ── PROFILE / ACCOUNT ─────────────────────────────────────────────
+function openProfileModal() {
+    document.getElementById('pm-name').value     = currentUser?.name || '';
+    document.getElementById('pm-email').value    = currentUser?.email || '';
+    document.getElementById('pm-phone').value    = currentUser?.phone || '';
+    document.getElementById('pm-business').value = currentUser?.business_name || '';
+    document.getElementById('pm-location').value = currentUser?.location || '';
+    document.getElementById('pm-age').value      = currentUser?.age || '';
+    ['pm-info-error','pm-info-success','pm-password-error','pm-password-success','pm-danger-error'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    showProfileTab('info');
+    document.getElementById('profile-modal').style.display = 'flex';
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').style.display = 'none';
+}
+
+function showProfileTab(tab) {
+    document.querySelectorAll('#profile-modal .tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`pm-tab-${tab}`).classList.add('active');
+    document.getElementById('pm-panel-info').style.display     = tab === 'info'     ? 'block' : 'none';
+    document.getElementById('pm-panel-password').style.display = tab === 'password' ? 'block' : 'none';
+    document.getElementById('pm-panel-danger').style.display   = tab === 'danger'   ? 'block' : 'none';
+}
+
+async function saveProfile() {
+    const errEl = document.getElementById('pm-info-error');
+    const sucEl = document.getElementById('pm-info-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    try {
+        const res = await fetch(`${API}/api/v1/users/me`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({
+                name: document.getElementById('pm-name').value,
+                phone: document.getElementById('pm-phone').value,
+                business_name: document.getElementById('pm-business').value,
+                location: document.getElementById('pm-location').value,
+                age: document.getElementById('pm-age').value ? parseInt(document.getElementById('pm-age').value) : null,
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            currentUser = { ...currentUser, ...data };
+            document.getElementById('buyer-name').textContent = currentUser.name;
+            sucEl.textContent = '✅ Profile updated';
+            sucEl.style.display = 'block';
+        } else {
+            errEl.textContent = data.detail || 'Failed to update profile';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function changePassword() {
+    const errEl = document.getElementById('pm-password-error');
+    const sucEl = document.getElementById('pm-password-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    const current = document.getElementById('pm-current-password').value;
+    const newPass = document.getElementById('pm-new-password').value;
+    const confirm = document.getElementById('pm-confirm-password').value;
+
+    if (!current || !newPass) { errEl.textContent = 'Please fill in both password fields'; errEl.style.display = 'block'; return; }
+    if (newPass !== confirm) { errEl.textContent = 'New passwords do not match'; errEl.style.display = 'block'; return; }
+
+    try {
+        const res = await fetch(`${API}/api/v1/users/me/change-password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({ current_password: current, new_password: newPass })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            sucEl.textContent = '✅ Password updated';
+            sucEl.style.display = 'block';
+            document.getElementById('pm-current-password').value = '';
+            document.getElementById('pm-new-password').value = '';
+            document.getElementById('pm-confirm-password').value = '';
+        } else {
+            errEl.textContent = data.detail || 'Failed to update password';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function deactivateAccount() {
+    const errEl = document.getElementById('pm-danger-error');
+    errEl.style.display = 'none';
+    const pass = document.getElementById('pm-deactivate-password').value;
+    if (!pass) { errEl.textContent = 'Please confirm your password'; errEl.style.display = 'block'; return; }
+    if (!confirm('Are you sure you want to deactivate your account? You will be logged out and unable to sign back in until support reactivates it.')) return;
+
+    try {
+        const res = await fetch(`${API}/api/v1/users/me/deactivate`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Your account has been deactivated. Contact support on WhatsApp to reactivate it.');
+            doLogout();
+        } else {
+            errEl.textContent = data.detail || 'Failed to deactivate account';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
 }
 
 function showApp() {

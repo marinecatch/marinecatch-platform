@@ -142,3 +142,6 @@ class User(Base):
     # Staff member name (e.g. "Muna Jamal")
     lead_notes    = Column(Text, nullable=True)
     last_contacted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # ── OPTIONAL PROFILE DETAILS ──────────────────────────────
+    age = Column(Integer, nullable=True)
