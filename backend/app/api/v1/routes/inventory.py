@@ -103,6 +103,55 @@ def browse_inventory(
         ]
     }
 
+
+@router.get("/admin/all")
+def admin_list_all_lots(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """
+    Admin sees every lot regardless of status or marketplace visibility —
+    available, reserved, withdrawn, sold, spoiled, everything. The public
+    browse endpoint deliberately only shows available/visible stock; this
+    is the admin management view that needs the full picture.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    query = db.query(InventoryLot)
+    if status_filter:
+        query = query.filter(InventoryLot.lot_status == status_filter)
+
+    lots = query.order_by(InventoryLot.created_at.desc()).all()
+
+    return {
+        "count": len(lots),
+        "lots": [
+            {
+                "id":                   lot.id,
+                "lot_number":           lot.lot_number,
+                "traceability_code":    lot.traceability_code,
+                "species":              lot.species,
+                "weight_kg":            lot.weight_kg,
+                "available_kg":         lot.available_kg,
+                "reserved_kg":          lot.reserved_kg,
+                "selling_price_per_kg": lot.selling_price_per_kg,
+                "grade":                lot.grade,
+                "condition":            lot.condition,
+                "landing_site":         lot.landing_site,
+                "source_name":          lot.source_name,
+                "catch_date":           lot.catch_date,
+                "ownership_type":       lot.ownership_type,
+                "lot_status":           lot.lot_status,
+                "visibility":           lot.visibility,
+                "product_form":         lot.product_form,
+                "notes":                lot.notes,
+            }
+            for lot in lots
+        ]
+    }
+
 # ── PUBLIC — traceability lookup by code (for QR codes / trace page) ────
 @router.get("/trace/{traceability_code}")
 def get_trace_by_code(traceability_code: str, db: Session = Depends(get_db)):

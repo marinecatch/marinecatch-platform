@@ -70,16 +70,22 @@
         <!-- FILTER -->
         <div class="card">
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                <select id="filter-species" class="form-control" style="width:160px" onchange="loadInventory()">
-                    <option value="">All Species</option>
-                    <option value="tuna">Tuna</option>
-                    <option value="octopus">Octopus</option>
-                    <option value="prawns">Prawns</option>
-                    <option value="lobster">Lobster</option>
-                    <option value="snapper">Snapper</option>
-                    <option value="kingfish">Kingfish</option>
-                    <option value="sardines">Sardines</option>
-                    <option value="crab">Crab</option>
+                                <input list="filter-species-options" id="filter-species" class="form-control" style="width:160px" placeholder="All Species" onchange="loadInventory()">
+                <datalist id="filter-species-options">
+                    <option value="tuna"><option value="octopus"><option value="prawns">
+                    <option value="lobster"><option value="snapper"><option value="kingfish">
+                    <option value="sardines"><option value="crab"><option value="rabbitfish">
+                    <option value="parrotfish"><option value="goatfish"><option value="rockcod">
+                    <option value="barracuda"><option value="jack"><option value="squid">
+                    <option value="shark"><option value="sea_cucumber">
+                </datalist>
+                <select id="filter-status" class="form-control" style="width:150px" onchange="loadInventory()">
+                    <option value="">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="sold">Sold</option>
+                    <option value="partially_sold">Partially Sold</option>
+                    <option value="spoiled">Spoiled</option>
                 </select>
                 <button class="btn btn-outline btn-sm" onclick="loadInventory()">🔄 Refresh</button>
                 <button class="btn btn-primary btn-sm" onclick="openCreateLot()">➕ Create Lot</button>
@@ -245,9 +251,30 @@
                     <input type="text" id="processing-notes" class="form-control" placeholder="e.g. gutted, scaled, iced">
                 </div>
                 <div id="processing-error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
-                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                                <div style="display:flex; gap:8px; justify-content:flex-end;">
                     <button class="btn btn-outline" onclick="closeProcessingModal()">Cancel</button>
                     <button class="btn btn-primary" onclick="submitProcessing()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOT MANAGE MODAL -->
+        <div id="lot-manage-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:8px; padding:24px; width:420px; max-width:90%;">
+                <h3 style="margin-bottom:16px;">Manage Lot</h3>
+                <div id="manage-lot-info" style="background:#f7fafc; padding:12px; border-radius:6px; margin-bottom:16px; font-size:14px;"></div>
+                <div id="manage-actions" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+                <div id="manage-partial-sale" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #f7fafc;">
+                    <label class="form-label">Kg sold outside the platform</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="number" id="manage-sold-kg" class="form-control" placeholder="e.g. 10">
+                        <button class="btn btn-danger btn-sm" onclick="submitPartialSale()">Confirm</button>
+                    </div>
+                </div>
+                <div id="manage-error" style="display:none; color:#e53e3e; font-size:13px; margin-top:12px;"></div>
+                <div id="manage-success" style="display:none; color:#276749; font-size:13px; margin-top:12px;"></div>
+                <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                    <button class="btn btn-outline" onclick="closeLotManage()">Close</button>
                 </div>
             </div>
         </div>
@@ -356,13 +383,16 @@ async function submitCreateLot() {
 
 async function loadInventory() {
     const species = document.getElementById('filter-species').value;
-    const url = '/api/v1/inventory/' + (species ? `?species=${species}` : '');
+    const statusFilter = document.getElementById('filter-status')?.value || '';
+    let url = '/api/v1/inventory/admin/all';
+    if (statusFilter) url += `?status=${statusFilter}`;
 
     showLoading('inventory-table');
     const data = await apiGet(url);
     if (!data) return;
 
-    const lots = Array.isArray(data) ? data : (data.lots || data.items || []);
+    let lots = Array.isArray(data) ? data : (data.lots || data.items || []);
+    if (species) lots = lots.filter(l => l.species === species);
 
     // Stats
     document.getElementById('stat-total').textContent = lots.length;
@@ -403,6 +433,7 @@ async function loadInventory() {
                 <th>Fisher</th>
                 <th>Catch Date</th>
                 <th>Status</th>
+                <th>Visibility</th>
                 <th>Action</th>
             </tr></thead>
             <tbody>
@@ -420,7 +451,8 @@ async function loadInventory() {
                     <td>${(l.ownership_type || '—').replace(/_/g, ' ')}</td>
                     <td>${l.source_name || '—'}</td>
                     <td>${formatDate(l.catch_date)}</td>
-                    <td>${statusBadge(l.lot_status || 'available')}</td>
+                                        <td>${statusBadge(l.lot_status || 'available')}</td>
+                    <td>${l.visibility === 'private' ? '<span class="badge badge-neutral">Withdrawn</span>' : '<span class="badge badge-success">Public</span>'}</td>
                     <td>
                         <button class="btn btn-outline btn-sm"
                             onclick="openModal(${l.id}, '${l.lot_number}')">
@@ -429,6 +461,10 @@ async function loadInventory() {
                         <button class="btn btn-outline btn-sm"
                             onclick="openProcessingModal(${l.id}, '${l.lot_number}', '${l.product_form || 'whole_ungutted'}')">
                             Record Processing
+                        </button>
+                        <button class="btn btn-outline btn-sm"
+                            onclick='openLotManage(${JSON.stringify(l).replace(/'/g, "&#39;")})'>
+                            Manage
                         </button>
                     </td>
                 </tr>`).join('')}
@@ -515,6 +551,94 @@ async function submitProcessing() {
             loadInventory();
         } else {
             errEl.textContent = data.detail || 'Failed to record processing.';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── LOT MANAGEMENT ────────────────────────────────────────────────
+let currentManageLot = null;
+
+function openLotManage(lot) {
+    currentManageLot = lot;
+    document.getElementById('manage-error').style.display = 'none';
+    document.getElementById('manage-success').style.display = 'none';
+    document.getElementById('manage-partial-sale').style.display = 'none';
+    document.getElementById('manage-sold-kg').value = '';
+
+    document.getElementById('manage-lot-info').innerHTML = `
+        <strong>${lot.lot_number}</strong><br>
+        ${lot.species ? lot.species.charAt(0).toUpperCase() + lot.species.slice(1) : '—'} — ${lot.available_kg}kg available<br>
+        Fisher/Source: ${lot.source_name || '—'}<br>
+        Status: ${(lot.lot_status || '').replace('_',' ')}${lot.visibility === 'private' ? ' (withdrawn from marketplace)' : ''}
+    `;
+
+    const buttons = [];
+    if (lot.visibility === 'private') {
+        buttons.push(`<button class="btn btn-primary btn-sm" onclick="doLotAction('relist')">↩️ Relist on Marketplace</button>`);
+    } else {
+        buttons.push(`<button class="btn btn-outline btn-sm" onclick="doLotAction('withdraw')">🚫 Withdraw from Marketplace</button>`);
+    }
+    if (lot.lot_status !== 'reserved') {
+        buttons.push(`<button class="btn btn-outline btn-sm" onclick="doLotAction('mark_reserved')">🔒 Mark Reserved</button>`);
+    }
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="togglePartialSale()">📉 Report Partial Sale (sold outside platform)</button>`);
+    buttons.push(`<button class="btn btn-danger btn-sm" onclick="confirmSpoilage()">⚠️ Report Spoilage</button>`);
+
+    document.getElementById('manage-actions').innerHTML = buttons.join('');
+    document.getElementById('lot-manage-modal').style.display = 'flex';
+}
+
+function closeLotManage() {
+    document.getElementById('lot-manage-modal').style.display = 'none';
+    currentManageLot = null;
+}
+
+function togglePartialSale() {
+    const el = document.getElementById('manage-partial-sale');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function confirmSpoilage() {
+    if (!confirm('Report this lot as spoiled? This sets available stock to 0kg and cannot be undone.')) return;
+    doLotAction('report_spoilage');
+}
+
+async function submitPartialSale() {
+    const kg = parseFloat(document.getElementById('manage-sold-kg').value);
+    if (!kg || kg <= 0) {
+        const errEl = document.getElementById('manage-error');
+        errEl.textContent = 'Enter a valid quantity';
+        errEl.style.display = 'block';
+        return;
+    }
+    await doLotAction('report_partial_sale', { sold_kg: kg });
+}
+
+async function doLotAction(action, extra = {}) {
+    if (!currentManageLot) return;
+    const errEl = document.getElementById('manage-error');
+    const sucEl = document.getElementById('manage-success');
+    errEl.style.display = 'none';
+    sucEl.style.display = 'none';
+
+    try {
+        const res = await fetch(`/api/v1/inventory/${currentManageLot.id}/action`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}`},
+            body: JSON.stringify({ action, ...extra })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            sucEl.textContent = '✅ Updated successfully';
+            sucEl.style.display = 'block';
+            loadInventory();
+            setTimeout(closeLotManage, 900);
+        } else {
+            errEl.textContent = data.detail || 'Action failed';
             errEl.style.display = 'block';
         }
     } catch(e) {
