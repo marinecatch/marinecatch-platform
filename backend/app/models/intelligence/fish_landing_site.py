@@ -47,6 +47,9 @@ class FishLandingSite(Base, ProvenanceMixin):
     market_access                                                = Column(Boolean, nullable=True)
     mobile_network                                                  = Column(Boolean, nullable=True)
     internet_connectivity                                              = Column(Boolean, nullable=True)
+    land_tenure_status                                                     = Column(String(30), nullable=True)
+    site_classification                                                        = Column(String(300), nullable=True)
+    is_island            = Column(Boolean, nullable=True)
 
     bmu = relationship("BMU", back_populates="landing_sites")
 

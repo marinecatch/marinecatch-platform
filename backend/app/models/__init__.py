@@ -30,3 +30,4 @@ from app.models.intelligence.logistics_graph import LogisticsNode, SupplyCorrido
 from app.models.intelligence.species_availability import SpeciesAvailability, SpeciesSeasonality
 from app.models.intelligence.verification import FieldVerification, SiteCommercialScore, SiteInvestmentScore
 from app.models.intelligence.market import Market
+from app.models.intelligence.fishing_gear import FishingGear
