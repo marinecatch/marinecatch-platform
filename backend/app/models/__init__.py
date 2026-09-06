@@ -33,3 +33,7 @@ from app.models.intelligence.market import Market
 from app.models.intelligence.fishing_gear import FishingGear
 from app.models.intelligence.ecological_zone import EcologicalZone
 from app.models.intelligence.county_landing_baseline import CountyLandingBaseline
+from app.models.intelligence.species_habitat_association import SpeciesHabitatAssociation
+from app.models.intelligence.species_gear_association import SpeciesGearAssociation
+from app.models.intelligence.species_market_price import SpeciesMarketPrice
+from app.models.intelligence.species_processing_profile import SpeciesProcessingProfile

@@ -23,7 +23,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.connection import Base
 import enum
-
+from app.models.intelligence.provenance import ProvenanceMixin
 
 class FishCategory(str, enum.Enum):
     DEMERSAL    = "demersal"    # Bottom-dwelling: Tafi, Changgu, Tembo
@@ -36,7 +36,7 @@ class FishCategory(str, enum.Enum):
 
 # ── SPECIES ───────────────────────────────────────────────────────
 
-class Species(Base):
+class Species(Base, ProvenanceMixin):
     __tablename__ = "species"
 
     id              = Column(Integer, primary_key=True, index=True)
@@ -73,9 +73,25 @@ class Species(Base):
     iucn_status     = Column(String(50), nullable=True)
     # LC, NT, VU, EN, CR — IUCN Red List status
 
+    order            = Column(String(100), nullable=True)
+    fao_code         = Column(String(3), nullable=True)
+    trophic_level    = Column(Float, nullable=True)
+    max_size_cm      = Column(Float, nullable=True)
+
+    cites_appendix              = Column(String(10), nullable=True)
+    eu_catch_cert_required      = Column(Boolean, nullable=True)
+    iuu_risk_flag               = Column(Boolean, nullable=True)
+    min_legal_size_cm           = Column(Float, nullable=True)
+    size_limit_regulation_notes = Column(Text, nullable=True)
+
+    habitat_associations    = relationship("SpeciesHabitatAssociation", back_populates="species")
+    gear_associations        = relationship("SpeciesGearAssociation", back_populates="species")
+    market_prices              = relationship("SpeciesMarketPrice", back_populates="species")
+    processing_profiles           = relationship("SpeciesProcessingProfile", back_populates="species")
+
     is_active       = Column(Boolean, default=True, nullable=False)
     notes           = Column(Text, nullable=True)
-    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+    
 
     def __repr__(self):
         return f"<Species {self.common_name} ({self.local_name})>"
