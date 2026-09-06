@@ -16,14 +16,15 @@ class LogisticsNode(Base, ProvenanceMixin):
 
 
 class SupplyCorridor(Base, ProvenanceMixin):
-    """Conceptual, unvalidated until real logistics data confirms it."""
+    """Conceptual until validated by real logistics data."""
     __tablename__ = "supply_corridors"
-    id            = Column(Integer, primary_key=True)
-    name           = Column(String(200), nullable=False)
-    is_validated     = Column(String(10), default="false")
+    id     = Column(Integer, primary_key=True)
+    name    = Column(String(200), nullable=False)
+    status   = Column(String(20), default="potential")
+    # observed | potential | pilot | validated
 
     def __repr__(self):
-        return f"<SupplyCorridor {self.name}>"
+        return f"<SupplyCorridor {self.name} status={self.status}>"
 
 
 class SupplyCorridorNode(Base):

@@ -50,7 +50,13 @@ class FishLandingSite(Base, ProvenanceMixin):
     land_tenure_status                                                     = Column(String(30), nullable=True)
     site_classification                                                        = Column(String(300), nullable=True)
     is_island            = Column(Boolean, nullable=True)
-
+    site_role             = Column(String(20), nullable=True)
+    # main | subsidiary | unknown
+    aggregates_to_site_id = Column(Integer, ForeignKey("fish_landing_sites.id"), nullable=True)
+    environment_type      = Column(String(20), nullable=True)
+    # freshwater | brackish | estuarine | marine | mixed
+    node_functions        = Column(String(300), nullable=True)
+    # comma-separated: LANDING,AGGREGATION,WHOLESALE,PROCESSING,LOGISTICS,INSTITUTIONAL
     bmu = relationship("BMU", back_populates="landing_sites")
 
     def __repr__(self):

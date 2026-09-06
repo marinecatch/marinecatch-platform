@@ -24,3 +24,4 @@ class ProvenanceMixin:
     last_verified_at    = Column(DateTime(timezone=True), nullable=True)
     created_at          = Column(DateTime(timezone=True), server_default=func.now())
     updated_at          = Column(DateTime(timezone=True), onupdate=func.now())
+    confidence_score = Column(Integer, nullable=True)  # 1-5, populated only where source gives a score

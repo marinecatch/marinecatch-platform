@@ -31,3 +31,5 @@ from app.models.intelligence.species_availability import SpeciesAvailability, Sp
 from app.models.intelligence.verification import FieldVerification, SiteCommercialScore, SiteInvestmentScore
 from app.models.intelligence.market import Market
 from app.models.intelligence.fishing_gear import FishingGear
+from app.models.intelligence.ecological_zone import EcologicalZone
+from app.models.intelligence.county_landing_baseline import CountyLandingBaseline
