@@ -1,14 +1,20 @@
 # app/models/intelligence/fishing_gear.py
+
 from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import relationship
+
 from app.database.connection import Base
 from .provenance import ProvenanceMixin
 
 
 class FishingGear(Base, ProvenanceMixin):
     """
-    Gear tracked as a proper entity (not free text), per Lamu package
-    section 17 — supports future compliance/traceability/selectivity scoring.
+    Fishing gear tracked as a proper entity.
+
+    Supports fisheries intelligence, compliance,
+    traceability, selectivity, and environmental-risk scoring.
     """
+
     __tablename__ = "fishing_gears"
 
     id                = Column(Integer, primary_key=True)
@@ -21,6 +27,11 @@ class FishingGear(Base, ProvenanceMixin):
     environmental_risk = Column(String(30), nullable=True)
     permitted_area    = Column(String(200), nullable=True)
     seasonality       = Column(String(100), nullable=True)
+
+    species_associations = relationship(
+        "SpeciesGearAssociation",
+        back_populates="fishing_gear",
+    )
 
     def __repr__(self):
         return f"<FishingGear {self.name}>"
