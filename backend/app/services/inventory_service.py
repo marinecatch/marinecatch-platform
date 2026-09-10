@@ -245,11 +245,12 @@ def get_available_lots(
     - min_weight_kg: minimum available quantity
     - max_price_per_kg: buyer budget filter
     """
-    query = db.query(InventoryLot).filter(
+        query = db.query(InventoryLot).filter(
         and_(
             InventoryLot.lot_status == LotStatus.AVAILABLE,
             InventoryLot.is_active  == True,
             InventoryLot.available_kg > 0,
+            InventoryLot.visibility != "private",
         )
     )
 

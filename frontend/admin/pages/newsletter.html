@@ -8,6 +8,7 @@
 </head>
 <body>
 <div class="layout">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo"><img src="/landing/assets/marinecatch%20logo-01.svg" alt="MarineCatch" style="height:24px; vertical-align:middle; margin-right:6px;"> MarineCatch</div>
@@ -36,13 +37,15 @@
     </aside>
 
     <main class="main">
-        <div class="topbar">
+                <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
             <div>
                 <div class="page-title">Blue Economy Intelligence</div>
                 <div class="page-subtitle">Newsletter subscribers and stakeholder relationships</div>
             </div>
             <div class="topbar-right">
-                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+                                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+                <button class="btn btn-outline btn-sm" onclick="openProfileModal()">My Account</button>
             </div>
         </div>
 
@@ -185,5 +188,44 @@ function exportSubscribers() {
 loadOverview();
 loadSubscribers();
 </script>
+<!-- PROFILE MODAL -->
+<div id="profile-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:8px; padding:24px; width:480px; max-width:90%; max-height:85vh; overflow-y:auto; position:relative;">
+        <button onclick="closeProfileModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#718096;">✕</button>
+        <h3 style="margin-bottom:16px;">My Account</h3>
+        <div class="tabs" style="display:flex; gap:4px; background:#f7fafc; padding:4px; border-radius:8px; margin-bottom:16px;">
+            <button class="tab active" id="pm-tab-info" onclick="showProfileTab('info')" style="padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; border:none; background:none;">Profile</button>
+            <button class="tab" id="pm-tab-password" onclick="showProfileTab('password')" style="padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; border:none; background:none;">Password</button>
+            <button class="tab" id="pm-tab-danger" onclick="showProfileTab('danger')" style="padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; border:none; background:none;">Account</button>
+        </div>
+        <div id="pm-panel-info">
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="pm-name" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Email (contact another admin to change)</label><input type="email" id="pm-email" class="form-control" disabled style="background:#f7fafc;"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input type="text" id="pm-phone" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Location</label><input type="text" id="pm-location" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Age (optional)</label><input type="number" id="pm-age" class="form-control" min="16" max="110"></div>
+            <div id="pm-info-error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
+            <div id="pm-info-success" style="display:none; color:#276749; font-size:13px; margin-bottom:12px;"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="saveProfile()">Save Changes</button>
+        </div>
+        <div id="pm-panel-password" style="display:none;">
+            <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="pm-current-password" class="form-control"></div>
+            <div class="form-group"><label class="form-label">New Password (min 8 chars, 1 letter + 1 number)</label><input type="password" id="pm-new-password" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Confirm New Password</label><input type="password" id="pm-confirm-password" class="form-control"></div>
+            <div id="pm-password-error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
+            <div id="pm-password-success" style="display:none; color:#276749; font-size:13px; margin-bottom:12px;"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="changePassword()">Update Password</button>
+        </div>
+        <div id="pm-panel-danger" style="display:none;">
+            <div style="border:1px solid #fed7d7; border-radius:6px; padding:16px;">
+                <h4 style="color:#c53030; margin-bottom:8px;">Deactivate My Account</h4>
+                <p style="font-size:13px; color:#718096; margin-bottom:12px;">This logs you out immediately. Another admin must reactivate your account.</p>
+                <div class="form-group"><label class="form-label">Confirm your password</label><input type="password" id="pm-deactivate-password" class="form-control"></div>
+                <div id="pm-danger-error" style="display:none; color:#e53e3e; font-size:13px; margin-bottom:12px;"></div>
+                <button class="btn btn-danger" style="width:100%" onclick="deactivateAccount()">Deactivate My Account</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
