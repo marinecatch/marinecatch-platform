@@ -444,6 +444,15 @@ def create_lot(
         source_user_id = fisher.id
         source_name     = fisher.name
 
+        # Gate: fisher/consignment stock goes through inspection first.
+    # MarineCatch-owned stock is already physically inspected as part
+    # of purchase, so it can list immediately.
+    initial_status     = "available"
+    initial_visibility = "public"
+    if ownership_type in ("marketplace", "consignment"):
+        initial_status     = "pending_inspection"
+        initial_visibility = "private"
+
     lot = create_inventory_lot(
         db=                   db,
         source_user_id=       source_user_id,
@@ -452,8 +461,10 @@ def create_lot(
         weight_kg=            weight_kg,
         selling_price_per_kg= selling_price_per_kg,
         landing_site=         landing_site,
-        catch_date=           catch_date,
         ownership_type=       ownership_type,
+        lot_status=           initial_status,
+        visibility=           initial_visibility,
+        catch_date=           catch_date,
         purchase_price_per_kg=purchase_price_per_kg,
         product_form=         product_form,
         condition=            condition,

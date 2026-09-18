@@ -25,7 +25,11 @@ class AdminGeography(Base, ProvenanceMixin):
     effective_from                = Column(DateTime(timezone=True), nullable=True)
     effective_to                     = Column(DateTime(timezone=True), nullable=True)
     is_active                           = Column(String(10), default="true")
-
+    governance_authority = Column(String(200), nullable=True)
+    # e.g. "Zanzibar Department of Fisheries Development" vs
+    # "Tanzania mainland fisheries authority" — distinguishes
+    # semi-autonomous regulatory contexts within one country_code
+    # without needing a separate table.
     children = relationship("AdminGeography", backref="parent", remote_side=[id])
 
     def __repr__(self):

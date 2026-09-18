@@ -411,34 +411,46 @@ async def route_fisher_message(
             f"• Jumla Iliyolipwa: KES {total_paid:,.0f}\n"
             f"• Inangoja: KES {total_pending:,.0f}\n"
             f"• Malipo ya Mwisho: {last_date}\n\n"
-            f"Kwa maswali: +254700000000\n"
+            f"Kwa maswali: +254798169857\n"
             f"MarineCatch Africa 🐟"
         )
         return
 
     # ── CHECK PRICES ──────────────────────────────────────────
     if text in ["prices", "bei", "price"] or button_id == "fisher_prices":
-        from app.models.inventory_lot import InventoryLot, LotStatus
+        from app.models.supplier_payment import SupplierPayment
+        from sqlalchemy import func
 
-        lots = db.query(InventoryLot).filter(
-            InventoryLot.lot_status == LotStatus.AVAILABLE,
-            InventoryLot.selling_price_per_kg > 0,
-        ).all()
+        # Show average payout price by species from actual
+        # supplier payments — what fishers actually get paid,
+        # not the marketplace selling price.
+        results = db.query(
+            SupplierPayment.species,
+            func.avg(SupplierPayment.purchase_amount_kes / SupplierPayment.quantity_kg).label('avg_price'),
+        ).filter(
+            SupplierPayment.species.isnot(None),
+            SupplierPayment.quantity_kg > 0,
+        ).group_by(SupplierPayment.species).all()
 
-        if not lots:
-            await send_text(from_phone,
-                "Bei za sasa hazipo.\nPiga simu: +254700000000")
+        if not results:
+            # Fallback: use BMU historical average if no payout history yet
+            from app.services.price_intelligence_service import suggest_price
+            await send_text(
+                from_phone,
+                "Bado hatuna bei za hivi karibuni za malipo.\n\n"
+                "Tuma samaki wako kwa *CATCH species weight site* "
+                "kupata ushauri wa bei.\n\n"
+                "Piga simu: +254798169857"
+            )
             return
 
-        prices = {}
-        for lot in lots:
-            if lot.species not in prices:
-                prices[lot.species] = lot.selling_price_per_kg
-
-        lines = ["💰 *Bei za Sasa — MarineCatch*\n"]
-        for species, price in sorted(prices.items()):
-            lines.append(f"• {species.title()}: KES {price:,.0f}/kg")
-        lines.append("\nKwa bei bora zaidi: +254700000000")
+        lines = ["💰 *Bei Tunazolipa Wavuvi — MarineCatch*\n"]
+        for species, avg_price in sorted(results, key=lambda x: x[0]):
+            lines.append(f"• {species.title()}: ~KES {avg_price:,.0f}/kg")
+        lines.append(
+            "\n_Bei ya mwisho inategemea ukaguzi wa ubora._\n"
+            "Maswali? +254798169857"
+        )
 
         await send_text(from_phone, "\n".join(lines))
         return
@@ -448,8 +460,8 @@ async def route_fisher_message(
         await send_text(
             from_phone,
             f"📞 *Msaada — MarineCatch Africa*\n\n"
-            f"Piga simu: +254700000000\n"
-            f"WhatsApp: +254700000000\n"
+            f"Piga simu: +254707939810\n"
+            f"WhatsApp: +254798169857\n"
             f"Email: support@marinecatch.co.ke\n\n"
             f"Saa za kazi: Jumatatu-Jumamosi, 6am-8pm\n\n"
             f"Type MENU kurudi kwenye menyu."
@@ -687,7 +699,7 @@ async def route_buyer_message(
         await send_text(from_phone,
             "📦 *Check Your Order Status*\n\n"
             "Type: *ORDER STATUS 1*\n(replace 1 with your order ID)\n\n"
-            "No order ID? Contact: orders@marinecatch.co.ke\n\n"
+            "No order ID? Contact: sales@marinecatchafrica.com\n\n"
             "Type MENU to go back.")
         return
 
@@ -720,8 +732,8 @@ async def route_buyer_message(
     if text in ["support", "help", "msaada"] or button_id == "btn_support":
         await send_text(from_phone,
             "📞 *MarineCatch Africa Support*\n\n"
-            "Orders: orders@marinecatch.co.ke\n"
-            "Finance: finance@marinecatch.co.ke\n\n"
+            "Orders: sales@marinecatchafrica.com\n"
+            "Finance: finance@marinecatchafrica.com\n\n"
             "Mon-Sat, 6am-8pm EAT\n\n"
             "Type MENU to return.")
         return

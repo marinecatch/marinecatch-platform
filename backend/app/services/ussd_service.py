@@ -33,14 +33,10 @@ from app.models.payment import PaymentTransaction, PayoutStatus
 # USSD uses numbers — map to species names
 
 SPECIES_MAP = {
-    "1": "tuna",
-    "2": "octopus",
-    "3": "prawns",
-    "4": "lobster",
-    "5": "snapper",
-    "6": "kingfish",
-    "7": "sardines",
-    "8": "crab",
+    "1": "tuna", "2": "octopus", "3": "prawns", "4": "lobster",
+    "5": "snapper", "6": "kingfish", "7": "sardines", "8": "crab",
+    "9": "rabbitfish", "10": "parrotfish", "11": "goatfish", "12": "rockcod",
+    "13": "barracuda", "14": "jack", "15": "squid", "16": "shark", "17": "sea_cucumber",
 }
 
 LANDING_SITES = {
@@ -131,14 +127,23 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
         return (
             "CON Log Catch / Ingiza Samaki\n"
             "Select species / Chagua samaki:\n\n"
-            "1. Tuna / Jodari\n"
+                        "1. Tuna / Jodari\n"
             "2. Octopus / Pweza\n"
             "3. Prawns / Kamba\n"
             "4. Lobster / Kamba Kochi\n"
             "5. Snapper / Changu\n"
             "6. Kingfish / Nguru\n"
             "7. Sardines / Dagaa\n"
-            "8. Crab / Kaa"
+            "8. Crab / Kaa\n"
+            "9. Rabbit Fish/Tafi\n"
+            "10. Parrot Fish/Pono\n"
+            "11. Goat Fish\n"
+            "12. Rock Cod\n"
+            "13. Barracuda\n"
+            "14. Jack/Kole Kole\n"
+            "15. Squid/Ngisi\n"
+            "16. Shark/Papa\n"
+            "17. Sea Cucumber"
         )
 
     # Step 2 — Enter weight

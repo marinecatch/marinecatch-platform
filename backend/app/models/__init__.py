@@ -37,3 +37,4 @@ from app.models.intelligence.species_habitat_association import SpeciesHabitatAs
 from app.models.intelligence.species_gear_association import SpeciesGearAssociation
 from app.models.intelligence.species_market_price import SpeciesMarketPrice
 from app.models.intelligence.species_processing_profile import SpeciesProcessingProfile
+from app.models.intelligence.temporary_closure import TemporaryClosure
