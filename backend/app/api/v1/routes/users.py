@@ -58,7 +58,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_email(db, credentials.email)
-        if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.account_status != "active" or not user.is_active:
         raise HTTPException(status_code=403, detail="This account is not active. Contact MarineCatch support.")

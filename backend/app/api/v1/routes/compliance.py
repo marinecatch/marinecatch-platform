@@ -404,7 +404,7 @@ def pending_inspections(
     inspected_lot_ids = db.query(QualityInspection.lot_id).all()
     inspected_ids     = [i[0] for i in inspected_lot_ids]
 
-        pending_lots = db.query(InventoryLot).filter(
+    pending_lots = db.query(InventoryLot).filter(
         ~InventoryLot.id.in_(inspected_ids) if inspected_ids else True,
         InventoryLot.available_kg > 0,
         InventoryLot.visibility != "private",
