@@ -38,3 +38,7 @@ from app.models.intelligence.species_gear_association import SpeciesGearAssociat
 from app.models.intelligence.species_market_price import SpeciesMarketPrice
 from app.models.intelligence.species_processing_profile import SpeciesProcessingProfile
 from app.models.intelligence.temporary_closure import TemporaryClosure
+from app.models.intelligence.governing_authority import GoverningAuthority
+from app.models.intelligence.shehia_fisheries_committee import ShehiaFisheriesCommittee
+from app.models.intelligence.management_area import ManagementArea
+from app.models.intelligence.temporary_closure import TemporaryClosure  # replaces earlier import if present

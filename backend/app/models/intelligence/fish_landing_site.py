@@ -61,3 +61,15 @@ class FishLandingSite(Base, ProvenanceMixin):
 
     def __repr__(self):
         return f"<FishLandingSite {self.official_name}>"
+    sfc_id            = Column(Integer, ForeignKey("shehia_fisheries_committees.id"), nullable=True)
+    data_verification_stage = Column(String(30), nullable=True)
+    # survey_identified | confirmed | field_verified | unknown
+    # (kept distinct from operational_status and from
+    #  ProvenanceMixin.verification_status — this specifically
+    #  tracks "was physical existence confirmed," a narrower claim)
+    production_system = Column(String(20), nullable=True)
+    # wild_capture | aquaculture | mariculture — populated only
+    # where relevant; does not build out the mariculture branch,
+    # just prevents a painful retrofit later per section 22
+
+    sfc = relationship("ShehiaFisheriesCommittee", back_populates="landing_sites")

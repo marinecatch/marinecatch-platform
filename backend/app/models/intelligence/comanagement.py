@@ -18,7 +18,10 @@ class JointCoManagementArea(Base, ProvenanceMixin):
     description    = Column(String(500), nullable=True)
 
     bmus = relationship("BMU", secondary=bmu_jcma)
-
+    governance_type = Column(String(20), nullable=True)
+    # CFMA | CMG | CMA — the label a given instance actually uses,
+    # since section 19 explicitly warns against collapsing CMG
+    # and CMA into one undifferentiated bucket
     def __repr__(self):
         return f"<JointCoManagementArea {self.name}>"
 
