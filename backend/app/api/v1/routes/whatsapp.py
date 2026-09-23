@@ -272,9 +272,11 @@ async def route_fisher_message(
             site_input    = parts[3].lower()
 
             valid_species = ["tuna", "octopus", "prawns", "lobster",
-                           "snapper", "kingfish", "sardines", "crab"]
+                           "snapper", "kingfish", "sardines", "crab",
+                           "rabbitfish", "parrotfish", "goatfish", "rockcod",
+                           "barracuda", "jack", "squid", "shark", "sea_cucumber"]
             valid_sites   = ["kibuyuni", "kinondo", "shimoni",
-                           "ukunda", "vanga", "mwambao", "other"]
+                           "ukunda", "vanga", "mwambao", "majoreni", "other"]
 
             if species_input not in valid_species:
                 await send_text(

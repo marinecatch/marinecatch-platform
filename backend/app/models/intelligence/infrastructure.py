@@ -15,6 +15,10 @@ class InfrastructureAsset(Base, ProvenanceMixin):
     operator                         = Column(String(150), nullable=True)
     operational_status                  = Column(String(30), default="UNKNOWN")
     installation_year                      = Column(Integer, nullable=True)
+    funding_program          = Column(String(100), nullable=True)
+    financier                = Column(String(150), nullable=True)
+    reported_value            = Column(Float, nullable=True)
+    reported_value_currency      = Column(String(3), nullable=True)
 
     def __repr__(self):
         return f"<InfrastructureAsset {self.asset_type} @ site {self.landing_site_id}>"

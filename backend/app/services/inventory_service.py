@@ -129,6 +129,8 @@ def create_inventory_lot(
     cold_storage_fee_per_kg_per_day: float = 0.0,
     handling_fee_kes: float          = 0.0,
     qa_fee_kes: float                = 0.0,
+    lot_status: str                  = "available",
+    visibility: str                  = "public",
 ) -> InventoryLot:
     """
     Create a new inventory lot.
@@ -195,6 +197,7 @@ def create_inventory_lot(
         vessel_reg             = vessel_reg,
         vessel_name            = vessel_name,
         ownership_type         = ownership_type,
+        visibility              = visibility,
         purchase_price_per_kg  = purchase_price_per_kg,
         selling_price_per_kg   = selling_price_per_kg,
         min_price_per_kg       = min_price_per_kg,

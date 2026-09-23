@@ -42,3 +42,4 @@ from app.models.intelligence.governing_authority import GoverningAuthority
 from app.models.intelligence.shehia_fisheries_committee import ShehiaFisheriesCommittee
 from app.models.intelligence.management_area import ManagementArea
 from app.models.intelligence.temporary_closure import TemporaryClosure  # replaces earlier import if present
+from app.models.intelligence.fisheries_observation import FisheriesObservation

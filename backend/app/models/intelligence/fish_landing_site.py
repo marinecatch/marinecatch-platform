@@ -73,3 +73,5 @@ class FishLandingSite(Base, ProvenanceMixin):
     # just prevents a painful retrofit later per section 22
 
     sfc = relationship("ShehiaFisheriesCommittee", back_populates="landing_sites")
+    site_type = Column(String(30), nullable=True)
+    # landing_site | fishing_community | fishing_site
