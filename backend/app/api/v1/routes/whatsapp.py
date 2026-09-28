@@ -164,6 +164,7 @@ async def route_incoming_message(
     from app.models.user import User, UserRole
     from app.models.inventory_lot import InventoryLot
     from app.models.payment import PaymentTransaction, PayoutStatus
+    from app.services.whatsapp_service import log_whatsapp_message
 
     # ── IDENTIFY USER ROLE ────────────────────────────────────
     clean_phone = from_phone.replace("+", "").replace(" ", "")
@@ -172,6 +173,7 @@ async def route_incoming_message(
     ).first()
 
     user_role = user.role if user else "unknown"
+    log_whatsapp_message(from_phone, "inbound", text, button_id)
 
     # ── ROUTE BY ROLE ─────────────────────────────────────────
     if user_role == "fisher":
@@ -413,7 +415,7 @@ async def route_fisher_message(
             f"• Jumla Iliyolipwa: KES {total_paid:,.0f}\n"
             f"• Inangoja: KES {total_pending:,.0f}\n"
             f"• Malipo ya Mwisho: {last_date}\n\n"
-            f"Kwa maswali: +254798169857\n"
+            f"Kwa maswali: +254707939810\n"
             f"MarineCatch Africa 🐟"
         )
         return
@@ -442,7 +444,7 @@ async def route_fisher_message(
                 "Bado hatuna bei za hivi karibuni za malipo.\n\n"
                 "Tuma samaki wako kwa *CATCH species weight site* "
                 "kupata ushauri wa bei.\n\n"
-                "Piga simu: +254798169857"
+                "Piga simu: +254707939810\n"
             )
             return
 
@@ -451,7 +453,7 @@ async def route_fisher_message(
             lines.append(f"• {species.title()}: ~KES {avg_price:,.0f}/kg")
         lines.append(
             "\n_Bei ya mwisho inategemea ukaguzi wa ubora._\n"
-            "Maswali? +254798169857"
+            "Maswali? +254707939810"
         )
 
         await send_text(from_phone, "\n".join(lines))
@@ -463,8 +465,8 @@ async def route_fisher_message(
             from_phone,
             f"📞 *Msaada — MarineCatch Africa*\n\n"
             f"Piga simu: +254707939810\n"
-            f"WhatsApp: +254798169857\n"
-            f"Email: support@marinecatch.co.ke\n\n"
+            f"WhatsApp: +254707939810\n"
+            f"Email: info@marinecatchafrica.com\n\n"
             f"Saa za kazi: Jumatatu-Jumamosi, 6am-8pm\n\n"
             f"Type MENU kurudi kwenye menyu."
         )
@@ -687,7 +689,9 @@ async def route_buyer_message(
                     "Sorry, we couldn't complete your order right now.\n"
                     "Our team will contact you shortly.\n\n"
                     f"Ref: {lot.lot_number}\n"
-                    "Call: +254707939810")
+                    "Call: +254798169857\n"
+                    "Email: sales@marinecatchafrica.com\n"
+                    "MarineCatch Africa 🐟")
             return
 
         await send_text(from_phone,

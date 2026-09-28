@@ -26,7 +26,8 @@ from app.api.v1.routes import (
     compliance,
     sales,
     logistics_orchestration,
-    newsletter
+    newsletter,
+    whatsapp_messages
 )
 
 @asynccontextmanager
@@ -113,6 +114,8 @@ app.include_router(compliance.router, prefix="/api/v1")
 app.include_router(sales.router, prefix="/api/v1")
 app.include_router(logistics_orchestration.router, prefix="/api/v1")
 app.include_router(newsletter.router, prefix="/api/v1")
+app.include_router(whatsapp_messages.router, prefix="/api/v1")
+
 @app.get("/", tags=["System"])
 def root():
     landing_path = os.path.join(

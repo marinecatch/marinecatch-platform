@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Inbox — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🐟 MarineCatch</div>
+            <div class="sidebar-subtitle">Admin Operations Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">Operations</div>
+            <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+            <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+            <div class="nav-section">Finance</div>
+            <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+            <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💚</span> Fisher Payouts</a>
+            <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+            <div class="nav-section">Growth</div>
+            <a href="/admin/pages/sales.html" class="nav-item"><span class="icon">📈</span> Sales & CRM</a>
+            <a href="/admin/pages/whatsapp-inbox.html" class="nav-item active"><span class="icon">💬</span> WhatsApp Inbox</a>
+            <a href="/admin/pages/newsletter.html" class="nav-item"><span class="icon">📰</span> Blue Economy Intel</a>
+            <div class="nav-section">Network</div>
+            <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+            <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+            <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Delivery Zones</a>
+            <a href="/admin/pages/logistics-network.html" class="nav-item"><span class="icon">🧊</span> Logistics Network</a>
+            <div class="nav-section">Account</div>
+            <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="page-title">WhatsApp Inbox</div>
+                <div class="page-subtitle">Every conversation with fishers, buyers, and new leads</div>
+            </div>
+            <div class="topbar-right">
+                <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="overview-stats">
+            <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:380px 1fr; gap:20px; align-items:start;">
+            <div class="card" style="padding:0;">
+                <div class="card-title" style="padding:16px 16px 0;">
+                    Conversations
+                    <button class="btn btn-outline btn-sm" onclick="loadConversations()">🔄</button>
+                </div>
+                <div id="conversations-list" style="max-height:600px; overflow-y:auto;">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title" id="thread-title">Select a conversation</div>
+                <div id="thread-view" style="max-height:540px; overflow-y:auto; padding:8px 0;">
+                    <p style="color:var(--text-light); padding:20px;">Pick a conversation on the left to read the full thread.</p>
+                </div>
+                <div id="thread-actions" style="display:none; border-top:1px solid var(--border); padding-top:12px; margin-top:8px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+if (!requireAuth()) throw new Error('Not authenticated');
+showUser();
+
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+    ));
+}
+
+async function loadOverview() {
+    const d = await apiGet('/api/v1/whatsapp-log/overview');
+    if (!d) return;
+    document.getElementById('overview-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Conversations</div><div class="stat-value">${d.total_conversations}</div></div>
+        <div class="stat-card"><div class="stat-label">Messages In</div><div class="stat-value" style="color:var(--accent-blue)">${d.inbound}</div></div>
+        <div class="stat-card"><div class="stat-label">Bot Replies</div><div class="stat-value">${d.outbound}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Messages</div><div class="stat-value">${d.total_messages}</div></div>`;
+}
+
+async function loadConversations() {
+    const d = await apiGet('/api/v1/whatsapp-log/conversations');
+    if (!d) return;
+    const list = d.conversations || [];
+    const el = document.getElementById('conversations-list');
+
+    if (!list.length) {
+        el.innerHTML = '<p style="color:var(--text-light); padding:20px;">No messages yet. They will appear here as soon as someone messages the WhatsApp number.</p>';
+        return;
+    }
+
+    el.innerHTML = list.map(c => {
+        const who = c.sender_name || ('+' + c.phone_number);
+        const roleBadge = c.user_role && c.user_role !== 'unknown'
+            ? `<span class="badge badge-info" style="margin-left:6px;">${esc(c.user_role)}</span>`
+            : `<span class="badge badge-warning" style="margin-left:6px;">new</span>`;
+        const preview = (c.last_message || '').slice(0, 70);
+        return `
+        <div onclick="openThread('${esc(c.phone_number)}', '${esc(who).replace(/'/g, '')}')"
+             style="padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><strong>${esc(who)}</strong>${roleBadge}</div>
+                <div style="font-size:11px; color:var(--text-light);">${formatDateTime(c.last_activity)}</div>
+            </div>
+            <div style="font-size:12px; color:var(--text-light); margin-top:4px;">
+                ${c.direction === 'outbound' ? '🤖 ' : '💬 '}${esc(preview)}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function openThread(phone, who) {
+    document.getElementById('thread-title').textContent = who;
+    document.getElementById('thread-view').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+
+    const d = await apiGet('/api/v1/whatsapp-log/conversation/' + encodeURIComponent(phone));
+    if (!d) return;
+
+    document.getElementById('thread-view').innerHTML = (d.messages || []).map(m => {
+        const inbound = m.direction === 'inbound';
+        const text = m.message_text || (m.button_id ? '[button: ' + m.button_id + ']' : '');
+        return `
+        <div style="display:flex; justify-content:${inbound ? 'flex-start' : 'flex-end'}; margin-bottom:10px;">
+            <div style="max-width:75%; padding:10px 14px; border-radius:12px; font-size:13px; white-space:pre-wrap;
+                        background:${inbound ? '#edf2f7' : '#d1ecf1'};">
+                ${esc(text)}
+                <div style="font-size:10px; color:var(--text-light); margin-top:4px;">
+                    ${inbound ? 'Customer' : 'Bot'} · ${formatDateTime(m.created_at)}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    const box = document.getElementById('thread-view');
+    box.scrollTop = box.scrollHeight;
+
+    const digits = phone.replace(/\D/g, '');
+    const actions = document.getElementById('thread-actions');
+    actions.style.display = 'block';
+    actions.innerHTML = `
+        <a href="https://wa.me/${digits}" target="_blank" class="btn btn-primary btn-sm">💬 Reply on WhatsApp</a>
+        <span style="font-size:12px; color:var(--text-light); margin-left:8px;">
+            Opens a chat from your own phone, since the bot number is API-only.
+        </span>`;
+}
+
+loadOverview();
+loadConversations();
+</script>
+</body>
+</html>

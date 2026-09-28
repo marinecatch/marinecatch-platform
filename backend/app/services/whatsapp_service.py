@@ -43,6 +43,38 @@ def get_headers() -> dict:
         "Content-Type":  "application/json",
     }
 
+def log_whatsapp_message(phone, direction, text=None, button_id=None):
+    """Record a WhatsApp message for the admin inbox. Never raises."""
+    try:
+        from app.database.connection import SessionLocal
+        from app.models.whatsapp_message import WhatsAppMessage
+        from app.models.user import User
+
+        clean = phone.replace("+", "").replace(" ", "")
+        if clean.startswith("0"):
+            clean = "254" + clean[1:]
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(
+                User.phone.contains(clean[-9:])
+            ).first()
+            role = None
+            if user is not None:
+                role = user.role.value if hasattr(user.role, "value") else str(user.role)
+            db.add(WhatsAppMessage(
+                phone_number=clean,
+                direction=direction,
+                message_text=text,
+                button_id=button_id or None,
+                sender_name=user.name if user else None,
+                user_role=role or "unknown",
+            ))
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"WhatsApp log failed: {e}")
 
 # ── SEND TEXT MESSAGE ─────────────────────────────────────────────
 
@@ -53,6 +85,7 @@ async def send_text(phone: str, message: str) -> dict:
     """
     phone = phone.replace("+", "").replace(" ", "")
     if phone.startswith("0"):
+        log_whatsapp_message(phone, "outbound", message)
         phone = "254" + phone[1:]
 
     payload = {
@@ -89,6 +122,11 @@ async def send_menu(
     """
     phone = phone.replace("+", "").replace(" ", "")
     if phone.startswith("0"):
+        log_whatsapp_message(
+            phone,
+            "outbound",
+            f"[MENU] {header} | {body} | Buttons: " + ", ".join(b["title"] for b in buttons)
+        )
         phone = "254" + phone[1:]
 
     payload = {

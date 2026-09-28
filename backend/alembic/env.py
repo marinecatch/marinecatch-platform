@@ -17,6 +17,7 @@ from app.models.transport_job import TransportJob
 from app.models.custody_event import CustodyEvent
 from app.models.logistics_exception import LogisticsException
 from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.models.whatsapp_message import WhatsAppMessage
 
 from alembic import context
 

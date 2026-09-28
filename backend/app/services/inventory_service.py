@@ -250,8 +250,8 @@ def get_available_lots(
     """
     query = db.query(InventoryLot).filter(
         and_(
-            InventoryLot.lot_status == LotStatus.AVAILABLE,
-            InventoryLot.is_active == True,
+            InventoryLot.lot_status.in_([LotStatus.AVAILABLE, LotStatus.PARTIALLY_SOLD]),
+            InventoryLot.is_active  == True,
             InventoryLot.available_kg > 0,
             InventoryLot.visibility != "private",
         )
@@ -312,14 +312,25 @@ def reserve_stock(
     Reduces available_kg, increases reserved_kg.
     Called when buyer places order (before payment).
 
+    Uses SELECT ... FOR UPDATE to lock the row for the duration of this
+    transaction — without this, two concurrent buyers reading the same
+    available_kg before either commits could both pass validation and
+    both reserve stock that only exists once (overselling).
+
     available_kg decreases → prevents double-selling
     reserved_kg increases → tracks what's held
     """
-    lot = get_lot_by_id(db, lot_id)
+    lot = db.query(InventoryLot).filter(
+        InventoryLot.id == lot_id
+    ).with_for_update().first()
+
     if not lot:
         raise HTTPException(status_code=404, detail="Lot not found")
 
-    if lot.lot_status != LotStatus.AVAILABLE:
+    # AVAILABLE and PARTIALLY_SOLD are both genuinely orderable states —
+    # a lot that's already had some kg sold still has real remaining
+    # stock and should still be reservable, not locked out entirely.
+    if lot.lot_status not in (LotStatus.AVAILABLE, LotStatus.PARTIALLY_SOLD):
         raise HTTPException(
             status_code=400,
             detail=f"Lot is not available. Current status: {lot.lot_status}"
@@ -340,7 +351,7 @@ def reserve_stock(
     else:
         lot.lot_status = LotStatus.PARTIALLY_SOLD
 
-   # Don't commit here — caller owns the transaction
+    # Don't commit here — caller owns the transaction
     return lot
 # ── RELEASE STOCK ─────────────────────────────────────────────────
 def release_stock(
@@ -351,17 +362,23 @@ def release_stock(
     """
     Release reserved stock back to available.
     Called when order is cancelled before delivery.
+    Locks the row for the same reason reserve_stock() does.
     """
-    lot = get_lot_by_id(db, lot_id)
+    lot = db.query(InventoryLot).filter(
+        InventoryLot.id == lot_id
+    ).with_for_update().first()
+
     if not lot:
         raise HTTPException(status_code=404, detail="Lot not found")
 
     lot.reserved_kg  = max(0, lot.reserved_kg - quantity_kg)
     lot.available_kg += quantity_kg
 
-    # Restore to available if stock freed up
+    # If there's still reserved stock from another pending order,
+    # this lot is still partially committed — don't overwrite that
+    # back to a plain AVAILABLE status.
     if lot.available_kg > 0:
-        lot.lot_status = LotStatus.AVAILABLE
+        lot.lot_status = LotStatus.PARTIALLY_SOLD if lot.reserved_kg > 0 else LotStatus.AVAILABLE
 
     # Don't commit here — caller owns the transaction
     return lot

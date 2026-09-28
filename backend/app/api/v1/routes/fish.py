@@ -66,15 +66,15 @@ def create_fish_listing(
     Neptune Hotels tries → gets 403 Forbidden.
     """
     # Role check — only fishers and suppliers can list fish
-    if current_user["role"] not in ["fisher", "supplier"]:
+    if current_user.role not in ["fisher", "supplier"]:
         raise HTTPException(
             status_code=403,
             detail=f"Only fishers and suppliers can create listings. Your role: {current_user['role']}"
         )
 
     return create_listing({
-        "fisher_id":    current_user["id"],
-        "fisher_name":  current_user["name"],
+        "fisher_id":    current_user.id,
+        "fisher_name":  current_user.name,
         "species":      listing.species.value,
         "weight_kg":    listing.weight_kg,
         "price_per_kg": listing.price_per_kg,
@@ -101,7 +101,7 @@ def remove_listing(
         raise HTTPException(status_code=404, detail="Listing not found")
 
     # Only owner can delete
-    if listing["fisher_id"] != current_user["id"]:
+    if listing["fisher_id"] != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="You can only remove your own listings"
