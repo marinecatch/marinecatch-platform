@@ -59,7 +59,11 @@ class QualityInspection(Base):
 
     id               = Column(Integer, primary_key=True, index=True)
     lot_id           = Column(Integer, ForeignKey("inventory_lots.id"),
-                              unique=True, nullable=False, index=True)
+                              unique=True, nullable=True, index=True)
+    draft_id         = Column(Integer, ForeignKey("catch_drafts.id"),
+                              unique=True, nullable=True, index=True)
+    # An inspection belongs to a draft (pre-lot) and/or a lot.
+    # Draft inspections get lot_id filled in when the lot is created.
     inspector_id     = Column(Integer, ForeignKey("users.id"), nullable=True)
     inspector_name   = Column(String(100), nullable=True)
 

@@ -83,6 +83,7 @@
         <!-- TABS -->
         <div style="display:flex; gap:4px; background:white; padding:4px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border);">
             <button class="btn btn-primary btn-sm" onclick="showTab('members')" id="tab-btn-members">👥 Member Profiles</button>
+            <button class="btn btn-outline btn-sm" onclick="showTab('drafts')" id="tab-btn-drafts">📝 Catch Drafts</button>
             <button class="btn btn-outline btn-sm" onclick="showTab('pending-inspection')" id="tab-btn-pending-inspection">⏳ Pending Inspection</button>
             <button class="btn btn-outline btn-sm" onclick="showTab('inspections')" id="tab-btn-inspections">🔍 All Inspections</button>
             <button class="btn btn-outline btn-sm" onclick="showTab('new-inspection')" id="tab-btn-new-inspection">➕ Record Inspection</button>
@@ -99,6 +100,29 @@
                 <div id="profiles-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
             </div>
         </div>
+
+    <!-- CATCH DRAFTS TAB -->
+<div id="tab-drafts" style="display:none">
+    <div class="card">
+        <div class="card-title">
+            Catch Drafts from Fishers
+            <div style="display:flex; gap:8px;">
+                <select id="filter-draft-status" class="form-control" style="width:160px" onchange="loadDrafts()">
+                    <option value="submitted">Awaiting Action</option>
+                    <option value="accepted">Listed</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="awaiting_price">Awaiting Price</option>
+                    <option value="">All</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="loadDrafts()">🔄 Refresh</button>
+            </div>
+        </div>
+        <p style="font-size:12px; color:var(--text-light); margin-bottom:12px;">
+            Flow: fisher logs catch → inspect and grade → set the marketplace price → lot goes live.
+        </p>
+        <div id="drafts-table"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+</div>
 
         <!-- PENDING INSPECTION TAB -->
         <div id="tab-pending-inspection" style="display:none">
@@ -241,6 +265,86 @@
             </div>
         </div>
 
+<!-- INSPECT DRAFT MODAL -->
+<div id="draft-inspect-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; overflow-y:auto;">
+    <div style="background:white; border-radius:8px; padding:24px; width:520px; max-width:95%; max-height:90vh; overflow-y:auto;">
+        <h3 style="margin-bottom:4px;">Inspect Catch</h3>
+        <p id="di-summary" style="font-size:13px; color:var(--text-light); margin-bottom:16px;"></p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+                <label class="form-label">Grade *</label>
+                <select id="di-grade" class="form-control">
+                    <option value="A">A: Premium</option>
+                    <option value="B">B: Good</option>
+                    <option value="C">C: Acceptable (conditional)</option>
+                    <option value="R">R: Reject</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Disposition</label>
+                <select id="di-disposition" class="form-control">
+                    <option value="marketplace">Marketplace</option>
+                    <option value="direct_sale">Direct Sale</option>
+                    <option value="processing_only">Processing Only</option>
+                    <option value="return_to_fisher">Return to Fisher</option>
+                    <option value="animal_feed">Animal Feed</option>
+                    <option value="disposed">Disposed</option>
+                    <option value="donated">Donated</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Temperature (°C)</label>
+                <input type="number" step="0.1" id="di-temp" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Verified Weight (kg)</label>
+                <input type="number" step="0.1" id="di-weight" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Conditions (for grade C)</label>
+            <input type="text" id="di-conditions" class="form-control" placeholder="e.g. Sell within 24 hours">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Rejection reason (if R)</label>
+            <input type="text" id="di-rejection" class="form-control" placeholder="e.g. Temperature abuse, spoilage">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" id="di-notes" class="form-control">
+        </div>
+        <div id="di-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeDraftModals()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitDraftInspection()">Record Inspection</button>
+        </div>
+    </div>
+</div>
+
+<!-- LIST DRAFT MODAL -->
+<div id="draft-accept-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:8px; padding:24px; width:440px; max-width:95%;">
+        <h3 style="margin-bottom:4px;">Set Price and List</h3>
+        <p id="da-summary" style="font-size:13px; color:var(--text-light); margin-bottom:16px;"></p>
+        <div class="form-group">
+            <label class="form-label">Marketplace price (KES per kg) *</label>
+            <input type="number" id="da-price" class="form-control" placeholder="e.g. 850">
+            <p style="font-size:11px; color:var(--text-light); margin-top:4px;">
+                The fisher's asking price is shown above. Your price should cover their payout, commission, cold chain and logistics.
+            </p>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" id="da-notes" class="form-control">
+        </div>
+        <div id="da-error" style="color:var(--danger); font-size:13px; margin-bottom:12px; display:none"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeDraftModals()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAccept()">List on Marketplace</button>
+        </div>
+    </div>
+</div>
+
     </main>
 </div>
 
@@ -250,7 +354,7 @@ if (!requireAuth()) throw new Error('Not authenticated');
 showUser();
 
 function showTab(tab) {
-    ['members','pending-inspection','inspections','new-inspection','verify'].forEach(t => {
+    ['members','drafts','pending-inspection','inspections','new-inspection','verify'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = 'none';
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.className = 'btn btn-outline btn-sm';
@@ -262,6 +366,7 @@ function showTab(tab) {
     if (tab === 'members')             loadProfiles();
     if (tab === 'pending-inspection')  loadPendingInspections();
     if (tab === 'inspections')         loadInspections();
+    if (tab === 'drafts')              loadDrafts();
 }
 
 async function loadStats() {
@@ -521,7 +626,166 @@ async function seedProfiles() {
 
 loadStats();
 loadProfiles();
+
+let draftsCache = [];
+let currentDraft = null;
+
+function escHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadDrafts() {
+    const status = document.getElementById('filter-draft-status').value;
+    const data = await apiGet('/api/v1/compliance/drafts' + (status ? `?status=${status}` : ''));
+    if (!data) return;
+    draftsCache = data.drafts || [];
+
+    if (!draftsCache.length) {
+        document.getElementById('drafts-table').innerHTML =
+            '<p style="color:var(--text-light);padding:20px">No drafts in this view.</p>';
+        return;
+    }
+
+    document.getElementById('drafts-table').innerHTML = `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>Reference</th><th>Fisher</th><th>Catch</th><th>Site</th>
+                <th>Asking</th><th>Inspection</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+            ${draftsCache.map(d => {
+                const passed = ['passed', 'conditional'].includes(d.inspection_status);
+                let action = '—';
+                if (d.status === 'submitted' && !d.inspection_status) {
+                    action = `<button class="btn btn-primary btn-sm" onclick="openInspectModal(${d.id})">Inspect</button>`;
+                } else if (d.status === 'submitted' && passed) {
+                    action = `<button class="btn btn-accent btn-sm" onclick="openAcceptModal(${d.id})">Set Price & List</button>`;
+                } else if (d.status === 'accepted') {
+                    action = '<span style="color:var(--success)">✅ Listed</span>';
+                } else if (d.status === 'rejected') {
+                    action = `<span style="font-size:12px;color:var(--danger)">${escHtml(d.rejection_reason || 'Rejected')}</span>`;
+                } else if (d.status === 'awaiting_price') {
+                    action = '<span style="font-size:12px;color:var(--text-light)">Fisher has not sent a price yet</span>';
+                }
+                const insp = d.inspection_status
+                    ? `${escHtml(d.inspection_grade || '')} · ${escHtml(d.inspection_status)}`
+                    : '<span style="color:var(--text-light)">Not inspected</span>';
+                return `
+                <tr>
+                    <td><strong>${escHtml(d.reference)}</strong><br><span style="font-size:11px;color:var(--text-light)">${escHtml(d.channel || '')}</span></td>
+                    <td>${escHtml(d.fisher_name || '—')}<br><span style="font-size:11px;color:var(--text-light)">${escHtml(d.member_id || '')}</span></td>
+                    <td>${escHtml(d.species)} · ${d.weight_kg}kg</td>
+                    <td>${escHtml(d.landing_site || '—')}</td>
+                    <td>${d.asking_price_per_kg ? formatKES(d.asking_price_per_kg) + '/kg' : '—'}</td>
+                    <td>${insp}</td>
+                    <td>${statusBadge(d.status)}</td>
+                    <td>${action}</td>
+                </tr>`;
+            }).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+function draftSummary(d) {
+    return `${d.reference}: ${d.species}, ${d.weight_kg}kg from ${d.fisher_name || 'unknown fisher'} at ${d.landing_site || '?'}. ` +
+           `Asking ${d.asking_price_per_kg ? 'KES ' + d.asking_price_per_kg + '/kg' : 'no price'}.`;
+}
+
+function openInspectModal(id) {
+    currentDraft = draftsCache.find(d => d.id === id);
+    if (!currentDraft) return;
+    document.getElementById('di-summary').textContent = draftSummary(currentDraft);
+    ['di-temp','di-weight','di-conditions','di-rejection','di-notes'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('di-grade').value = 'A';
+    document.getElementById('di-disposition').value = 'marketplace';
+    document.getElementById('di-error').style.display = 'none';
+    document.getElementById('draft-inspect-modal').style.display = 'flex';
+}
+
+function openAcceptModal(id) {
+    currentDraft = draftsCache.find(d => d.id === id);
+    if (!currentDraft) return;
+    document.getElementById('da-summary').textContent =
+        draftSummary(currentDraft) + ` Grade ${currentDraft.inspection_grade}.`;
+    document.getElementById('da-price').value = '';
+    document.getElementById('da-notes').value = '';
+    document.getElementById('da-error').style.display = 'none';
+    document.getElementById('draft-accept-modal').style.display = 'flex';
+}
+
+function closeDraftModals() {
+    document.getElementById('draft-inspect-modal').style.display = 'none';
+    document.getElementById('draft-accept-modal').style.display = 'none';
+    currentDraft = null;
+}
+
+async function submitDraftInspection() {
+    if (!currentDraft) return;
+    const errEl = document.getElementById('di-error');
+    errEl.style.display = 'none';
+
+    const temp   = document.getElementById('di-temp').value;
+    const weight = document.getElementById('di-weight').value;
+    const grade  = document.getElementById('di-grade').value;
+    const reason = document.getElementById('di-rejection').value.trim();
+
+    if (grade === 'R' && !reason) {
+        errEl.textContent = 'Please give a rejection reason.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost('/api/v1/compliance/draft-inspections', {
+        draft_id:           currentDraft.id,
+        grade:              grade,
+        disposition:        document.getElementById('di-disposition').value,
+        temperature_c:      temp ? parseFloat(temp) : null,
+        verified_weight_kg: weight ? parseFloat(weight) : null,
+        rejection_reason:   reason || null,
+        conditions:         document.getElementById('di-conditions').value.trim() || null,
+        notes:              document.getElementById('di-notes').value.trim() || null,
+    });
+
+    if (result && result.success) {
+        closeDraftModals();
+        loadDrafts();
+        loadStats();
+    } else {
+        errEl.textContent = (result && result.detail) ? result.detail : 'Could not record inspection.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function submitAccept() {
+    if (!currentDraft) return;
+    const errEl = document.getElementById('da-error');
+    errEl.style.display = 'none';
+
+    const price = parseFloat(document.getElementById('da-price').value);
+    if (!price || price <= 0) {
+        errEl.textContent = 'Enter a marketplace price above zero.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const result = await apiPost(`/api/v1/compliance/drafts/${currentDraft.id}/accept`, {
+        selling_price_per_kg: price,
+        notes: document.getElementById('da-notes').value.trim() || null,
+    });
+
+    if (result && result.success) {
+        closeDraftModals();
+        loadDrafts();
+        alert(`✅ Listed as ${result.lot_number} at KES ${result.selling_price_per_kg}/kg`);
+    } else {
+        errEl.textContent = (result && result.detail) ? result.detail : 'Could not list this lot.';
+        errEl.style.display = 'block';
+    }
+}
+
 </script>
+
 <!-- PROFILE MODAL -->
 <div id="profile-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
     <div style="background:white; border-radius:8px; padding:24px; width:480px; max-width:90%; max-height:85vh; overflow-y:auto; position:relative;">

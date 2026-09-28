@@ -11,6 +11,7 @@ from app.models.catch_draft import CatchDraft, CatchDraftStatus
 from app.models.inventory_lot import InventoryLot, LotStatus, OwnershipType
 from app.models.user import User
 from app.models.compliance_profile import ComplianceProfile
+from app.models.quality_inspection import QualityInspection
 
 
 def generate_draft_reference(db: Session) -> str:
@@ -96,23 +97,38 @@ def get_pending_draft_for_fisher(
 
 
 def accept_draft_and_create_lot(
-    db:                  Session,
-    draft_id:            int,
+    db:                   Session,
+    draft_id:             int,
     selling_price_per_kg: float,
-    inspected_by:        str,
-    quality_grade:       str = "A",
-    notes:               str = None,
+    notes:                Optional[str] = None,
 ) -> InventoryLot:
     """
-    Accept a catch draft after quality inspection.
-    Creates the InventoryLot with MarineCatch's selling price.
-
-    selling_price_per_kg = asking_price + commission + handling + logistics
-    This is set by MarineCatch, not the fisher.
+    Create the marketplace lot for a catch draft. Refuses to proceed
+    unless a passed (or conditional) QualityInspection exists for it.
     """
     draft = db.query(CatchDraft).filter(CatchDraft.id == draft_id).first()
     if not draft:
         raise ValueError(f"Draft {draft_id} not found")
+    if draft.status != CatchDraftStatus.SUBMITTED:
+        raise ValueError(
+            f"Draft {draft.reference_number} is '{draft.status}'; "
+            f"only submitted drafts can be accepted"
+        )
+    if selling_price_per_kg <= 0:
+        raise ValueError("Selling price must be greater than zero")
+
+    inspection = db.query(QualityInspection).filter(
+        QualityInspection.draft_id == draft_id
+    ).first()
+    if not inspection:
+        raise ValueError("No quality inspection on record for this draft")
+
+    insp_status = getattr(inspection.status, "value", inspection.status)
+    if insp_status not in ("passed", "conditional"):
+        raise ValueError(f"Inspection status is '{insp_status}'; no lot can be created")
+
+    grade  = getattr(inspection.grade, "value", inspection.grade)
+    weight = inspection.verified_weight_kg or draft.weight_kg
 
     today      = datetime.now(timezone.utc).strftime("%Y%m%d")
     lot_count  = db.query(InventoryLot).filter(
@@ -124,8 +140,8 @@ def accept_draft_and_create_lot(
         lot_number           = lot_number,
         traceability_code    = f"MC-TRACE-{lot_number}",
         species              = draft.species,
-        weight_kg            = draft.weight_kg,
-        available_kg         = draft.weight_kg,
+        weight_kg            = weight,
+        available_kg         = weight,
         reserved_kg          = 0.0,
         landing_site         = draft.landing_site,
         catch_date           = draft.catch_date.date() if draft.catch_date else None,
@@ -133,29 +149,28 @@ def accept_draft_and_create_lot(
         source_name          = draft.fisher_name,
         ownership_type       = OwnershipType.MARKETPLACE,
         lot_status           = LotStatus.AVAILABLE,
+        visibility           = "public",
         selling_price_per_kg = selling_price_per_kg,
-        grade                = quality_grade,
-        notes                = f"From draft {draft.reference_number}. "
-                               f"Fisher asking: KES {draft.asking_price_per_kg}/kg. "
-                               f"{notes or ''}",
+        grade                = grade,
+        notes                = (f"From draft {draft.reference_number}. "
+                                f"Fisher asking: KES {draft.asking_price_per_kg}/kg. "
+                                f"Inspection conditions: {inspection.conditions or 'none'}. "
+                                f"{notes or ''}"),
     )
     db.add(lot)
     db.flush()
 
-    # Update draft
-    draft.status                  = CatchDraftStatus.ACCEPTED
-    draft.quality_grade           = quality_grade
-    draft.inspected_by            = inspected_by
-    draft.inspected_at            = datetime.now(timezone.utc)
-    draft.accepted_at             = datetime.now(timezone.utc)
+    inspection.lot_id = lot.id
+    draft.status                   = CatchDraftStatus.ACCEPTED
+    draft.quality_grade            = grade
+    draft.inspected_by             = inspection.inspector_name
+    draft.inspected_at             = inspection.inspected_at
+    draft.accepted_at              = datetime.now(timezone.utc)
     draft.created_inventory_lot_id = lot.id
-    if notes:
-        draft.inspection_notes = notes
 
     db.commit()
     db.refresh(lot)
     return lot
-
 
 def reject_draft(
     db:               Session,

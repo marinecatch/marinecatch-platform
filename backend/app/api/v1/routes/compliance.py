@@ -16,6 +16,8 @@ from app.models.quality_inspection import QualityInspection
 from app.models.inventory_lot import InventoryLot, LotStatus
 from app.models.user import User
 from app.models.fisher_cluster import FisherCluster
+from app.models.catch_draft import CatchDraft
+from app.services.catch_draft_service import accept_draft_and_create_lot, reject_draft
 from app.services.member_id_service import (
     create_compliance_profile,
     upgrade_compliance_level,
@@ -306,9 +308,13 @@ def create_inspection(
     lot.grade = payload.grade.upper()
 
     if status == "passed":
+        lot.visibility = "public"
         lot.lot_status = LotStatus.AVAILABLE
     elif status == "failed":
         lot.lot_status = LotStatus.EXPIRED
+    elif status == "conditional":
+        lot.lot_status = LotStatus.AVAILABLE
+        lot.visibility = "public"
     # conditional stays available but with notes
 
     db.commit()
@@ -547,5 +553,143 @@ def clusters_leaderboard(
                 "monthly_capacity_kg":  c.monthly_capacity_kg,
             }
             for c in clusters
+        ]
+    }
+
+class DraftInspectionCreate(BaseModel):
+    draft_id:           int
+    grade:              str            # A, B, C, R
+    disposition:        str = "marketplace"
+    temperature_c:      Optional[float] = None
+    verified_weight_kg: Optional[float] = None
+    rejection_reason:   Optional[str] = None
+    conditions:         Optional[str] = None
+    notes:              Optional[str] = None
+
+
+class DraftAccept(BaseModel):
+    selling_price_per_kg: float
+    notes:                Optional[str] = None
+
+
+@router.post("/draft-inspections", status_code=201)
+def inspect_draft(
+    payload:     DraftInspectionCreate,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Inspect a submitted catch draft. A failed grade rejects the draft."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    draft = db.query(CatchDraft).filter(CatchDraft.id == payload.draft_id).first()
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    if draft.status != "submitted":
+        raise HTTPException(status_code=400,
+            detail=f"Draft is '{draft.status}'; only submitted drafts can be inspected")
+    if db.query(QualityInspection).filter(
+            QualityInspection.draft_id == draft.id).first():
+        raise HTTPException(status_code=400, detail="Draft already inspected")
+
+    grade  = payload.grade.upper()
+    status = {"A": "passed", "B": "passed", "C": "conditional", "R": "failed"}.get(grade)
+    if status is None:
+        raise HTTPException(status_code=400, detail="Grade must be A, B, C or R")
+
+    variance = (abs(payload.verified_weight_kg - draft.weight_kg)
+                if payload.verified_weight_kg else None)
+
+    db.add(QualityInspection(
+        draft_id           = draft.id,
+        lot_id             = None,
+        inspector_id       = current_user.id,
+        inspector_name     = current_user.name,
+        status             = status,
+        grade              = grade,
+        disposition        = payload.disposition,
+        temperature_c      = payload.temperature_c,
+        declared_weight_kg = draft.weight_kg,
+        verified_weight_kg = payload.verified_weight_kg,
+        weight_variance_kg = variance,
+        rejection_reason   = payload.rejection_reason,
+        conditions         = payload.conditions,
+        notes              = payload.notes,
+        inspected_at       = datetime.now(),
+    ))
+    db.commit()
+
+    if status == "failed":
+        reject_draft(db, draft.id,
+                     payload.rejection_reason or "Failed quality inspection",
+                     current_user.name)
+
+    return {"success": True, "draft": draft.reference_number,
+            "grade": grade, "status": status}
+
+
+@router.post("/drafts/{draft_id}/accept")
+def accept_inspected_draft(
+    draft_id:    int,
+    payload:     DraftAccept,
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Create the marketplace lot for an inspected draft."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    try:
+        lot = accept_draft_and_create_lot(
+            db, draft_id, payload.selling_price_per_kg, payload.notes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "lot_number": lot.lot_number,
+            "grade": lot.grade, "selling_price_per_kg": lot.selling_price_per_kg}
+
+@router.get("/drafts")
+def list_drafts(
+    status:      Optional[str] = Query(None),
+    current_user = Depends(get_current_user),
+    db: Session  = Depends(get_db)
+):
+    """Catch drafts awaiting inspection or already processed."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    query = db.query(CatchDraft)
+    if status:
+        query = query.filter(CatchDraft.status == status)
+        drafts = query.order_by(CatchDraft.created_at.desc()).limit(100).all()
+
+    insp_by_draft = {}
+    ids = [d.id for d in drafts]
+    if ids:
+        for i in db.query(QualityInspection).filter(
+                QualityInspection.draft_id.in_(ids)).all():
+            insp_by_draft[i.draft_id] = i
+
+    def _val(x):
+        return getattr(x, "value", x)
+
+    return {
+        "total": len(drafts),
+        "drafts": [
+            {
+                "id":                  d.id,
+                "reference":           d.reference_number,
+                "fisher_name":         d.fisher_name,
+                "fisher_phone":        d.fisher_phone,
+                "member_id":           d.member_id,
+                "species":             d.species,
+                "weight_kg":           d.weight_kg,
+                "landing_site":        d.landing_site,
+                "asking_price_per_kg": d.asking_price_per_kg,
+                "status":              d.status,
+                "channel":             d.submission_channel,
+                "created_at":          d.created_at,
+                "inspection_status":   _val(insp_by_draft[d.id].status) if d.id in insp_by_draft else None,
+                "inspection_grade":    _val(insp_by_draft[d.id].grade) if d.id in insp_by_draft else None,
+                "rejection_reason":    d.rejection_reason,
+            } for d in drafts
         ]
     }
