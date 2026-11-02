@@ -60,13 +60,13 @@ if sp:
     sp.scientific_name = "Thunnus albacares"
     sp.order = "Scombriformes"
     sp.family = "Scombridae"
-    sp.iucn_status = "Least Concern (reassessed 2021, from Near Threatened)"
+    sp.iucn_status = "Least Concern"
     sp.cites_appendix = "none"
     sp.source_name = f"{src_iucn_yft.title}; {src_marintrust.title}"
     sp.source_year = 2024
     sp.verification_status = "RESEARCH_SOURCE"
     sp.confidence_score = 3  # Medium — species identity inferred, not MarineCatch-confirmed
-    sp.notes = (sp.notes or "") + " | Species identity (T. albacares) inferred from small-scale IO gear/landing pattern, not directly confirmed against MarineCatch catch records."
+    sp.notes = (sp.notes or "") + " | IUCN reassessed 2021 (from Near Threatened). Species identity (T. albacares) inferred from small-scale IO gear/landing pattern, not directly confirmed against MarineCatch catch records."
     print("  Updated: Tuna -> Thunnus albacares (Medium confidence)")
 
 # ── #11 KINGFISH / Nguru ────────────────────────────────────────────
@@ -75,10 +75,11 @@ if sp:
     sp.scientific_name = "Scomberomorus commerson"
     sp.order = "Scombriformes"
     sp.family = "Scombridae"
-    sp.iucn_status = "Near Threatened (IUCN 3.1, assessed 10 Nov 2022)"
+    sp.iucn_status = "Near Threatened"
     sp.source_name = f"{src_fishbase_kf.title}; {src_iccat_kf.title}"
     sp.verification_status = "VERIFIED_SECONDARY"
     sp.confidence_score = 4  # High — "Kingfish" directly documented common name for this exact species
+    sp.notes = (sp.notes or "") + " | IUCN 3.1, assessed 10 Nov 2022."
     print("  Updated: Kingfish -> Scomberomorus commerson (High confidence)")
 
 # ── #1 RABBIT FISH / Tafi ────────────────────────────────────────────

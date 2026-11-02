@@ -166,6 +166,10 @@ if sp:
 sp = get_species("Tuna")
 if sp:
     db.flush()
+    src_inferred = get_or_create_source(
+        "MarineCatch internal inference — small-scale Indian Ocean gear/landing pattern",
+        doc_type="Internal reasoning, not an external citation", tier=5,
+    )
     db.add(GeographySourceClaim(
         entity_type="species", entity_id=sp.id,
         claim_field="species_identity",
@@ -176,7 +180,7 @@ if sp:
         entity_type="species", entity_id=sp.id,
         claim_field="species_identity",
         claim_value="Thunnus albacares (Yellowfin tuna) — inferred from small-scale IO gear pattern",
-        source_id=None, is_canonical="false",
+        source_id=src_inferred.id, is_canonical="false",
     ))
     sp.verification_status = "CONFLICTING_SOURCES"
     sp.notes = (sp.notes or "") + (

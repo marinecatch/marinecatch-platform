@@ -200,7 +200,8 @@ for full_name, abbrev in mca_list:
     if not existing:
         db.add(MarineManagementArea(
             designation=full_name, source_name=src_mca_recent.title,
-            verification_status="VERIFIED_OFFICIAL", notes=f"Abbreviation: {abbrev}" if hasattr(MarineManagementArea, 'notes') else None,
+            verification_status="VERIFIED_OFFICIAL",
+            source_text=f"Abbreviation: {abbrev}",
         ))
         mca_count += 1
 db.flush()
