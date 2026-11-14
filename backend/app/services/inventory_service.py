@@ -129,8 +129,7 @@ def create_inventory_lot(
     cold_storage_fee_per_kg_per_day: float = 0.0,
     handling_fee_kes: float          = 0.0,
     qa_fee_kes: float                = 0.0,
-    lot_status: str                  = "available",
-    visibility: str                  = "public",
+    visibility: str                  = "private",
 ) -> InventoryLot:
     """
     Create a new inventory lot.
@@ -487,7 +486,7 @@ def calculate_order_value(
         "quantity_kg":            quantity_kg,
         "price_per_kg":           lot.selling_price_per_kg,
         "fish_value_kes":         fish_value_kes,
-        "commission_rate":        f"{commission_rate * 100}%",
+        "commission_rate":        f"{commission_rate * 100:.1f}%",
         "platform_commission_kes": platform_commission_kes,
         "cold_storage_fee_kes":   cold_storage_fee_kes,
         "handling_fee_kes":       handling_fee_kes,

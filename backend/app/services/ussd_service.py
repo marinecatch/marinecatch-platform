@@ -254,7 +254,8 @@ def handle_log_catch(db: Session, phone: str, parts: list) -> str:
                 source_user_id     = fisher_id,
                 source_name        = fisher_name,
                 ownership_type     = OwnershipType.MARKETPLACE,
-                lot_status         = LotStatus.AVAILABLE,
+                lot_status         = "pending_inspection",
+                visibility         = "private",
                 selling_price_per_kg = float(price_kg),
                 notes              = f"Logged via USSD by {phone}.",
             )

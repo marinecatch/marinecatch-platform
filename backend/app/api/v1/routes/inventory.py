@@ -313,9 +313,20 @@ def lot_action(
         lot.visibility = "private"
 
     elif action == "relist":
+        from app.models.quality_inspection import QualityInspection
+        passed = db.query(QualityInspection).filter(
+            QualityInspection.lot_id == lot.id,
+            QualityInspection.status.in_(["passed", "conditional"]),
+        ).first()
+        if not passed:
+            raise HTTPException(
+                status_code=400,
+                detail="This lot has no passing quality inspection on record — it cannot be relisted until it is inspected."
+            )
         lot.visibility = "public"
         if lot.lot_status == LotStatus.RESERVED:
             lot.lot_status = LotStatus.AVAILABLE
+
 
     elif action == "report_spoilage":
         lot.lot_status = LotStatus.SPOILED
@@ -447,12 +458,9 @@ def create_lot(
         # Gate: fisher/consignment stock goes through inspection first.
     # MarineCatch-owned stock is already physically inspected as part
     # of purchase, so it can list immediately.
-    initial_status     = "available"
-    initial_visibility = "public"
+        initial_visibility = "public"
     if ownership_type in ("marketplace", "consignment"):
-        initial_status     = "pending_inspection"
         initial_visibility = "private"
-
     lot = create_inventory_lot(
         db=                   db,
         source_user_id=       source_user_id,
@@ -462,7 +470,6 @@ def create_lot(
         selling_price_per_kg= selling_price_per_kg,
         landing_site=         landing_site,
         ownership_type=       ownership_type,
-        lot_status=           initial_status,
         visibility=           initial_visibility,
         catch_date=           catch_date,
         purchase_price_per_kg=purchase_price_per_kg,

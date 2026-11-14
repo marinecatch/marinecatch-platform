@@ -413,7 +413,7 @@ def pending_inspections(
     pending_lots = db.query(InventoryLot).filter(
         ~InventoryLot.id.in_(inspected_ids) if inspected_ids else True,
         InventoryLot.available_kg > 0,
-        InventoryLot.visibility != "private",
+        InventoryLot.visibility == "private",
     ).order_by(InventoryLot.created_at.desc()).all()
 
     result = []
