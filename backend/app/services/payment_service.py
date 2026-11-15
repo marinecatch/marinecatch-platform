@@ -245,6 +245,52 @@ def handle_mpesa_callback(
         }
 
 
+def handle_mpesa_b2c_callback(
+    db:       Session,
+    callback: dict,
+) -> dict:
+    """
+    Process callback from Safaricom after a B2C fisher payout.
+    Safaricom sends this to MPESA_CALLBACK_URL + "/b2c/result".
+
+    ResultCode 0 = success — payout reached the fisher
+    Any other code = failure (insufficient float, invalid number, etc.)
+    """
+    result = callback.get("Result", {})
+    result_code      = result.get("ResultCode")
+    conversation_id  = result.get("ConversationID")
+
+    if not conversation_id:
+        return {"status": "ignored", "reason": "no conversation ID"}
+
+    txn = db.query(PaymentTransaction).filter(
+        PaymentTransaction.payout_reference == conversation_id
+    ).first()
+
+    if not txn:
+        return {"status": "ignored", "reason": "transaction not found"}
+
+    if result_code == 0:
+        params = result.get("ResultParameters", {}).get("ResultParameter", [])
+        meta = {p["Key"]: p.get("Value") for p in params}
+
+        txn.payout_status = PayoutStatus.PAID
+        txn.payout_date    = datetime.now(timezone.utc)
+        receipt = meta.get("TransactionReceipt")
+        if receipt:
+            txn.payout_reference = receipt
+
+        db.commit()
+        return {"status": "success", "receipt": receipt}
+    else:
+        txn.payout_status = PayoutStatus.FAILED
+        db.commit()
+        return {
+            "status":      "failed",
+            "result_code": result_code,
+            "message":     result.get("ResultDesc"),
+        }
+    
 # ── EXPIRE STALE RESERVATIONS ─────────────────────────────────────
 def expire_stale_reservations(db: Session) -> int:
     """
@@ -385,14 +431,7 @@ async def initiate_fisher_payout(
             detail=f"Payment must be PAID before fisher payout. Current: {txn.payment_status.value}"
         )
 
-    # Already paid out
-    if txn.payout_status == PayoutStatus.PAID:
-        raise HTTPException(
-            status_code=400,
-            detail="Fisher payout already completed"
-        )
-
-    # Get fisher's phone number
+        # Get fisher's phone number
     from app.models.user import User
     fisher = db.query(User).filter(User.id == order.fisherman_id).first()
     if not fisher:
@@ -417,9 +456,24 @@ async def initiate_fisher_payout(
     # Generate payout reference
     payout_ref = f"MC-PAYOUT-{order_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
-    # Update payout status to processing
-    txn.payout_status = PayoutStatus.PROCESSING
+        # Atomically claim the payout — only succeeds if no concurrent
+    # request has already claimed it. Prevents double-payout if two
+    # admins trigger this simultaneously, or a request is retried.
+    claimed = db.query(PaymentTransaction).filter(
+        PaymentTransaction.id == txn.id,
+        PaymentTransaction.payout_status.in_([
+            PayoutStatus.PENDING, PayoutStatus.NOT_APPLICABLE, PayoutStatus.FAILED
+        ])
+    ).update({"payout_status": PayoutStatus.PROCESSING}, synchronize_session=False)
     db.commit()
+
+    if claimed == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Payout already in progress or completed for this order"
+        )
+
+    db.refresh(txn)
 
     try:
         # Send B2C payment

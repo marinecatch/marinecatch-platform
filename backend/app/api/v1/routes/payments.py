@@ -22,13 +22,14 @@ from app.services.payment_service import (
     create_payment_transaction,
     initiate_stk_push,
     handle_mpesa_callback,
+    handle_mpesa_b2c_callback,
     expire_stale_reservations,
     get_payment_by_order,
     confirm_payment_manually,
     initiate_fisher_payout,
 )
 from app.services.kcb_service import parse_kcb_callback
-from app.models.payment import PaymentMethod, PaymentChannel
+from app.models.payment import PaymentMethod, PaymentChannel, PaymentStatus, PayoutStatus, PaymentTransaction
 from app.models.order import Order
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -131,6 +132,98 @@ async def mpesa_callback(
     # Always return success to Safaricom
     return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
+
+# ── M-PESA B2C CALLBACKS (no auth — Safaricom calls these) ──────
+
+@router.post("/mpesa/b2c/result")
+async def mpesa_b2c_result(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Webhook endpoint for Safaricom B2C payout results.
+    Safaricom calls this after a fisher payout (B2C) completes
+    or fails. NO authentication — Safaricom doesn't send tokens.
+    """
+    try:
+        callback_data = await request.json()
+    except Exception:
+        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+    handle_mpesa_b2c_callback(db, callback_data)
+
+    return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+
+@router.post("/mpesa/b2c/timeout")
+async def mpesa_b2c_timeout(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Webhook for Safaricom B2C requests that time out before any
+    result is returned. Marks the payout as failed so it can be
+    retried rather than sitting in PROCESSING forever.
+    """
+    try:
+        callback_data = await request.json()
+    except Exception:
+        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+    result = callback_data.get("Result", {})
+    conversation_id = result.get("ConversationID")
+
+    if conversation_id:
+        txn = db.query(PaymentTransaction).filter(
+            PaymentTransaction.payout_reference == conversation_id
+        ).first()
+        if txn and txn.payout_status == PayoutStatus.PROCESSING:
+            txn.payout_status = PayoutStatus.FAILED
+            db.commit()
+
+    return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+
+# ── ADMIN-INITIATED PAYMENT REQUEST ──────────────────────────────
+
+class AdminPaymentRequest(BaseModel):
+    phone_number: str
+
+@router.post("/admin/request-payment/{order_id}")
+async def admin_request_payment(
+    order_id: int,
+    payload: AdminPaymentRequest,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin prompts a buyer to pay via STK Push — for orders already
+    dispatched or delivered on trust (phone orders, WhatsApp orders,
+    pay-on-delivery B2B customers), where the buyer hasn't completed
+    their own payment yet.
+
+    Unlike /payments/initiate, this does not require the order to be
+    pending_payment — any unpaid order can be prompted here.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    txn = get_payment_by_order(db, order_id)
+    if not txn:
+        raise HTTPException(
+            status_code=404,
+            detail="No payment transaction found for this order"
+        )
+
+    if txn.payment_status == PaymentStatus.PAID:
+        raise HTTPException(status_code=400, detail="Order is already paid")
+
+    result = await initiate_stk_push(db, txn, payload.phone_number)
+    return result
 
 # ── GET PAYMENT STATUS ────────────────────────────────────────────
 

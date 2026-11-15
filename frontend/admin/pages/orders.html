@@ -205,15 +205,19 @@ function renderOrders(orders) {
                             onclick="openModal(${o.order_id}, '${o.status}')">
                             Update
                         </button>
-                        <button class="btn btn-outline btn-sm"
-                            onclick="viewReconciliation(${o.order_id})">
-                            Reconcile
-                        </button>
-                        <button class="btn btn-primary btn-sm"
-                            onclick="openShipModal(${o.order_id})">
-                            🚚 Ship
-                        </button>
-                    </td>
+                                            <button class="btn btn-outline btn-sm"
+                        onclick="viewReconciliation(${o.order_id})">
+                        Reconcile
+                    </button>
+                    <button class="btn btn-primary btn-sm"
+                        onclick="openShipModal(${o.order_id})">
+                        🚚 Ship
+                    </button>
+                    <button class="btn btn-outline btn-sm"
+                        onclick="requestPayment(${o.order_id})">
+                        💰 Request Payment
+                    </button>
+                </td>
                 </tr>`).join('')}
             </tbody>
         </table></div>`;
@@ -257,6 +261,21 @@ async function viewReconciliation(orderId) {
 }
 
 loadOrders();
+
+async function requestPayment(orderId) {
+    const phone = prompt("Buyer's phone number for M-Pesa STK Push (e.g. 0712345678):");
+    if (!phone) return;
+
+    const result = await apiPost(`/api/v1/payments/admin/request-payment/${orderId}`, {
+        phone_number: phone,
+    });
+
+    if (result && result.success) {
+        alert(`✅ STK Push sent to ${phone}. ${result.message || 'Waiting for buyer to enter PIN.'}`);
+    } else {
+        alert(`❌ ${result?.detail || 'Failed to send payment request.'}`);
+    }
+}
 
 let shipOrderId = null;
 let shipJobCount = 0;
