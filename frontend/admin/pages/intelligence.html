@@ -1,0 +1,332 @@
+<!-- frontend/admin/pages/intelligence.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geography & Species Intelligence — MarineCatch Admin</title>
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+    <style>
+        .intel-layout { display:grid; grid-template-columns:300px 1fr; gap:16px; }
+        .tree-box { max-height:65vh; overflow-y:auto; }
+        .tree-node { padding:5px 0 5px 12px; font-size:13px; cursor:pointer; color:#4a5568; }
+        .tree-node:hover { color:#1D60AE; }
+        .tree-node.type-county, .tree-node.type-region { font-weight:600; color:#0D2137; }
+        .intel-tabs { display:flex; gap:4px; margin-bottom:16px; }
+        .intel-tab { padding:8px 18px; border-radius:6px; border:1px solid #e2e8f0; cursor:pointer; font-size:13px; background:white; color:#718096; }
+        .intel-tab.active { background:#1D60AE; color:white; border-color:#1D60AE; font-weight:600; }
+        .intel-panel { display:none; }
+        .intel-panel.active { display:block; }
+        .detail-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+        .detail-field .lbl { color:#a0aec0; text-transform:uppercase; font-size:10px; letter-spacing:0.5px; }
+        .detail-field .val { color:#2d3748; font-weight:600; margin-top:2px; font-size:13px; }
+        .claims-box { background:#F7FAFC; border-radius:8px; padding:14px; margin-top:12px; }
+        .claim-row { padding:8px 0; border-bottom:1px solid #e2e8f0; font-size:12px; }
+        .claim-row:last-child { border-bottom:none; }
+        .claim-field { font-weight:600; color:#0D2137; text-transform:capitalize; }
+        .claim-val { color:#4a5568; margin-top:2px; }
+        .empty { padding:30px; text-align:center; color:#a0aec0; font-size:13px; }
+        .search-box { padding:7px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; width:240px; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <nav class="nav">
+        <a href="/admin/pages/dashboard.html" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+        <a href="/admin/pages/orders.html" class="nav-item"><span class="icon">📦</span> Orders</a>
+        <a href="/admin/pages/inventory.html" class="nav-item"><span class="icon">🐟</span> Inventory</a>
+        <a href="/admin/pages/users.html" class="nav-item"><span class="icon">👥</span> Users</a>
+        <a href="/admin/pages/payments.html" class="nav-item"><span class="icon">💳</span> Payments</a>
+        <a href="/admin/pages/payouts.html" class="nav-item"><span class="icon">💸</span> Payouts</a>
+        <a href="/admin/pages/settlement.html" class="nav-item"><span class="icon">🏦</span> Settlement</a>
+        <a href="/admin/pages/compliance.html" class="nav-item"><span class="icon">✅</span> Compliance</a>
+        <a href="/admin/pages/sales.html" class="nav-item"><span class="icon">📈</span> Sales & CRM</a>
+        <a href="/admin/pages/logistics.html" class="nav-item"><span class="icon">🚚</span> Logistics</a>
+        <a href="/admin/pages/logistics-network.html" class="nav-item"><span class="icon">🧊</span> Logistics Network</a>
+        <a href="/admin/pages/intelligence.html" class="nav-item active"><span class="icon">🌍</span> Intelligence</a>
+        <a href="/admin/pages/ceo.html" class="nav-item"><span class="icon">👔</span> Executive</a>
+        <div class="nav-section">Account</div>
+        <a href="#" class="nav-item" onclick="clearToken()"><span class="icon">🚪</span> Sign Out</a>
+    </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+    <div class="topbar">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div>
+            <div class="page-title">Geography & Species Intelligence</div>
+            <div class="page-subtitle">Multi-country fisheries supply intelligence layer</div>
+        </div>
+        <div class="topbar-right">
+            <span class="admin-badge">👤 <span id="admin-name">Admin</span></span>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="stats-grid" id="kpi-grid">
+        <div class="stat-card"><div class="stat-label">Landing Sites</div><div class="stat-value" id="kpi-sites">—</div></div>
+        <div class="stat-card"><div class="stat-label">BMUs</div><div class="stat-value" id="kpi-bmus">—</div></div>
+        <div class="stat-card"><div class="stat-label">Species</div><div class="stat-value" id="kpi-species">—</div></div>
+        <div class="stat-card"><div class="stat-label">% Verified</div><div class="stat-value" id="kpi-verified">—</div></div>
+        <div class="stat-card"><div class="stat-label">% With Coords</div><div class="stat-value" id="kpi-coords">—</div></div>
+        <div class="stat-card"><div class="stat-label">Sources</div><div class="stat-value" id="kpi-sources">—</div></div>
+    </div>
+
+    <div class="intel-tabs">
+        <button class="intel-tab active" onclick="showIntelTab('geo')">Geography</button>
+        <button class="intel-tab" onclick="showIntelTab('species')">Species</button>
+        <button class="intel-tab" onclick="showIntelTab('sources')">Sources</button>
+    </div>
+
+    <!-- GEOGRAPHY -->
+    <div id="panel-geo" class="intel-panel active">
+        <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select id="country-select" onchange="loadTree()">
+                    <option value="KEN">Kenya</option>
+                    <option value="TZA">Tanzania</option>
+                </select>
+                <input type="text" class="search-box" id="site-search" placeholder="Search landing sites..." onkeyup="debounceSearch()">
+            </div>
+        </div>
+        <div class="intel-layout">
+            <div class="card tree-box" id="tree-box"><div class="empty">Loading hierarchy...</div></div>
+            <div class="card" id="site-list-box"><div class="empty">Select a region or search above</div></div>
+        </div>
+        <div class="card" id="site-detail" style="display:none; margin-top:16px;"></div>
+    </div>
+
+    <!-- SPECIES -->
+    <div id="panel-species" class="intel-panel">
+        <div class="card" style="margin-bottom:12px;">
+            <input type="text" class="search-box" id="species-search" placeholder="Search species..." onkeyup="debounceSpeciesSearch()">
+        </div>
+        <div class="card" id="species-list-box"><div class="empty">Loading species...</div></div>
+        <div class="card" id="species-detail" style="display:none; margin-top:16px;"></div>
+    </div>
+
+    <!-- SOURCES -->
+    <div id="panel-sources" class="intel-panel">
+        <div class="card" id="sources-list-box"><div class="empty">Loading sources...</div></div>
+    </div>
+</main>
+
+<script src="/admin/static/js/admin.js"></script>
+<script>
+const API = window.location.origin;
+let searchTimer, speciesSearchTimer;
+function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+
+function showIntelTab(tab) {
+    document.querySelectorAll('.intel-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.intel-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${tab}`).classList.add('active');
+    if (tab === 'species' && !window.__speciesLoaded) { loadSpeciesList(); window.__speciesLoaded = true; }
+    if (tab === 'sources' && !window.__sourcesLoaded) { loadSources(); window.__sourcesLoaded = true; }
+}
+
+async function loadKPIs() {
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/data-quality`, { headers: authHeaders() });
+        const d = await res.json();
+        document.getElementById('kpi-sites').textContent = d.total_landing_sites ?? '—';
+        document.getElementById('kpi-bmus').textContent = d.total_bmus ?? '—';
+        document.getElementById('kpi-species').textContent = d.total_species ?? '—';
+        document.getElementById('kpi-verified').textContent = (d.pct_verified ?? 0) + '%';
+        document.getElementById('kpi-coords').textContent = (d.pct_with_coordinates ?? 0) + '%';
+        document.getElementById('kpi-sources').textContent = d.total_sources ?? '—';
+    } catch (e) { console.error(e); }
+}
+
+async function loadTree() {
+    const country = document.getElementById('country-select').value;
+    const box = document.getElementById('tree-box');
+    box.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/admin-geography/tree?country=${country}`, { headers: authHeaders() });
+        const d = await res.json();
+        box.innerHTML = renderTree(d.tree || []) || '<div class="empty">No geography data for this country yet</div>';
+    } catch (e) { box.innerHTML = '<div class="empty">Failed to load hierarchy</div>'; }
+}
+
+function renderTree(nodes, depth = 0) {
+    return nodes.map(n => `
+        <div class="tree-node type-${n.type}" style="padding-left:${depth*14}px" onclick="loadSitesForAdmin(${n.id}, '${n.name.replace(/'/g,"\\'")}')">
+            ${n.name} <span style="color:#a0aec0; font-size:10px; text-transform:uppercase;">${n.type}</span>
+        </div>
+        ${n.children && n.children.length ? renderTree(n.children, depth+1) : ''}
+    `).join('');
+}
+
+async function loadSitesForAdmin(parentId, name) {
+    const box = document.getElementById('site-list-box');
+    box.innerHTML = '<div class="empty">Loading sites...</div>';
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/landing-sites?county_id=${parentId}&limit=200`, { headers: authHeaders() });
+        const d = await res.json();
+        renderSiteTable(d.landing_sites || [], `Sites in ${name}`);
+    } catch (e) { box.innerHTML = '<div class="empty">Failed to load sites</div>'; }
+}
+
+function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(searchSites, 350); }
+
+async function searchSites() {
+    const q = document.getElementById('site-search').value.trim();
+    if (!q) return;
+    const box = document.getElementById('site-list-box');
+    box.innerHTML = '<div class="empty">Searching...</div>';
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/landing-sites?search=${encodeURIComponent(q)}&limit=100`, { headers: authHeaders() });
+        const d = await res.json();
+        renderSiteTable(d.landing_sites || [], `Search: "${q}" (${d.total} total matches)`);
+    } catch (e) { box.innerHTML = '<div class="empty">Search failed</div>'; }
+}
+
+function statusBadge(status) {
+    const map = { VERIFIED_OFFICIAL:'badge-success', VERIFIED_MULTI_SOURCE:'badge-success', VERIFIED_SECONDARY:'badge-success',
+        RESEARCH_SOURCE:'badge-warning', NEEDS_FIELD_VERIFICATION:'badge-warning',
+        CONFLICTING_SOURCES:'badge-danger', MAPPED:'badge-neutral' };
+    return `<span class="badge ${map[status] || 'badge-neutral'}">${(status||'unknown').replace(/_/g,' ')}</span>`;
+}
+
+function renderSiteTable(sites, heading) {
+    const box = document.getElementById('site-list-box');
+    if (!sites.length) { box.innerHTML = '<div class="empty">No sites found</div>'; return; }
+    box.innerHTML = `
+        <div class="card-title">${heading}</div>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Confidence</th></tr></thead>
+            <tbody>${sites.map(s => `
+                <tr onclick="loadSiteDetail(${s.id})" style="cursor:pointer;">
+                    <td style="font-weight:600; color:#0D2137;">${s.name}</td>
+                    <td style="text-transform:capitalize; color:#718096;">${(s.site_type||'—').replace(/_/g,' ')}</td>
+                    <td>${statusBadge(s.verification_status)}</td>
+                    <td>${s.confidence_score ?? '—'}/5</td>
+                </tr>
+            `).join('')}</tbody>
+        </table></div>
+    `;
+}
+
+async function loadSiteDetail(id) {
+    const panel = document.getElementById('site-detail');
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/landing-sites/${id}`, { headers: authHeaders() });
+        const d = await res.json();
+        panel.innerHTML = `
+            <div class="card-title">${d.name}</div>
+            <div style="font-size:12px; color:#718096; margin-bottom:16px;">${d.local_name || ''} ${d.site_type ? `· ${d.site_type.replace(/_/g,' ')}` : ''}</div>
+            <div class="detail-grid">
+                <div class="detail-field"><div class="lbl">Status</div><div class="val">${statusBadge(d.verification_status)}</div></div>
+                <div class="detail-field"><div class="lbl">Coordinates</div><div class="val">${d.latitude ? `${d.latitude}, ${d.longitude}` : 'Not recorded'}</div></div>
+                <div class="detail-field"><div class="lbl">Environment</div><div class="val">${d.environment_type || '—'}</div></div>
+                <div class="detail-field"><div class="lbl">BMU</div><div class="val">${d.bmu ? d.bmu.name : '—'}</div></div>
+                <div class="detail-field"><div class="lbl">SFC</div><div class="val">${d.sfc ? d.sfc.name : '—'}</div></div>
+                <div class="detail-field"><div class="lbl">Land Tenure</div><div class="val">${d.land_tenure_status || '—'}</div></div>
+                <div class="detail-field"><div class="lbl">Confidence</div><div class="val">${d.confidence_score ?? '—'}/5</div></div>
+                <div class="detail-field"><div class="lbl">Classification</div><div class="val">${d.site_classification || '—'}</div></div>
+                <div class="detail-field"><div class="lbl">Source</div><div class="val">${d.source_name || '—'}</div></div>
+            </div>
+            ${d.infrastructure.length ? `<div class="card-title" style="font-size:12px;">Infrastructure</div>
+                ${d.infrastructure.map(i => `<div style="font-size:12px; color:#4a5568; padding:4px 0;">${i.asset_type.replace(/_/g,' ')} — ${i.operational_status}${i.financier ? ` (${i.financier})` : ''}</div>`).join('')}` : ''}
+            ${d.claims.length ? `<div class="claims-box"><div class="card-title" style="font-size:12px;">Provenance Claims (${d.claims.length})</div>
+                ${d.claims.map(c => `<div class="claim-row"><div class="claim-field">${c.field.replace(/_/g,' ')}</div><div class="claim-val">${c.value}</div></div>`).join('')}</div>` : ''}
+        `;
+    } catch (e) { panel.innerHTML = '<div class="empty">Failed to load detail</div>'; }
+}
+
+async function loadSpeciesList() {
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/species`, { headers: authHeaders() });
+        const d = await res.json();
+        renderSpeciesTable(d.species || []);
+    } catch (e) { document.getElementById('species-list-box').innerHTML = '<div class="empty">Failed to load species</div>'; }
+}
+
+function debounceSpeciesSearch() {
+    clearTimeout(speciesSearchTimer);
+    speciesSearchTimer = setTimeout(async () => {
+        const q = document.getElementById('species-search').value.trim();
+        const res = await fetch(`${API}/api/v1/intelligence/species${q ? '?search='+encodeURIComponent(q) : ''}`, { headers: authHeaders() });
+        const d = await res.json();
+        renderSpeciesTable(d.species || []);
+    }, 350);
+}
+
+function renderSpeciesTable(species) {
+    const box = document.getElementById('species-list-box');
+    if (!species.length) { box.innerHTML = '<div class="empty">No species found</div>'; return; }
+    box.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Common Name</th><th>Scientific Name</th><th>Family</th><th>IUCN Status</th><th>Status</th></tr></thead>
+        <tbody>${species.map(s => `
+            <tr onclick="loadSpeciesDetail(${s.id})" style="cursor:pointer;">
+                <td style="font-weight:600; color:#0D2137;">${s.common_name}</td>
+                <td style="font-style:italic; color:#4a5568;">${s.scientific_name || '—'}</td>
+                <td style="color:#718096;">${s.family || '—'}</td>
+                <td style="color:${s.iucn_status && s.iucn_status.includes('Vulnerable') ? '#C05621' : '#718096'};">${s.iucn_status || 'Not assessed'}</td>
+                <td>${statusBadge(s.verification_status)}</td>
+            </tr>
+        `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function loadSpeciesDetail(id) {
+    const panel = document.getElementById('species-detail');
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/species/${id}`, { headers: authHeaders() });
+        const d = await res.json();
+        panel.innerHTML = `
+            <div class="card-title">${d.common_name}</div>
+            <div style="font-size:12px; font-style:italic; color:#718096; margin-bottom:16px;">${d.scientific_name || 'Species not resolved — generic commercial category'}</div>
+            <div class="detail-grid">
+                <div class="detail-field"><div class="lbl">Family / Order</div><div class="val">${d.family || '—'} ${d.order ? `/ ${d.order}` : ''}</div></div>
+                <div class="detail-field"><div class="lbl">IUCN Status</div><div class="val">${d.iucn_status || 'Not assessed'}</div></div>
+                <div class="detail-field"><div class="lbl">CITES</div><div class="val">${d.cites_appendix || '—'}</div></div>
+                <div class="detail-field"><div class="lbl">Confidence</div><div class="val">${d.confidence_score ?? '—'}/5</div></div>
+                <div class="detail-field"><div class="lbl">Min Legal Size</div><div class="val">${d.min_legal_size_cm ? d.min_legal_size_cm + ' cm' : '—'}</div></div>
+                <div class="detail-field"><div class="lbl">Status</div><div class="val">${statusBadge(d.verification_status)}</div></div>
+            </div>
+            ${d.market_prices.length ? `<div class="card-title" style="font-size:12px;">Market Prices</div>
+                <div class="table-wrap"><table><thead><tr><th>Tier</th><th>Avg</th><th>Range</th><th>Period</th></tr></thead>
+                <tbody>${d.market_prices.map(p => `<tr><td style="text-transform:capitalize;">${p.tier}</td>
+                    <td style="font-weight:600; color:#276749;">${p.currency} ${p.avg?.toLocaleString() ?? '—'}</td>
+                    <td>${p.min ?? '—'} – ${p.max ?? '—'}</td><td>${p.period || '—'}</td></tr>`).join('')}</tbody></table></div>` : ''}
+            ${d.notes ? `<div style="font-size:12px; color:#718096; margin-top:12px; line-height:1.6;">${d.notes}</div>` : ''}
+            ${d.claims.length ? `<div class="claims-box"><div class="card-title" style="font-size:12px;">Provenance Claims (${d.claims.length})</div>
+                ${d.claims.map(c => `<div class="claim-row"><div class="claim-field">${c.field.replace(/_/g,' ')}</div><div class="claim-val">${c.value}</div></div>`).join('')}</div>` : ''}
+        `;
+    } catch (e) { panel.innerHTML = '<div class="empty">Failed to load detail</div>'; }
+}
+
+async function loadSources() {
+    const box = document.getElementById('sources-list-box');
+    try {
+        const res = await fetch(`${API}/api/v1/intelligence/sources`, { headers: authHeaders() });
+        const d = await res.json();
+        const sources = d.sources || [];
+        if (!sources.length) { box.innerHTML = '<div class="empty">No sources recorded</div>'; return; }
+        box.innerHTML = `<div class="table-wrap"><table>
+            <thead><tr><th>Title</th><th>Organization</th><th>Year</th><th>Tier</th></tr></thead>
+            <tbody>${sources.map(s => `<tr>
+                <td style="font-weight:600; color:#0D2137;">${s.title}</td>
+                <td style="color:#718096;">${s.org || '—'}</td><td>${s.year || '—'}</td>
+                <td><span class="badge ${s.tier === 1 ? 'badge-success' : s.tier >= 4 ? 'badge-danger' : 'badge-warning'}">Tier ${s.tier}</span></td>
+            </tr>`).join('')}</tbody>
+        </table></div>`;
+    } catch (e) { box.innerHTML = '<div class="empty">Failed to load sources</div>'; }
+}
+
+loadKPIs();
+loadTree();
+</script>
+
+</body>
+</html>

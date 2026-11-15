@@ -27,7 +27,8 @@ from app.api.v1.routes import (
     sales,
     logistics_orchestration,
     newsletter,
-    whatsapp_messages
+    whatsapp_messages,
+    intelligence
 )
 
 @asynccontextmanager
@@ -115,7 +116,7 @@ app.include_router(sales.router, prefix="/api/v1")
 app.include_router(logistics_orchestration.router, prefix="/api/v1")
 app.include_router(newsletter.router, prefix="/api/v1")
 app.include_router(whatsapp_messages.router, prefix="/api/v1")
-
+app.include_router(intelligence.router, prefix="/api/v1")
 @app.get("/", tags=["System"])
 def root():
     landing_path = os.path.join(
@@ -215,3 +216,10 @@ def serve_track_page():
     path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "..", "..", "frontend", "landing", "track.html"))
     return FileResponse(path)
+
+@app.get("/admin/pages/intelligence.html")
+def serve_intelligence_dashboard():
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "frontend", "admin", "pages", "intelligence.html"
+    )
+    return FileResponse(os.path.abspath(path))
