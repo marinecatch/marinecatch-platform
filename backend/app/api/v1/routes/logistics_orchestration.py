@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
-from datetime import datetime
-
+from datetime import datetime, timezone
 from app.database.connection import get_db
 from app.api.v1.routes.users import get_current_user
 from app.models.logistics_partner import LogisticsPartner
@@ -472,8 +471,15 @@ def ship_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Create parent shipment record
+        # Create parent shipment record
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    shipment_count = db.query(Shipment).filter(
+        Shipment.shipment_reference.like(f"MC-SHIP-{today}-%")
+    ).count()
+    shipment_reference = f"MC-SHIP-{today}-{str(shipment_count + 1).zfill(4)}"
+
     shipment = Shipment(
+        shipment_reference=shipment_reference,
         order_id=order.id,
         status="in_transit",
     )
