@@ -203,6 +203,7 @@ print("Kigamboni informal landing network recorded as a coverage-gap observation
 
 # ── KIVUKONI FISH MARKET — major standalone market, not a landing site ──
 kivukoni = InfrastructureAsset(
+    landing_site_id=None,
     asset_type="fish_market", operational_status="OPERATIONAL",
     source_name=src_kivukoni.title, verification_status="VERIFIED_SECONDARY",
 )

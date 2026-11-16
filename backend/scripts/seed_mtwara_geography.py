@@ -121,8 +121,9 @@ db.add(GeographySourceClaim(
 # ── POPULATION OBSERVATIONS — 2022 Census, dated ────────────────────
 pop_count = 0
 for name, council in current_councils.items():
-    add_obs(council.id, "population", None, year=2022, canonical="false",
-            subtype="census_2022_count_not_individually_transcribed", source_name=src_census2022.title)
+    pop_obs = add_obs(council.id, "population", None, year=2022, canonical="false",
+            subtype="not_transcribed", source_name=src_census2022.title)
+    pop_obs.source_text = "2022 Census population count not individually transcribed this pass — flagged for re-verification against source."
     pop_count += 1
 db.add(GeographySourceClaim(
     entity_type="admin_geography", entity_id=mtwara.id,
@@ -147,10 +148,13 @@ db.add(GeographySourceClaim(
 ))
 print("Regional fisheries frame seeded: 37 sites, 5,620 fishers, 1,273 vessels, 4,183.8 MT (2018 frame, reused 2020 — none distributed)")
 
-add_obs(mtwara.id, "gillnet_count", None, year=2018, canonical="false",
-        subtype="regional_gear_observation_value_not_transcribed", source_name=src_mlf2020.title)
-add_obs(mtwara.id, "vessel_propulsion_count", None, year=2018, canonical="false",
-        subtype="regional_propulsion_observation_value_not_transcribed", source_name=src_mlf2020.title)
+gillnet_obs = add_obs(mtwara.id, "gillnet_count", None, year=2018, canonical="false",
+        subtype="not_transcribed", source_name=src_mlf2020.title)
+gillnet_obs.source_text = "Regional gear observation value not individually transcribed this pass — flagged for re-verification."
+
+propulsion_obs = add_obs(mtwara.id, "vessel_propulsion_count", None, year=2018, canonical="false",
+        subtype="not_transcribed", source_name=src_mlf2020.title)
+propulsion_obs.source_text = "Regional propulsion observation value not individually transcribed this pass — flagged for re-verification."
 
 # ── 12 DETERMINISTIC LANDING SITES — exact IDs from source ──────────
 sites_data = [

@@ -116,7 +116,7 @@
 
 <script src="/admin/static/js/admin.js"></script>
 <script>
-const API = window.location.origin;
+const INTEL_API = window.location.origin;
 let searchTimer, speciesSearchTimer;
 function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
 
@@ -131,7 +131,7 @@ function showIntelTab(tab) {
 
 async function loadKPIs() {
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/data-quality`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/data-quality`, { headers: authHeaders() });
         const d = await res.json();
         document.getElementById('kpi-sites').textContent = d.total_landing_sites ?? '—';
         document.getElementById('kpi-bmus').textContent = d.total_bmus ?? '—';
@@ -147,7 +147,7 @@ async function loadTree() {
     const box = document.getElementById('tree-box');
     box.innerHTML = '<div class="empty">Loading...</div>';
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/admin-geography/tree?country=${country}`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/admin-geography/tree?country=${country}`, { headers: authHeaders() });
         const d = await res.json();
         box.innerHTML = renderTree(d.tree || []) || '<div class="empty">No geography data for this country yet</div>';
     } catch (e) { box.innerHTML = '<div class="empty">Failed to load hierarchy</div>'; }
@@ -166,7 +166,7 @@ async function loadSitesForAdmin(parentId, name) {
     const box = document.getElementById('site-list-box');
     box.innerHTML = '<div class="empty">Loading sites...</div>';
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/landing-sites?county_id=${parentId}&limit=200`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/landing-sites?county_id=${parentId}&limit=200`, { headers: authHeaders() });
         const d = await res.json();
         renderSiteTable(d.landing_sites || [], `Sites in ${name}`);
     } catch (e) { box.innerHTML = '<div class="empty">Failed to load sites</div>'; }
@@ -180,7 +180,7 @@ async function searchSites() {
     const box = document.getElementById('site-list-box');
     box.innerHTML = '<div class="empty">Searching...</div>';
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/landing-sites?search=${encodeURIComponent(q)}&limit=100`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/landing-sites?search=${encodeURIComponent(q)}&limit=100`, { headers: authHeaders() });
         const d = await res.json();
         renderSiteTable(d.landing_sites || [], `Search: "${q}" (${d.total} total matches)`);
     } catch (e) { box.innerHTML = '<div class="empty">Search failed</div>'; }
@@ -217,7 +217,7 @@ async function loadSiteDetail(id) {
     panel.style.display = 'block';
     panel.innerHTML = '<div class="empty">Loading...</div>';
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/landing-sites/${id}`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/landing-sites/${id}`, { headers: authHeaders() });
         const d = await res.json();
         panel.innerHTML = `
             <div class="card-title">${d.name}</div>
@@ -243,7 +243,7 @@ async function loadSiteDetail(id) {
 
 async function loadSpeciesList() {
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/species`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/species`, { headers: authHeaders() });
         const d = await res.json();
         renderSpeciesTable(d.species || []);
     } catch (e) { document.getElementById('species-list-box').innerHTML = '<div class="empty">Failed to load species</div>'; }
@@ -253,7 +253,7 @@ function debounceSpeciesSearch() {
     clearTimeout(speciesSearchTimer);
     speciesSearchTimer = setTimeout(async () => {
         const q = document.getElementById('species-search').value.trim();
-        const res = await fetch(`${API}/api/v1/intelligence/species${q ? '?search='+encodeURIComponent(q) : ''}`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/species${q ? '?search='+encodeURIComponent(q) : ''}`, { headers: authHeaders() });
         const d = await res.json();
         renderSpeciesTable(d.species || []);
     }, 350);
@@ -281,7 +281,7 @@ async function loadSpeciesDetail(id) {
     panel.style.display = 'block';
     panel.innerHTML = '<div class="empty">Loading...</div>';
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/species/${id}`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/species/${id}`, { headers: authHeaders() });
         const d = await res.json();
         panel.innerHTML = `
             <div class="card-title">${d.common_name}</div>
@@ -309,7 +309,7 @@ async function loadSpeciesDetail(id) {
 async function loadSources() {
     const box = document.getElementById('sources-list-box');
     try {
-        const res = await fetch(`${API}/api/v1/intelligence/sources`, { headers: authHeaders() });
+        const res = await fetch(`${INTEL_API}/api/v1/intelligence/sources`, { headers: authHeaders() });
         const d = await res.json();
         const sources = d.sources || [];
         if (!sources.length) { box.innerHTML = '<div class="empty">No sources recorded</div>'; return; }
