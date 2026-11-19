@@ -198,43 +198,53 @@ def handle_mpesa_callback(
     result_code  = stk_callback.get("ResultCode")
     checkout_id  = stk_callback.get("CheckoutRequestID")
 
-    # Find the transaction
-    txn = db.query(PaymentTransaction).filter(
+    # Find ALL transactions sharing this checkout ID — a cart
+    # checkout creates one PaymentTransaction per order, all
+    # sharing one CheckoutRequestID from a single combined STK Push.
+    txns = db.query(PaymentTransaction).filter(
         PaymentTransaction.checkout_request_id == checkout_id
-    ).first()
+    ).all()
 
-    if not txn:
+    if not txns:
         return {"status": "ignored", "reason": "transaction not found"}
 
     if result_code == 0:
         # Payment successful
         metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
         meta = {item["Name"]: item.get("Value") for item in metadata}
+        receipt = meta.get("MpesaReceiptNumber")
 
-        txn.mpesa_receipt_number = meta.get("MpesaReceiptNumber")
-        txn.payment_status       = PaymentStatus.PAID
-        txn.paid_at              = datetime.now(timezone.utc)
-        txn.payout_status        = PayoutStatus.PENDING
+        for txn in txns:
+            txn.mpesa_receipt_number = receipt
+            txn.payment_status       = PaymentStatus.PAID
+            txn.paid_at              = datetime.now(timezone.utc)
+            txn.payout_status        = PayoutStatus.PENDING
 
-        # Update order status
-        order = db.query(Order).filter(Order.id == txn.order_id).first()
-        if order:
-            order.status       = OrderStatus.CONFIRMED
-            order.reserved_until = None
+            order = db.query(Order).filter(Order.id == txn.order_id).first()
+            if order:
+                order.status         = OrderStatus.CONFIRMED
+                order.reserved_until = None
 
         db.commit()
         return {
             "status":  "success",
-            "receipt": txn.mpesa_receipt_number,
-            "amount":  txn.total_amount,
+            "receipt": receipt,
+            "amount":  sum(t.total_amount for t in txns),
         }
 
     else:
         # Payment failed or cancelled
-        if result_code in [1037, 1032]:
-            txn.payment_status = PaymentStatus.EXPIRED
-        else:
-            txn.payment_status = PaymentStatus.FAILED
+        for txn in txns:
+            if result_code in [1037, 1032]:
+                txn.payment_status = PaymentStatus.EXPIRED
+            else:
+                txn.payment_status = PaymentStatus.FAILED
+        db.commit()
+        return {
+            "status":      "failed",
+            "result_code": result_code,
+            "message":     stk_callback.get("ResultDesc"),
+        }
 
         # Don't release stock yet — buyer has 10 minute window to retry
         db.commit()

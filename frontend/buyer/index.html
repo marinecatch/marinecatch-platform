@@ -380,6 +380,23 @@
     </div>
 </div>
 
+<button onclick="renderCart(); document.getElementById('cart-modal').style.display='flex'" style="position:fixed; bottom:20px; right:20px; z-index:999;">
+    🛒 Cart (<span id="cart-badge">0</span>)
+</button>
+
+<div id="cart-modal" class="modal">
+    <div class="modal-box" style="width:480px;">
+        <h3>Your Cart</h3>
+        <div id="cart-items"></div>
+        <input id="cart-address" placeholder="Delivery address" style="width:100%; margin-top:12px;">
+        <input id="cart-phone" placeholder="M-Pesa phone number" style="width:100%; margin-top:8px;">
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="btn btn-outline" onclick="document.getElementById('cart-modal').style.display='none'">Close</button>
+            <button class="btn btn-success" onclick="checkoutCart()">Checkout & Pay</button>
+        </div>
+    </div>
+</div>
+
 <!-- INVOICE MODAL -->
 <div id="invoice-modal" class="modal">
     <div class="modal-box" style="width:600px; max-width:95%;">
@@ -419,6 +436,87 @@ function showRegisterForm() {
 function showLoginForm() {
     document.getElementById('register-form-fields').style.display = 'none';
     document.getElementById('login-form-fields').style.display = 'block';
+}
+
+let cart = JSON.parse(localStorage.getItem('mc_cart') || '[]');
+
+function saveCart() {
+    localStorage.setItem('mc_cart', JSON.stringify(cart));
+    updateCartBadge();
+}
+
+function updateCartBadge() {
+    const el = document.getElementById('cart-badge');
+    if (el) el.textContent = cart.length;
+}
+
+function addToCart(lotId, species, pricePerKg, landingSite, availableKg) {
+    const qty = prompt(`How many kg of ${species}?`, "1");
+    if (!qty || parseFloat(qty) <= 0) return;
+    if (parseFloat(qty) > availableKg) {
+        alert(`Only ${availableKg}kg available.`);
+        return;
+    }
+    cart.push({ lot_id: lotId, species, price_per_kg: pricePerKg, quantity_kg: parseFloat(qty), landing_site: landingSite });
+    saveCart();
+    alert(`Added ${qty}kg ${species} to cart.`);
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    saveCart();
+    renderCart();
+}
+
+function renderCart() {
+    const el = document.getElementById('cart-items');
+    if (!cart.length) {
+        el.innerHTML = '<div class="empty">Cart is empty.</div>';
+        return;
+    }
+    let total = 0;
+    el.innerHTML = cart.map((item, i) => {
+        const lineTotal = item.quantity_kg * item.price_per_kg;
+        total += lineTotal;
+        return `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
+            <span>${item.species} — ${item.quantity_kg}kg (${item.landing_site})</span>
+            <span>KES ${lineTotal.toLocaleString()} <button onclick="removeFromCart(${i})" style="margin-left:8px;">✕</button></span>
+        </div>`;
+    }).join('') + `<div style="margin-top:12px; font-weight:bold;">Total: KES ${total.toLocaleString()}</div>`;
+}
+
+async function checkoutCart() {
+    if (!token) { alert('Please log in first'); return; }
+    if (!cart.length) { alert('Cart is empty'); return; }
+
+    const address = document.getElementById('cart-address').value;
+    const phone   = document.getElementById('cart-phone').value;
+    if (!address || !phone) { alert('Enter delivery address and phone number'); return; }
+
+    try {
+        const res = await fetch(`${API}/api/v1/orders/checkout-cart`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({
+                items: cart.map(c => ({ lot_id: c.lot_id, quantity_kg: c.quantity_kg })),
+                delivery_address: address,
+                phone_number: phone,
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✅ ${data.message}`);
+            cart = [];
+            saveCart();
+            closeCartModal();
+            loadOrders();
+            loadInventory();
+        } else {
+            alert(`❌ ${data.detail || 'Checkout failed'}`);
+        }
+    } catch (e) {
+        alert('Checkout failed — please try again.');
+    }
 }
 
 async function doRegister() {
@@ -695,8 +793,9 @@ async function loadInventory() {
                 <div class="lot-price">
                     <div class="price">KES ${lot.selling_price_per_kg?.toLocaleString()}/kg</div>
                     <div class="avail">${lot.available_kg}kg available</div>
-                    <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                                       <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
                         <button class="btn btn-primary btn-sm" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
+                        <button class="btn btn-success btn-sm" onclick="addToCart(${lot.id}, '${lot.species}', ${lot.selling_price_per_kg}, '${lot.landing_site}', ${lot.available_kg})">🛒 Add to Cart</button>
                         <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}')">View Trace</button>
                     </div>
                 </div>

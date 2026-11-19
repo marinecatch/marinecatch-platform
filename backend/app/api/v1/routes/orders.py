@@ -17,7 +17,7 @@
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 from app.database.connection import get_db
@@ -179,6 +179,86 @@ def api_place_order(
         )
     }
 
+
+class CartItem(BaseModel):
+    lot_id: int
+    quantity_kg: float
+
+class CartCheckout(BaseModel):
+    items: List[CartItem]
+    delivery_address: str
+    notes: Optional[str] = None
+    phone_number: str
+
+@router.post("/checkout-cart", status_code=201)
+async def checkout_cart(
+    payload: CartCheckout,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Buyer checks out multiple lots in one pass — one STK Push
+    for the combined total, but one Order + one PaymentTransaction
+    per lot underneath, since each lot may belong to a different
+    fisher with its own payout.
+    """
+    from app.services.payment_service import create_payment_transaction, generate_transaction_reference
+    from app.services.mpesa_service import stk_push
+    from app.models.payment import PaymentMethod, PaymentChannel
+
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+
+    orders = []
+    for item in payload.items:
+        order = place_order(
+            db=db,
+            buyer_id=current_user.id,
+            lot_id=item.lot_id,
+            quantity_kg=item.quantity_kg,
+            delivery_address=payload.delivery_address,
+            notes=payload.notes,
+        )
+        orders.append(order)
+
+    combined_total = sum(o.total_kes for o in orders)
+    cart_reference = f"MC-CART-{generate_transaction_reference(db).split('-')[-1]}"
+
+    try:
+        response = await stk_push(
+            phone_number=payload.phone_number,
+            amount=combined_total,
+            transaction_reference=cart_reference,
+            description=f"MarineCatch order — {len(orders)} item(s)",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"STK Push failed: {str(e)}")
+
+    checkout_id = response.get("CheckoutRequestID")
+    merchant_id = response.get("MerchantRequestID")
+
+    transactions = []
+    for order in orders:
+        txn = create_payment_transaction(
+            db=db,
+            order=order,
+            payment_method=PaymentMethod.MPESA_STK,
+            payment_channel=PaymentChannel.MPESA,
+            payer_user_id=current_user.id,
+        )
+        txn.checkout_request_id = checkout_id
+        txn.merchant_request_id = merchant_id
+        txn.mpesa_phone_number  = payload.phone_number
+        transactions.append(txn)
+    db.commit()
+
+    return {
+        "success": True,
+        "order_ids": [o.id for o in orders],
+        "combined_total_kes": combined_total,
+        "checkout_request_id": checkout_id,
+        "message": f"STK Push sent to {payload.phone_number} for KES {combined_total:,.0f}. Enter your PIN to complete payment.",
+    }
 
 # ── MY ORDERS ─────────────────────────────────────────────────────
 
