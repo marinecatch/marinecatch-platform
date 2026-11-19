@@ -795,7 +795,7 @@ async function loadInventory() {
                     <div class="avail">${lot.available_kg}kg available</div>
                                        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
                         <button class="btn btn-primary btn-sm" onclick='openOrder(${JSON.stringify(lot)})'>Order Now</button>
-                        <button class="btn btn-success btn-sm" onclick="addToCart(${lot.id}, '${lot.species}', ${lot.selling_price_per_kg}, '${lot.landing_site}', ${lot.available_kg})">🛒 Add to Cart</button>
+                        <button class="btn btn-outline btn-sm" onclick="addToCart(${lot.id}, '${lot.species}', ${lot.selling_price_per_kg}, '${lot.landing_site}', ${lot.available_kg})">🛒 Add to Cart</button>
                         <button class="btn btn-outline btn-sm" onclick="viewTrace('${lot.traceability_code}')">View Trace</button>
                     </div>
                 </div>

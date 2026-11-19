@@ -22,7 +22,7 @@ from app.models.intelligence.infrastructure import InfrastructureAsset
 from app.models.intelligence.species_market_price import SpeciesMarketPrice
 from app.models.fisheries_data import Species
 
-router = APIRouter(prefix="/api/v1/intelligence", tags=["intelligence"])
+router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
 
 # ── GEOGRAPHY ──────────────────────────────────────────────────────

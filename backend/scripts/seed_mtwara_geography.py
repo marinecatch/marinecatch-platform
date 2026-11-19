@@ -87,6 +87,10 @@ src_cfma2026  = get_or_create_source("2026 Mtwara CFMA governance documentation"
 src_cfma_hist = get_or_create_source("Historical CFMA literature (pre-2026 naming)", tier=3)
 src_port      = get_or_create_source("Mtwara Port commercial documentation", tier=1)
 src_tasfam    = get_or_create_source("TASFAM Mtwara site assessments", year=2026, tier=1)
+src_geography_context = get_or_create_source(
+    "MarineCatch internal geographic context — administrative boundary and river-feature reference",
+    tier=5,
+)
 src_feta      = get_or_create_source("FETA Mikindani aquaculture/training programme documentation", tier=1)
 src_muwasa    = get_or_create_source("MUWASA/SWISSAID aquaculture programme documentation", tier=2)
 src_forum2026 = get_or_create_source("Mtwara Seascape Multi-Stakeholder Forum establishment documentation", year=2026, tier=1)
@@ -290,11 +294,11 @@ for name, site, atype, status, source_name in projects:
     db.add(p)
     db.flush()
     db.add(GeographySourceClaim(
-        entity_type="infrastructure_asset", entity_id=p.id,
-        claim_field="project_name",
-        claim_value=f"{name}. A site assessment is not construction completion — status recorded as {status}, not assumed operational.",
-        source_id=None, is_canonical="false",
-    ))
+    entity_type="infrastructure_asset", entity_id=p.id,
+    claim_field="project_name",
+    claim_value=f"{name}. A site assessment is not construction completion — status recorded as {status}, not assumed operational.",
+    source_id=src_tasfam.id, is_canonical="false",
+))
     proj_count += 1
 print(f"Development projects seeded: {proj_count} (all correctly non-operational: SITE_ASSESSED/PLANNED/UNDER_IMPLEMENTATION)")
 
@@ -359,7 +363,7 @@ db.add(GeographySourceClaim(
     entity_type="admin_geography", entity_id=mtwara.id,
     claim_field="cross_border_region",
     claim_value="Cross-border region: Tanzania/Mozambique, boundary feature = Ruvuma River. Relevant marine/fisheries geography: Mnazi Bay, Ruvuma Estuary, Mozambique Channel/southern Indian Ocean. No legal fish-trade crossing point invented. No cross-border fish volumes inferred.",
-    source_id=None, is_canonical="false",
+    source_id=src_geography_context.id, is_canonical="false",
 ))
 print("Cross-border Mozambique/Ruvuma geography recorded (no crossing point or trade volumes invented)")
 
