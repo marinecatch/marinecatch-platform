@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Package, Fish, CreditCard,
-  Wallet, Users, Truck, BarChart2, LogOut, Waves, ArrowLeftRight,TrendingUp
+  Wallet, Users, Truck, BarChart2, LogOut, Waves, ArrowLeftRight, TrendingUp,
+  ShieldCheck, Globe2, Handshake, FileText, Mail, MessageCircle, Network,
 } from 'lucide-react';
 
 // Brand colors from MarineCatch Africa brand book
@@ -35,6 +36,7 @@ const navSections = [
       { path: '/payments',  label: 'Payments',      icon: CreditCard },
       { path: '/payouts',   label: 'Fisher Payouts',icon: Wallet },
       { path: '/settlement', label: 'Settlement',      icon: ArrowLeftRight },
+      { path: '/lpo',       label: 'LPO Orders',    icon: FileText },
     ]
   },
   {
@@ -42,6 +44,7 @@ const navSections = [
     items: [
       { path: '/analytics', label: 'Analytics',  icon: BarChart2 },
       { path: '/ceo',       label: 'Executive',  icon: TrendingUp },
+      { path: '/intelligence', label: 'Geography & Species', icon: Globe2 },
     ]
   },
   {
@@ -49,6 +52,16 @@ const navSections = [
     items: [
       { path: '/users',     label: 'Users',         icon: Users },
       { path: '/logistics', label: 'Logistics',     icon: Truck },
+      { path: '/logistics-network', label: 'Logistics Network', icon: Network },
+      { path: '/compliance', label: 'Compliance',   icon: ShieldCheck },
+    ]
+  },
+  {
+    label: 'Growth',
+    items: [
+      { path: '/sales',     label: 'Sales & CRM',   icon: Handshake },
+      { path: '/newsletter', label: 'Newsletter',   icon: Mail },
+      { path: '/whatsapp-inbox', label: 'WhatsApp Inbox', icon: MessageCircle },
     ]
   },
 ];
