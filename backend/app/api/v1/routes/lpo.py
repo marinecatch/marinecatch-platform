@@ -7,7 +7,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from app.database.connection import get_db
 from app.api.v1.routes.users import get_current_user
@@ -15,6 +15,12 @@ from app.services.lpo_service import (
     create_lpo_order,
     get_order_by_lpo,
     get_all_lpo_orders,
+)
+from app.services.lpo_request_service import (
+    submit_lpo_request,
+    get_pending_lpo_requests,
+    fulfill_lpo_request_item,
+    reject_lpo_request,
 )
 
 router = APIRouter(prefix="/lpo", tags=["LPO Orders"])
@@ -118,3 +124,110 @@ def get_lpo_order(
         "notes":             order.notes,
         "created_at":        order.created_at,
     }
+# ── BUYER-FACING LPO REQUEST SUBMISSION ──────────────────────────
+
+class LPORequestItemIn(BaseModel):
+    species:     str
+    quantity_kg: float
+    notes:       Optional[str] = None
+
+
+class LPORequestCreate(BaseModel):
+    lpo_reference:             str
+    items:                     List[LPORequestItemIn]
+    procurement_officer:       Optional[str] = None
+    expected_fulfillment_date: Optional[str] = None
+    payment_terms_days:        int = 7
+    delivery_address:          Optional[str] = None
+    notes:                     Optional[str] = None
+
+
+@router.post("/requests", status_code=201)
+def submit_lpo_request_route(
+    payload:      LPORequestCreate,
+    current_user = Depends(get_current_user),
+    db: Session   = Depends(get_db),
+):
+    """
+    Buyer submits a purchase order request — species and
+    quantities only, no lot_id. Admin reviews and assigns
+    real inventory lots per item.
+    """
+    request = submit_lpo_request(
+        db=db,
+        buyer_id=current_user.id,
+        lpo_reference=payload.lpo_reference,
+        items=[item.dict() for item in payload.items],
+        procurement_officer=payload.procurement_officer,
+        expected_fulfillment_date=payload.expected_fulfillment_date,
+        payment_terms_days=payload.payment_terms_days,
+        delivery_address=payload.delivery_address,
+        notes=payload.notes,
+    )
+    return {
+        "success": True,
+        "request_id": request.id,
+        "status": request.status,
+        "message": f"LPO request {request.lpo_reference} submitted for review.",
+    }
+
+
+# ── ADMIN REVIEW OF LPO REQUESTS ──────────────────────────────────
+
+@router.get("/requests/pending")
+def list_pending_lpo_requests_route(
+    current_user = Depends(get_current_user),
+    db: Session   = Depends(get_db),
+):
+    """Admin: all LPO requests awaiting review."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    return {"requests": get_pending_lpo_requests(db)}
+
+
+class FulfillItemRequest(BaseModel):
+    lot_id: int
+
+
+@router.post("/requests/items/{item_id}/fulfill")
+def fulfill_lpo_request_item_route(
+    item_id: int,
+    payload: FulfillItemRequest,
+    current_user = Depends(get_current_user),
+    db: Session   = Depends(get_db),
+):
+    """
+    Admin assigns a real inventory lot to one line item of an
+    LPO request, creating the actual Order.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    return fulfill_lpo_request_item(
+        db=db,
+        item_id=item_id,
+        lot_id=payload.lot_id,
+        created_by=current_user.name,
+    )
+
+
+class RejectLPORequest(BaseModel):
+    reason: str
+
+
+@router.post("/requests/{request_id}/reject")
+def reject_lpo_request_route(
+    request_id: int,
+    payload:    RejectLPORequest,
+    current_user = Depends(get_current_user),
+    db: Session   = Depends(get_db),
+):
+    """Admin rejects an LPO request outright."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    request = reject_lpo_request(
+        db=db,
+        request_id=request_id,
+        reviewed_by=current_user.name,
+        reason=payload.reason,
+    )
+    return {"success": True, "status": request.status}
