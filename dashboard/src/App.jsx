@@ -11,6 +11,13 @@ import Payouts    from './pages/Payouts';
 import Logistics  from './pages/Logistics';
 import Settlement from './pages/Settlement';
 import CEO from './pages/CEO';
+import Compliance from './pages/Compliance';
+import Intelligence from './pages/Intelligence';
+import Sales from './pages/Sales';
+import LPO from './pages/LPO';
+import Newsletter from './pages/Newsletter';
+import WhatsAppInbox from './pages/WhatsAppInbox';
+import LogisticsNetwork from './pages/LogisticsNetwork';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -35,6 +42,13 @@ function App() {
           <Route path="/logistics" element={<ProtectedRoute><Logistics /></ProtectedRoute>} />
           <Route path="/settlement"element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
           <Route path="/ceo"       element={<ProtectedRoute><CEO /></ProtectedRoute>} />
+          <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
+          <Route path="/intelligence" element={<ProtectedRoute><Intelligence /></ProtectedRoute>} />
+          <Route path="/sales"     element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+          <Route path="/lpo"       element={<ProtectedRoute><LPO /></ProtectedRoute>} />
+          <Route path="/newsletter" element={<ProtectedRoute><Newsletter /></ProtectedRoute>} />
+          <Route path="/whatsapp-inbox" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
+          <Route path="/logistics-network" element={<ProtectedRoute><LogisticsNetwork /></ProtectedRoute>} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
