@@ -201,6 +201,7 @@
             <button class="tab" onclick="showTab('orders')">My Orders</button>
             <button class="tab" onclick="showTab('prices')">Price Intelligence</button>
             <button class="tab" onclick="showTab('invoices')">Invoices</button>
+            <button class="tab" onclick="showTab('lpo')">Purchase Orders</button>
         </div>
 
         <!-- INVENTORY TAB -->
@@ -258,6 +259,70 @@
                     Current market prices based on recent platform transactions and coastal fisheries data.
                 </div>
                 <div id="prices-content" class="table-scroll"><div class="empty">Loading price data...</div></div>
+            </div>
+        </div>
+
+                <!-- PURCHASE ORDERS (LPO) TAB -->
+        <div id="tab-lpo" style="display:none">
+            <div class="card">
+                <div class="card-title">Submit a Purchase Order</div>
+                <p style="font-size:13px; color:#718096; margin-bottom:16px;">
+                    For institutional orders with your own LPO reference and agreed payment terms.
+                    Our team will confirm stock and process your order.
+                </p>
+
+                <div class="form-group">
+                    <label>Your LPO Reference *</label>
+                    <input type="text" id="lpo-reference" placeholder="e.g. LPO-2026-0142">
+                </div>
+
+                <div id="lpo-items">
+                    <div class="lpo-item-row" style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                        <input type="text" class="lpo-species" placeholder="Species (e.g. tuna)" style="flex:2;">
+                        <input type="number" class="lpo-qty" placeholder="Quantity (kg)" style="flex:1;">
+                        <button type="button" onclick="this.closest('.lpo-item-row').remove()" style="flex:0;">✕</button>
+                    </div>
+                </div>
+                <button type="button" onclick="addLpoItemRow()" style="margin-bottom:16px;">➕ Add another species</button>
+
+                <div class="form-group">
+                    <label>Procurement Officer (optional)</label>
+                    <input type="text" id="lpo-officer" placeholder="Name of your procurement contact">
+                </div>
+
+                <div class="form-group">
+                    <label>Expected Fulfillment Date (optional)</label>
+                    <input type="date" id="lpo-date">
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Terms</label>
+                    <select id="lpo-terms">
+                        <option value="0">Immediate</option>
+                        <option value="7" selected>Net 7</option>
+                        <option value="14">Net 14</option>
+                        <option value="30">Net 30</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Delivery Address</label>
+                    <input type="text" id="lpo-address" placeholder="Delivery address">
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="lpo-notes" placeholder="Any additional instructions"></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="submitLpoRequest()">Submit Purchase Order</button>
+                <div id="lpo-error" style="color:#c53030; margin-top:8px; display:none;"></div>
+                <div id="lpo-success" style="color:#276749; margin-top:8px; display:none;"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Your Purchase Order Requests</div>
+                <div id="lpo-requests-list" class="table-scroll"><div class="empty">Loading...</div></div>
             </div>
         </div>
 
@@ -753,8 +818,10 @@ function showTab(tab) {
     document.getElementById('tab-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
     document.getElementById('tab-orders').style.display    = tab === 'orders'    ? 'block' : 'none';
     document.getElementById('tab-prices').style.display    = tab === 'prices'    ? 'block' : 'none';
+    document.getElementById('tab-lpo').style.display      = tab === 'lpo'       ? 'block' : 'none';
     document.getElementById('tab-invoices').style.display  = tab === 'invoices'  ? 'block' : 'none';
     if (tab === 'orders')   loadOrders();
+    if (tab === 'lpo')      loadMyLpoRequests();
     if (tab === 'prices')   loadPrices();
     if (tab === 'invoices') loadInvoices();
 }
@@ -809,6 +876,128 @@ async function loadInventory() {
 // ── ORDERS ────────────────────────────────────────────────────────
 // Statuses that count as "not yet paid / no money moved"
 const UNPAID_STATUSES = ['pending_payment', 'cancelled', 'payment_failed'];
+
+function addLpoItemRow() {
+    const container = document.getElementById('lpo-items');
+    const row = document.createElement('div');
+    row.className = 'lpo-item-row';
+    row.style.cssText = 'display:flex; gap:8px; margin-bottom:8px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" class="lpo-species" placeholder="Species (e.g. tuna)" style="flex:2;">
+        <input type="number" class="lpo-qty" placeholder="Quantity (kg)" style="flex:1;">
+        <button type="button" onclick="this.closest('.lpo-item-row').remove()" style="flex:0;">✕</button>
+    `;
+    container.appendChild(row);
+}
+
+async function submitLpoRequest() {
+    if (!token) { alert('Please log in first'); return; }
+
+    const errEl = document.getElementById('lpo-error');
+    const okEl  = document.getElementById('lpo-success');
+    errEl.style.display = 'none';
+    okEl.style.display  = 'none';
+
+    const reference = document.getElementById('lpo-reference').value.trim();
+    if (!reference) {
+        errEl.textContent = 'Please enter your LPO reference.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const rows = document.querySelectorAll('#lpo-items .lpo-item-row');
+    const items = [];
+    rows.forEach(row => {
+        const species = row.querySelector('.lpo-species').value.trim().toLowerCase();
+        const qty     = parseFloat(row.querySelector('.lpo-qty').value);
+        if (species && qty > 0) {
+            items.push({ species, quantity_kg: qty });
+        }
+    });
+
+    if (!items.length) {
+        errEl.textContent = 'Please add at least one species and quantity.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const payload = {
+        lpo_reference: reference,
+        items: items,
+        procurement_officer: document.getElementById('lpo-officer').value.trim() || null,
+        expected_fulfillment_date: document.getElementById('lpo-date').value || null,
+        payment_terms_days: parseInt(document.getElementById('lpo-terms').value),
+        delivery_address: document.getElementById('lpo-address').value.trim() || null,
+        notes: document.getElementById('lpo-notes').value.trim() || null,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/v1/lpo/requests`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            okEl.textContent = `✅ ${data.message}`;
+            okEl.style.display = 'block';
+            document.getElementById('lpo-reference').value = '';
+            document.getElementById('lpo-officer').value = '';
+            document.getElementById('lpo-date').value = '';
+            document.getElementById('lpo-address').value = '';
+            document.getElementById('lpo-notes').value = '';
+            document.getElementById('lpo-items').innerHTML = `
+                <div class="lpo-item-row" style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                    <input type="text" class="lpo-species" placeholder="Species (e.g. tuna)" style="flex:2;">
+                    <input type="number" class="lpo-qty" placeholder="Quantity (kg)" style="flex:1;">
+                    <button type="button" onclick="this.closest('.lpo-item-row').remove()" style="flex:0;">✕</button>
+                </div>`;
+            loadMyLpoRequests();
+        } else {
+            errEl.textContent = data.detail || 'Failed to submit purchase order.';
+            errEl.style.display = 'block';
+        }
+    } catch (e) {
+        errEl.textContent = 'Something went wrong. Please try again.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function loadMyLpoRequests() {
+    if (!token) return;
+    try {
+        const res  = await fetch(`${API}/api/v1/lpo/requests/mine`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        const requests = data.requests || [];
+
+        if (!requests.length) {
+            document.getElementById('lpo-requests-list').innerHTML =
+                '<div class="empty">No purchase orders submitted yet.</div>';
+            return;
+        }
+
+        const statusColor = { pending: '#d69e2e', approved: '#276749', rejected: '#c53030' };
+
+        document.getElementById('lpo-requests-list').innerHTML = requests.map(req => `
+            <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>${req.lpo_reference}</strong>
+                    <span style="color:${statusColor[req.status] || '#718096'}; font-weight:600; text-transform:capitalize;">${req.status}</span>
+                </div>
+                <div style="font-size:13px; color:#718096; margin-top:4px;">
+                    ${req.items.map(i => `${i.species} — ${i.quantity_kg}kg${i.resulting_order_id ? ` (Order #${i.resulting_order_id})` : ''}`).join(', ')}
+                </div>
+                ${req.rejection_reason ? `<div style="font-size:13px; color:#c53030; margin-top:4px;">Reason: ${req.rejection_reason}</div>` : ''}
+                <div style="font-size:12px; color:#a0aec0; margin-top:4px;">Submitted ${new Date(req.created_at).toLocaleDateString()}</div>
+            </div>
+        `).join('');
+    } catch (e) {
+        document.getElementById('lpo-requests-list').innerHTML =
+            '<div class="empty">Could not load purchase order history.</div>';
+    }
+}
 
 async function loadOrders() {
     if (!token) return;

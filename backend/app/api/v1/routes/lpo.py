@@ -22,6 +22,7 @@ from app.services.lpo_request_service import (
     fulfill_lpo_request_item,
     reject_lpo_request,
 )
+from app.models.lpo_request import LPORequest
 
 router = APIRouter(prefix="/lpo", tags=["LPO Orders"])
 
@@ -124,6 +125,7 @@ def get_lpo_order(
         "notes":             order.notes,
         "created_at":        order.created_at,
     }
+
 # ── BUYER-FACING LPO REQUEST SUBMISSION ──────────────────────────
 
 class LPORequestItemIn(BaseModel):
@@ -188,6 +190,37 @@ def list_pending_lpo_requests_route(
 class FulfillItemRequest(BaseModel):
     lot_id: int
 
+@router.get("/requests/mine")
+def list_my_lpo_requests_route(
+    current_user = Depends(get_current_user),
+    db: Session   = Depends(get_db),
+):
+    """Buyer: their own LPO requests, any status."""
+    requests = db.query(LPORequest).filter(
+        LPORequest.buyer_id == current_user.id
+    ).order_by(LPORequest.created_at.desc()).all()
+
+    return {
+        "requests": [
+            {
+                "id": req.id,
+                "lpo_reference": req.lpo_reference,
+                "status": req.status,
+                "payment_terms_days": req.payment_terms_days,
+                "created_at": req.created_at,
+                "rejection_reason": req.rejection_reason,
+                "items": [
+                    {
+                        "species": item.species,
+                        "quantity_kg": item.quantity_kg,
+                        "resulting_order_id": item.resulting_order_id,
+                    }
+                    for item in req.items
+                ],
+            }
+            for req in requests
+        ]
+    }
 
 @router.post("/requests/items/{item_id}/fulfill")
 def fulfill_lpo_request_item_route(
