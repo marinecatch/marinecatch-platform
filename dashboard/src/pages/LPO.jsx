@@ -1,18 +1,48 @@
 // src/pages/LPO.jsx
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { getLpos, getLpo } from '../services/api';
+import { getLpos, getLpo, getPendingLpoRequests, fulfillLpoRequestItem, rejectLpoRequest } from '../services/api';
 
 export default function LPO() {
+  const [tab, setTab]         = useState('Orders');
   const [orders, setOrders]   = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [detail, setDetail]   = useState(null);
   const [detailErr, setDetailErr] = useState(null);
 
-  useEffect(() => {
-    getLpos().then(r => setOrders(Array.isArray(r.data) ? r.data : (r.data.orders || []))).catch(console.error).finally(() => setLoading(false));
-  }, []);
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      getLpos().then(r => Array.isArray(r.data) ? r.data : (r.data.orders || [])).catch(() => []),
+      getPendingLpoRequests().then(r => r.data.requests || []).catch(() => []),
+    ]).then(([o, r]) => { setOrders(o); setRequests(r); }).finally(() => setLoading(false));
+  };
+
+  useEffect(load, []);
+
+  const fulfillItem = async (itemId) => {
+    const lotId = window.prompt('Enter the inventory lot ID to assign to this line item:');
+    if (!lotId) return;
+    try {
+      await fulfillLpoRequestItem(itemId, parseInt(lotId, 10));
+      load();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Could not fulfill this item — check the lot ID and available quantity.');
+    }
+  };
+
+  const rejectRequest = async (requestId) => {
+    const reason = window.prompt('Reason for rejecting this LPO request:');
+    if (!reason) return;
+    try {
+      await rejectLpoRequest(requestId, reason);
+      load();
+    } catch {
+      alert('Could not reject this request.');
+    }
+  };
 
   const lookup = async () => {
     if (!search.trim()) return;
@@ -58,11 +88,24 @@ export default function LPO() {
         )}
       </div>
 
-      <div style={{ background:'white', borderRadius:8, padding:20, border:'1px solid #e2e8f0' }}>
-        <div style={{ fontWeight:600, marginBottom:16, color:'#1a365d' }}>All LPO Orders</div>
-        {loading ? (
-          <div style={{ textAlign:'center', padding:24, color:'#718096' }}>Loading...</div>
-        ) : (
+      <div style={{ display:'flex', gap:8, marginBottom:16, borderBottom:'1px solid #e2e8f0' }}>
+        {['Orders', `Pending Requests${requests.length ? ` (${requests.length})` : ''}`].map((t, i) => {
+          const key = i === 0 ? 'Orders' : 'Requests';
+          return (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer',
+              fontWeight: tab === key ? 600 : 400, color: tab === key ? '#1D60AE' : '#718096',
+              borderBottom: tab === key ? '2px solid #1D60AE' : '2px solid transparent', fontSize:13,
+            }}>{t}</button>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign:'center', padding:24, color:'#718096' }}>Loading...</div>
+      ) : tab === 'Orders' ? (
+        <div style={{ background:'white', borderRadius:8, padding:20, border:'1px solid #e2e8f0' }}>
+          <div style={{ fontWeight:600, marginBottom:16, color:'#1a365d' }}>All LPO Orders</div>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
             <thead><tr style={{ borderBottom:'2px solid #e2e8f0' }}>
               {['LPO Ref', 'Buyer', 'Species', 'Quantity', 'Total', 'Terms', 'Status', 'Date'].map(h => (
@@ -87,8 +130,57 @@ export default function LPO() {
               {orders.length === 0 && <tr><td colSpan={8} style={{ padding:12, color:'#a0aec0' }}>No LPO orders yet.</td></tr>}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          {requests.map(r => (
+            <div key={r.id} style={{ background:'white', borderRadius:8, padding:20, border:'1px solid #e2e8f0' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
+                <div>
+                  <div style={{ fontWeight:600, color:'#1a365d' }}>{r.lpo_reference} — {r.buyer_name}</div>
+                  <div style={{ fontSize:12, color:'#718096' }}>
+                    {r.procurement_officer && `${r.procurement_officer} · `}
+                    {r.payment_terms_days}d terms
+                    {r.expected_fulfillment_date && ` · needed by ${r.expected_fulfillment_date}`}
+                  </div>
+                </div>
+                <button onClick={() => rejectRequest(r.id)} style={{ border:'1px solid #fed7d7', background:'white', color:'#9b2c2c', padding:'6px 14px', borderRadius:6, cursor:'pointer', fontSize:12, height:'fit-content' }}>
+                  Reject Request
+                </button>
+              </div>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+                <thead><tr style={{ borderBottom:'1px solid #f7fafc' }}>
+                  {['Species', 'Quantity', 'Notes', 'Status', ''].map(h => (
+                    <th key={h} style={{ textAlign:'left', padding:'6px 10px', color:'#718096', fontWeight:500, fontSize:11, textTransform:'uppercase' }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {r.items.map(it => (
+                    <tr key={it.id}>
+                      <td style={{ padding:'6px 10px', fontWeight:500 }}>{it.species}</td>
+                      <td style={{ padding:'6px 10px' }}>{it.quantity_kg}kg</td>
+                      <td style={{ padding:'6px 10px', color:'#718096' }}>{it.notes || '—'}</td>
+                      <td style={{ padding:'6px 10px' }}>
+                        {it.fulfilled_lot_id ? <span style={{ color:'#276749' }}>Fulfilled → Order #{it.resulting_order_id}</span> : <span style={{ color:'#9b2c2c' }}>Awaiting lot</span>}
+                      </td>
+                      <td style={{ padding:'6px 10px' }}>
+                        {!it.fulfilled_lot_id && (
+                          <button onClick={() => fulfillItem(it.id)} style={{ border:'none', background:'#1D60AE', color:'white', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:12 }}>
+                            Assign Lot
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {r.delivery_address && <div style={{ fontSize:12, color:'#718096', marginTop:10 }}>Deliver to: {r.delivery_address}</div>}
+              {r.notes && <div style={{ fontSize:12, color:'#718096', marginTop:4 }}>Notes: {r.notes}</div>}
+            </div>
+          ))}
+          {requests.length === 0 && <div style={{ background:'white', borderRadius:8, padding:24, border:'1px solid #e2e8f0', color:'#a0aec0' }}>No pending LPO requests.</div>}
+        </div>
+      )}
     </Layout>
   );
 }

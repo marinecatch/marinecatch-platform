@@ -196,6 +196,15 @@ export const getLpo = (reference) =>
 export const createLpo = (data) =>
   api.post('/api/v1/lpo/', data);
 
+export const getPendingLpoRequests = () =>
+  api.get('/api/v1/lpo/requests/pending');
+
+export const fulfillLpoRequestItem = (itemId, lotId) =>
+  api.post(`/api/v1/lpo/requests/items/${itemId}/fulfill`, { lot_id: lotId });
+
+export const rejectLpoRequest = (requestId, reason) =>
+  api.post(`/api/v1/lpo/requests/${requestId}/reject`, { reason });
+
 // ── NEWSLETTER ────────────────────────────────────────────────────
 export const getNewsletterSubscribers = (params = {}) =>
   api.get('/api/v1/newsletter/subscribers', { params });
